@@ -1,0 +1,68 @@
+# -*- coding: utf-8 -*-
+"""profiles_data.py — 워크북 profiles 시트의 P01~P12를 그대로 코드화."""
+
+from rule_engine import HouseholdProfile
+
+# (profile, 판정에 사용할 layer) 튜플 리스트
+PROFILES = [
+    (HouseholdProfile("P01", 22, "미혼", "무주택", household_size=3,
+                       monthly_income=6_000_000, total_assets=50_000_000, car_value=0),
+     "대학생"),
+    (HouseholdProfile("P02", 24, "미혼", "무주택", household_size=3,
+                       monthly_income=12_000_000, total_assets=150_000_000, car_value=0),
+     "대학생"),
+    (HouseholdProfile("P03", 25, "미혼", "무주택", household_size=1,
+                       monthly_income=3_000_000, total_assets=30_000_000, car_value=0),
+     "대학생"),
+    (HouseholdProfile("P04", 33, "혼인중", "무주택", household_size=3,
+                       monthly_income=6_000_000, total_assets=150_000_000, car_value=0,
+                       has_subscription_account=False, has_child_under_2=True),
+     "신혼부부"),
+    (HouseholdProfile("P05", 35, "미혼", "무주택", household_size=1,
+                       monthly_income=6_000_000, total_assets=100_000_000, car_value=0,
+                       has_subscription_account=True),
+     "청년"),
+    (HouseholdProfile("P06", 33, "혼인중", "무주택", household_size=2,
+                       monthly_income=6_000_000, total_assets=200_000_000, car_value=0,
+                       has_subscription_account=True, dual_income=False),
+     "신혼부부"),
+    (HouseholdProfile("P07", 29, "혼인중", "무주택", household_size=2,
+                       monthly_income=7_500_000, total_assets=150_000_000, car_value=0,
+                       has_subscription_account=True, dual_income=True),
+     "신혼부부"),
+    (HouseholdProfile("P08", 40, "한부모", "무주택", household_size=2,
+                       monthly_income=5_000_000, total_assets=100_000_000, car_value=0,
+                       has_subscription_account=True),
+     "한부모"),
+    (HouseholdProfile("P09", 31, "혼인중", "주택보유", household_size=2,
+                       monthly_income=5_500_000, total_assets=200_000_000, car_value=0,
+                       has_subscription_account=True),
+     "신혼부부"),
+    (HouseholdProfile("P10", 23, "미혼", "무주택", household_size=1,
+                       monthly_income=2_500_000, total_assets=30_000_000, car_value="확인불가"),
+     "대학생"),
+    (HouseholdProfile("P11", 30, "미혼", "무주택", house_head_status="세대주", household_size=3,
+                       monthly_income=7_000_000, total_assets=200_000_000, car_value=0,
+                       has_subscription_account=True),
+     "청년"),
+    (HouseholdProfile("P12", 30, "미혼", "무주택", house_head_status="세대원", household_size=3,
+                       monthly_income=2_000_000, total_assets=200_000_000, car_value=0,
+                       has_subscription_account=True),
+     "청년"),
+]
+
+# 워크북 match_matrix 시트에서 손으로 판정한 기대값 (N1, N2, N3)
+EXPECTED = {
+    "P01": {"N1": "NOT_OFFERED", "N2": "ELIGIBLE", "N3": "ELIGIBLE"},
+    "P02": {"N1": "NOT_OFFERED", "N2": "INELIGIBLE", "N3": "INELIGIBLE"},
+    "P03": {"N1": "NOT_OFFERED", "N2": "ELIGIBLE", "N3": "ELIGIBLE"},
+    "P04": {"N1": "ELIGIBLE", "N2": "NOT_OFFERED", "N3": "ELIGIBLE"},
+    "P05": {"N1": "NOT_OFFERED", "N2": "NOT_OFFERED", "N3": "INELIGIBLE"},
+    "P06": {"N1": "ELIGIBLE", "N2": "NOT_OFFERED", "N3": "ELIGIBLE"},
+    "P07": {"N1": "ELIGIBLE", "N2": "NOT_OFFERED", "N3": "ELIGIBLE"},
+    "P08": {"N1": "ELIGIBLE", "N2": "NOT_OFFERED", "N3": "ELIGIBLE"},
+    "P09": {"N1": "INELIGIBLE", "N2": "NOT_OFFERED", "N3": "INELIGIBLE"},
+    "P10": {"N1": "NOT_OFFERED", "N2": "NEEDS_INFO", "N3": "NEEDS_INFO"},
+    "P11": {"N1": "NOT_OFFERED", "N2": "NOT_OFFERED", "N3": "ELIGIBLE"},
+    "P12": {"N1": "NOT_OFFERED", "N2": "NOT_OFFERED", "N3": "ELIGIBLE"},
+}
