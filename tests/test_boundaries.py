@@ -3,6 +3,8 @@
 기준값+1일 때 FAIL이 정확히 되는지 검증. 사람 검증 없이 코드의 <=/< 연산자 오류를
 100% 잡아내는 게 목적이다."""
 
+from datetime import date
+
 import pytest
 from rule_engine import HouseholdProfile, evaluate, income_threshold
 from notices_data import N1, N2, N3
@@ -10,7 +12,8 @@ from notices_data import N1, N2, N3
 
 def base_student(**overrides):
     defaults = dict(profile_id="B", age=22, marital_status="미혼", home_ownership="무주택",
-                     household_size=3, monthly_income=1, total_assets=1, car_value=0)
+                     household_size=3, monthly_income=1, total_assets=1, car_value=0,
+                     student_status="재학중")
     defaults.update(overrides)
     return HouseholdProfile(**defaults)
 
@@ -18,7 +21,8 @@ def base_student(**overrides):
 def base_spouse(**overrides):
     defaults = dict(profile_id="B", age=30, marital_status="혼인중", home_ownership="무주택",
                      household_size=3, monthly_income=1, total_assets=1, car_value=0,
-                     has_subscription_account=True, dual_income=False)
+                     has_subscription_account=True, dual_income=False,
+                     marriage_date=date(2024, 1, 1))
     defaults.update(overrides)
     return HouseholdProfile(**defaults)
 

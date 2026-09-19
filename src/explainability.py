@@ -38,10 +38,18 @@ class Explanation:
 
 
 _HEADLINES = {
-    "ELIGIBLE": "신청 가능합니다.",
+    # "신청 가능"이라는 확정적 표현 대신, 이 엔진이 확인한 범위 안에서만 충족했다는 점을
+    # 명확히 한다 — 서류심사·경쟁 시 선정(추첨/배점)·미지원 세부요건은 이 결과에 포함되지 않는다.
+    "ELIGIBLE": "현재 확인한 필수조건은 모두 충족했습니다.",
     "INELIGIBLE": "이 조건으로는 신청할 수 없습니다.",
     "NEEDS_INFO": "추가 확인이 필요합니다.",
 }
+
+SCOPE_CAVEAT = (
+    "이 결과는 이 서비스가 확인한 필수조건에 한한 판정입니다. 서류심사·경쟁 시 선정(순위·추첨· "
+    "배점) 결과나 최종 당첨을 보장하지 않으며, 사회초년생 세부요건 등 일부 항목은 자기신고 "
+    "사실로만 처리됩니다. 최종 신청 전 반드시 LH 청약플러스 원문 공고문을 확인하세요."
+)
 
 
 def _reason_items(rule_ids: List[str], conditions_by_id: dict) -> List[ReasonItem]:
@@ -64,8 +72,9 @@ def explain(result: EvaluationResult, notice: NoticeRuleSet) -> Explanation:
     conditions_by_id = {c.rule_id: c for c in notice.layers[result.layer].conditions}
 
     headline = _HEADLINES[result.verdict]
-    if result.verdict == "ELIGIBLE" and result.score is not None:
-        headline = f"{headline} (충족도 {result.score}%)"
+    notes = list(result.notes)
+    if result.verdict == "ELIGIBLE":
+        notes.append(SCOPE_CAVEAT)
 
     return Explanation(
         profile_id=result.profile_id, notice_id=result.notice_id, layer=result.layer,
@@ -73,5 +82,5 @@ def explain(result: EvaluationResult, notice: NoticeRuleSet) -> Explanation:
         matched=_reason_items(result.matched, conditions_by_id),
         failed=_reason_items(result.failed, conditions_by_id),
         unknown=_reason_items(result.unknown, conditions_by_id),
-        notes=result.notes,
+        notes=notes,
     )

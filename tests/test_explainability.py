@@ -31,13 +31,15 @@ def test_not_offered_uses_evaluation_result_note():
 def test_eligible_lists_all_matched_reasons_with_source_ref():
     exp = _explain("P01", "N2")
     assert exp.verdict == "ELIGIBLE"
-    assert "신청 가능" in exp.headline
-    assert str(exp.score) in exp.headline
+    assert "충족했습니다" in exp.headline
+    assert "신청 가능" not in exp.headline  # 확정적 보장 표현을 쓰지 않는다(MVP0.1)
+    assert exp.score == 100.0
     assert len(exp.matched) > 0
     assert exp.failed == [] and exp.unknown == []
     for item in exp.matched:
         assert item.description  # note가 채워져 있어야 함
         assert item.source_ref
+    assert any("최종 신청 전" in n for n in exp.notes)  # 범위 한정 caveat 포함
 
 
 def test_ineligible_lists_failed_reasons_with_source_ref():

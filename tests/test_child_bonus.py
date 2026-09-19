@@ -3,6 +3,8 @@
 자녀 0/1/2명, 맞벌이 여부, 한부모/신혼부부 구분에 따라 소득비율·자산·자동차가
 동시에 바뀌어야 한다."""
 
+from datetime import date
+
 import pytest
 from rule_engine import HouseholdProfile, evaluate, income_threshold
 from notices_data import N1
@@ -11,7 +13,8 @@ from notices_data import N1
 def spouse(**overrides):
     defaults = dict(profile_id="B", age=30, marital_status="혼인중", home_ownership="무주택",
                      household_size=3, monthly_income=1, total_assets=1, car_value=0,
-                     has_subscription_account=True, dual_income=False, young_child_count=0)
+                     has_subscription_account=True, dual_income=False, young_child_count=0,
+                     marriage_date=date(2024, 1, 1))
     defaults.update(overrides)
     return HouseholdProfile(**defaults)
 
@@ -19,7 +22,8 @@ def spouse(**overrides):
 def singleparent(**overrides):
     defaults = dict(profile_id="B", age=35, marital_status="한부모", home_ownership="무주택",
                      household_size=2, monthly_income=1, total_assets=1, car_value=0,
-                     has_subscription_account=True, young_child_count=0)
+                     has_subscription_account=True, young_child_count=0,
+                     youngest_child_birth_date=date(2022, 1, 1))
     defaults.update(overrides)
     return HouseholdProfile(**defaults)
 

@@ -11,10 +11,31 @@ Eligibility Rule Engine — MVP0
 """
 
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Optional, Literal, List, Dict, Any
 
 Verdict = Literal["ELIGIBLE", "INELIGIBLE", "NEEDS_INFO", "NOT_OFFERED"]
 Layer = Literal["대학생", "청년", "신혼부부", "한부모"]
+
+
+# ---------------------------------------------------------------------------
+# 0. 날짜 계산 헬퍼 — 혼인기간·자녀 연령·졸업(중퇴) 경과기간은 전부
+#    "기준일로부터 정확히 N년 전 날짜(컷오프)와의 직접 비교"로 판정한다(MVP0.1 신규).
+#    주의: "경과 연수 = (on.year - start.year), 생일 미도래시 -1" 같은 만 나이 floor
+#    공식은 "N년 이내"(<=N년) 경계에서 최대 364일까지 오차가 생긴다(예: 2년+1일 경과를
+#    '2년 이내'로 잘못 통과시킴) — 그래서 여기서는 쓰지 않는다.
+# ---------------------------------------------------------------------------
+def years_before(on: date, n_years: int) -> date:
+    """on으로부터 정확히 n_years년 전 날짜(2/29 기준일은 2/28로 보정)."""
+    try:
+        return on.replace(year=on.year - n_years)
+    except ValueError:
+        return on.replace(year=on.year - n_years, day=28)
+
+
+def is_within_years(event_date: date, on: date, n_years: int) -> bool:
+    """event_date가 on 기준 최근 n_years년 이내(컷오프 이후, 컷오프 당일 포함)인지."""
+    return event_date >= years_before(on, n_years)
 
 # ---------------------------------------------------------------------------
 # 1. reference_values — 도시근로자 가구원수별 가구당 월평균소득 (2025년도 기준)
@@ -53,10 +74,12 @@ class HouseholdProfile:
     age: int
     marital_status: str                 # "미혼" / "혼인중" / "예비신혼" / "한부모"
     home_ownership: str                 # "무주택" / "주택보유"
-    house_head_status: Optional[str] = None   # "세대주" / "세대원" / None(대학생 등 무관 계층)
+    house_head_status: Optional[str] = None   # "세대주" / "세대원" / None(정보 없음 — 대학생 등 무관 계층 포함)
     household_size: int = 1             # 판정 대상 가구원수 (계층별로 산정 기준이 다름 — 호출부에서 맞춰 넣음)
-    monthly_income: int = 0             # 판정 대상 소득 (세대 전체 또는 본인만 — 계층별로 다름)
-    total_assets: int = 0
+    # monthly_income/total_assets는 "미입력(모름)"과 "실제 0원"을 구분하기 위해 Optional이다.
+    # None이면 확인불가(NEEDS_INFO)로 처리되고, 0은 실제 무소득/무자산으로 처리된다.
+    monthly_income: Optional[int] = None   # 판정 대상 소득 (세대 전체 또는 본인만 — 계층별로 다름)
+    total_assets: Optional[int] = None
     car_value: Any = 0                  # int 또는 "확인불가"
     has_subscription_account: bool = False
     subscription_months: int = 0
@@ -66,6 +89,23 @@ class HouseholdProfile:
     young_child_count: int = 0          # 2023.3.28 이후 출생(태아포함) 자녀 수 — 소득·자산 가산기준용
     residence_region: Optional[str] = None    # 우선공급 배점용(예: "노원구", "서울시(노원구외)")
     residence_years: float = 0.0        # 우선공급 배점용 — 해당 지역 거주기간(년)
+
+    # --- MVP0.1 신규 필드 ---
+    is_social_rookie: Optional[bool] = None
+    # 청년계층 ①-㉯(사회초년생) 해당 여부 — 소득활동기간 5년 이내 등 세부요건은 자기신고 사실로만
+    # 처리하며 엔진이 세부 증빙(예술인 인증, 구직급여 수급 등)을 검증하지 않는다(지원 범위 밖).
+
+    student_status: Optional[str] = None
+    # 대학생계층 ①-㉮/㉯ 해당 상태: "재학중" / "입학예정" / "복학예정" / "취업준비생" / None(미확인)
+    grad_or_dropout_date: Optional[date] = None
+    # student_status == "취업준비생"일 때만 사용 — 대학 또는 고등학교 졸업·중퇴일
+
+    marriage_date: Optional[date] = None
+    # 신혼부부(혼인중)의 혼인신고일 — 혼인기간 7년 이내 요건 판정용(예비신혼부부는 이 요건 자체가 없음)
+    youngest_child_birth_date: Optional[date] = None
+    # 막내 자녀 생년월일(태아 포함 시 예정일) — 신혼부부의 "6세 이하 자녀" 대체요건,
+    # 한부모가족의 "6세 이하 자녀를 둔 자" 필수요건 판정용. young_child_count(출생자녀 가산용)와는
+    # 별개 개념이다 — 가산은 2023.3.28 이후 출생아 수, 이 요건은 현재 6세 이하인지 여부다.
 
 
 # ---------------------------------------------------------------------------
@@ -91,6 +131,7 @@ class LayerRuleSet:
 class NoticeRuleSet:
     notice_id: str
     title: str
+    announcement_date: Optional[date] = None   # 입주자모집공고일 — 혼인기간/자녀연령/졸업경과 계산 기준일
     layers: Dict[Layer, LayerRuleSet] = field(default_factory=dict)
 
 
@@ -147,3 +188,38 @@ def evaluate(profile: HouseholdProfile, notice: NoticeRuleSet, layer: Layer) -> 
         profile.profile_id, notice.notice_id, layer, verdict, score,
         matched, failed, unknown, notes=[],
     )
+
+
+# ---------------------------------------------------------------------------
+# 5. 입력 검증 — evaluate() 진입 전에 자료형·범위·모순을 걸러낸다.
+#    (MVP0.1: "엔진에 소득 None을 전달하면 예외가 발생하는 문제" 등 방지)
+#    반환값이 비어있지 않으면 evaluate()를 호출하지 말고 이 오류를 그대로 사용자에게 보여준다.
+# ---------------------------------------------------------------------------
+def validate_profile(profile: HouseholdProfile) -> List[str]:
+    errors: List[str] = []
+
+    if not (0 <= profile.age <= 120):
+        errors.append("나이는 0~120 사이여야 합니다.")
+    if profile.household_size < 1:
+        errors.append("가구원수는 1 이상이어야 합니다.")
+    if profile.monthly_income is not None and profile.monthly_income < 0:
+        errors.append("월소득은 음수일 수 없습니다.")
+    if profile.total_assets is not None and profile.total_assets < 0:
+        errors.append("총자산은 음수일 수 없습니다.")
+    if isinstance(profile.car_value, (int, float)) and profile.car_value < 0:
+        errors.append("자동차가액은 음수일 수 없습니다.")
+    if profile.young_child_count < 0:
+        errors.append("출생자녀 수는 음수일 수 없습니다.")
+
+    today = date.today()
+    if profile.marriage_date is not None and profile.marriage_date > today:
+        errors.append("혼인일이 미래 날짜입니다.")
+    if profile.youngest_child_birth_date is not None and profile.youngest_child_birth_date > today:
+        errors.append("자녀 생년월일이 미래 날짜입니다.")
+    if profile.grad_or_dropout_date is not None and profile.grad_or_dropout_date > today:
+        errors.append("졸업/중퇴일이 미래 날짜입니다.")
+
+    if profile.house_head_status not in (None, "세대주", "세대원"):
+        errors.append("세대주/세대원 값이 올바르지 않습니다.")
+
+    return errors
