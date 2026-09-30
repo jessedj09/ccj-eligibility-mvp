@@ -14,7 +14,38 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional, Literal, List, Dict, Any
 
-Verdict = Literal["ELIGIBLE", "INELIGIBLE", "NEEDS_INFO", "NOT_OFFERED"]
+Verdict = Literal["ELIGIBLE", "INELIGIBLE", "NEEDS_INFO", "MANUAL_REVIEW", "NOT_OFFERED"]
+
+
+# ---------------------------------------------------------------------------
+# MANUAL_REVIEW — "사용자 정보 부족(NEEDS_INFO)"과 구분되는 "정책 해석 미확정" 상태.
+# 사용자에게 정보를 더 받아도 해결되지 않고, 원문 재확인·사람 검토가 필요하다는 뜻이다.
+# check 함수가 True/False/None 대신 ReviewNeeded를 반환하면 이 상태로 집계된다.
+# ---------------------------------------------------------------------------
+REVIEW_AMBIGUOUS_SOURCE = "AMBIGUOUS_SOURCE"            # 원문 표에 없는 조합이거나 해석이 갈림
+REVIEW_SELF_REPORT_UNVERIFIED = "SELF_REPORT_UNVERIFIED"  # 자기신고로만 처리하는 세부요건에 의존
+
+
+@dataclass(frozen=True)
+class ReviewNeeded:
+    code: str
+    detail: str
+
+
+def resolve_interpretations(results: Dict[str, Any], detail: str):
+    """같은 조건을 여러 해석으로 계산한 결과를 하나로 합친다.
+
+    - 하나라도 None(정보 부족)이면 None.
+    - 모든 해석이 같은 True/False로 일치하면 그 값(해석이 갈려도 결과가 같으면 확정).
+    - 해석에 따라 True/False가 갈리면 ReviewNeeded(AMBIGUOUS_SOURCE).
+    """
+    values = list(results.values())
+    if any(v is None for v in values):
+        return None
+    if all(v == values[0] for v in values):
+        return values[0]
+    shown = ", ".join(f"{name}={'충족' if v else '불충족'}" for name, v in results.items())
+    return ReviewNeeded(REVIEW_AMBIGUOUS_SOURCE, f"{detail} [{shown}]")
 Layer = Literal["대학생", "청년", "신혼부부", "한부모"]
 
 
@@ -31,6 +62,19 @@ def years_before(on: date, n_years: int) -> date:
         return on.replace(year=on.year - n_years)
     except ValueError:
         return on.replace(year=on.year - n_years, day=28)
+
+
+def marriage_cutoff(on: date) -> date:
+    """'혼인기간 7년 이내' — 공고일 정확히 7년 전 날짜(당일 포함) 이후 혼인신고."""
+    return years_before(on, 7)
+
+
+def young_child_cutoff(on: date) -> date:
+    """'6세 이하 자녀' — 만 6세 이하 = 아직 만 7세가 되지 않음 = 공고일 7년 전 날짜의 '다음 날' 이후 출생.
+    N1 원문 리터럴(공고일 2026.7.29 → 혼인 2019.7.29 / 출생 2019.7.30)을 이 공식이 그대로
+    재현한다(tests/test_mvp0_2_manual_review.py). 하루 차이는 원문의 특이값이 아니라 만 나이 정의다."""
+    from datetime import timedelta
+    return years_before(on, 7) + timedelta(days=1)
 
 
 def is_within_years(event_date: date, on: date, n_years: int) -> bool:
@@ -102,6 +146,10 @@ class HouseholdProfile:
 
     marriage_date: Optional[date] = None
     # 신혼부부(혼인중)의 혼인신고일 — 혼인기간 7년 이내 요건 판정용(예비신혼부부는 이 요건 자체가 없음)
+    has_children: Optional[bool] = None
+    # 자녀(6세 이하 여부와 무관)가 있는지: True/False/None(모름). False면 "6세 이하 자녀 없음"이
+    # 확정된다. 이 필드가 없으면 '자녀 없음'과 '아직 입력 안 함'을 구분할 수 없어 혼인 7년 초과
+    # 신혼부부·한부모가 영원히 NEEDS_INFO에 머문다(MVP0.2에서 발견).
     youngest_child_birth_date: Optional[date] = None
     # 막내 자녀 생년월일(태아 포함 시 예정일) — 신혼부부의 "6세 이하 자녀" 대체요건,
     # 한부모가족의 "6세 이하 자녀를 둔 자" 필수요건 판정용. young_child_count(출생자녀 가산용)와는
@@ -149,6 +197,8 @@ class EvaluationResult:
     failed: List[str]
     unknown: List[str]
     notes: List[str]
+    review: List[str] = field(default_factory=list)              # 정책 해석 미확정 조건 rule_id
+    review_reasons: Dict[str, ReviewNeeded] = field(default_factory=dict)
 
 
 def evaluate(profile: HouseholdProfile, notice: NoticeRuleSet, layer: Layer) -> EvaluationResult:
@@ -161,24 +211,33 @@ def evaluate(profile: HouseholdProfile, notice: NoticeRuleSet, layer: Layer) -> 
         )
 
     ruleset = notice.layers[layer]
-    matched, failed, unknown = [], [], []
+    matched, failed, unknown, review = [], [], [], []
+    review_reasons: Dict[str, ReviewNeeded] = {}
 
     for cond in ruleset.conditions:
         if not cond.required:
             continue  # 가점/배점 항목은 verdict에 영향 없음 (score도 별도 관리)
         result = cond.check(profile)
-        if result is True:
+        if isinstance(result, ReviewNeeded):
+            review.append(cond.rule_id)
+            review_reasons[cond.rule_id] = result
+        elif result is True:
             matched.append(cond.rule_id)
         elif result is False:
             failed.append(cond.rule_id)
         else:  # None = 확인 불가
             unknown.append(cond.rule_id)
 
-    total_required = len(matched) + len(failed) + len(unknown)
+    total_required = len(matched) + len(failed) + len(unknown) + len(review)
     score = round(len(matched) / total_required * 100, 1) if total_required else None
 
+    # 우선순위: 확정 불충족 > 정책 해석 미확정 > 정보 부족 > 충족.
+    # 해석 미확정이 남아 있으면 사용자가 정보를 더 입력해도 최종 확정이 안 되므로
+    # 정보 부족(NEEDS_INFO)보다 먼저 알린다(정보 부족 조건은 unknown 목록에 그대로 남는다).
     if failed:
         verdict: Verdict = "INELIGIBLE"
+    elif review:
+        verdict = "MANUAL_REVIEW"
     elif unknown:
         verdict = "NEEDS_INFO"
     else:
@@ -187,6 +246,7 @@ def evaluate(profile: HouseholdProfile, notice: NoticeRuleSet, layer: Layer) -> 
     return EvaluationResult(
         profile.profile_id, notice.notice_id, layer, verdict, score,
         matched, failed, unknown, notes=[],
+        review=review, review_reasons=review_reasons,
     )
 
 
@@ -219,6 +279,9 @@ def validate_profile(profile: HouseholdProfile) -> List[str]:
     if profile.grad_or_dropout_date is not None and profile.grad_or_dropout_date > today:
         errors.append("졸업/중퇴일이 미래 날짜입니다.")
 
+    if profile.has_children is False and (
+            profile.youngest_child_birth_date is not None or profile.young_child_count > 0):
+        errors.append("자녀가 없다고 입력했는데 자녀 생년월일 또는 출생자녀 가산 수가 입력되어 있습니다.")
     if profile.house_head_status not in (None, "세대주", "세대원"):
         errors.append("세대주/세대원 값이 올바르지 않습니다.")
 

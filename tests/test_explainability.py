@@ -55,7 +55,7 @@ def test_ineligible_lists_failed_reasons_with_source_ref():
 def test_needs_info_lists_unknown_reasons_with_source_ref():
     exp = _explain("P10", "N2")
     assert exp.verdict == "NEEDS_INFO"
-    assert "추가 확인" in exp.headline
+    assert "추가 정보를 입력" in exp.headline
     assert len(exp.unknown) > 0
     assert exp.failed == []
     for item in exp.unknown:
@@ -71,3 +71,20 @@ def test_every_rule_condition_has_a_note():
                 assert cond.note, (
                     f"{notice.notice_id}/{layer_name}/{cond.rule_id}에 note가 비어있음"
                 )
+
+
+def test_manual_review_lists_review_items_with_code_and_detail():
+    from datetime import date
+    from rule_engine import HouseholdProfile
+    p = HouseholdProfile("R", 22, "미혼", "무주택", household_size=2, young_child_count=1,
+                         monthly_income=1, total_assets=115_000_000, car_value=0,
+                         student_status="재학중")
+    notice = ALL_NOTICES["N2"]
+    exp = explain(evaluate(p, notice, "대학생"), notice)
+    assert exp.verdict == "MANUAL_REVIEW"
+    assert "수동 확인" in exp.headline
+    assert exp.failed == [] and exp.unknown == []
+    assert len(exp.review) == 1
+    item = exp.review[0]
+    assert item.code == "AMBIGUOUS_SOURCE" and item.source_ref
+    assert "원문 표 그대로" in item.detail  # 어떤 해석들이 갈렸는지 설명에 남는다

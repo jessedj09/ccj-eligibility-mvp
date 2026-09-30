@@ -31,8 +31,8 @@ cd tests
 python -m pytest -q
 ```
 
-- 회귀(match_matrix 대조) 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 + explainability 5 +
-  MVP0.1 재현/수정 28 = **총 115개**, 모두 통과해야 한다.
+- 회귀(match_matrix 대조) 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 + explainability 6 +
+  MVP0.1 재현/수정 28 + MVP0.2 수동검토 34 = **총 150개**, 모두 통과해야 한다.
 - 테스트가 검증하는 것과 검증하지 못하는 것의 차이는
   [docs/03-validation-methodology.md](docs/03-validation-methodology.md)를 반드시 읽을 것.
 
@@ -45,8 +45,10 @@ python -m pytest -q
 ## 지원 범위
 
 - 3개 LH 행복주택 공고(N1 서울공릉/N2 서울관악봉천/N3 서울번동3), 4개 계층(대학생/청년/
-  신혼부부/한부모)의 **필수조건** 충족 여부를 4상태(`ELIGIBLE`/`INELIGIBLE`/`NEEDS_INFO`/
-  `NOT_OFFERED`)로 판정한다.
+  신혼부부/한부모)의 **필수조건** 충족 여부를 5상태(`ELIGIBLE`/`INELIGIBLE`/`NEEDS_INFO`/
+  `MANUAL_REVIEW`/`NOT_OFFERED`)로 판정한다. `NEEDS_INFO`는 정보를 더 입력하면 해결되고,
+  `MANUAL_REVIEW`는 원문 해석이 갈리거나 자기신고로만 처리하는 항목이라 정보를 더 입력해도
+  해결되지 않는다(LH 재확인·사람 검토 필요).
 - 판정 근거(원문 페이지, 조건 설명)를 계층별로 보여주는 Explainability 레이어와 Streamlit
   데모 화면을 제공한다.
 - 미입력(모름)과 실제 0원/0건을 구분하고, 자료형·범위·모순 입력은 `validate_profile()`로
@@ -60,8 +62,10 @@ python -m pytest -q
   배점(`src/priority_scoring.py`)은 verdict와 분리된 별도 점수로만 제공된다.
 - **청년계층 "사회초년생" 세부요건**(소득활동기간 5년 이내 등 3가지 경로의 서류 증빙)은
   자기신고 사실로만 처리하며 세부 증빙을 검증하지 않는다.
-- **번동3(N3)의 혼인기간 7년/자녀 6세 이하 기준일**은 원문에 리터럴 날짜가 없어 공고일 기준
-  근사치를 사용한다 — 실사용 전 LH 재확인 필요(원문 대조표 §3 참조).
+- **원문 표에 없는 조합**(대학생·청년 2인 가구 + 출생자녀 등)은 임의로 통과/탈락시키지 않고
+  `MANUAL_REVIEW`로 표시한다(원문 대조표 §3, LH 질의서 `docs/lh-inquiry-questions.md`).
+- **출생자녀 가산 대상 자녀 수 산정**(기준일 이후 출생 시 기존 미성년 자녀 합산, 최대 2명)은
+  사용자가 계산해서 입력한다 — 엔진이 직접 계산하지 않는다(알려진 미해결 항목).
 - **사람(도메인 전문가)이나 LH 공식 자가진단 도구를 통한 독립 검증은 아직 수행하지 않았다.**
   이 저장소의 테스트가 보장하는 것은 "손으로 계산한 정답지와 코드가 일치하는지"뿐이며, 공고문
   규칙 자체를 잘못 이해했을 가능성은 이 테스트로 잡아낼 수 없다
@@ -82,5 +86,6 @@ python -m pytest -q
 - [docs/02-data-schema.md](docs/02-data-schema.md) — 데이터 스키마
 - [docs/03-validation-methodology.md](docs/03-validation-methodology.md) — 검증 방법론과 한계
 - [docs/04-open-items-and-next-steps.md](docs/04-open-items-and-next-steps.md) — 다음 단계
-- [docs/rule-coverage-matrix.md](docs/rule-coverage-matrix.md) — MVP0.1 원문·구현 대조표
-  (이번 개정의 핵심 산출물)
+- [docs/rule-coverage-matrix.md](docs/rule-coverage-matrix.md) — 원문·구현 대조표(MANUAL_REVIEW 쟁점 포함)
+- [docs/lh-inquiry-questions.md](docs/lh-inquiry-questions.md) — LH 재확인 질의 목록과 답변 기록
+- [docs/independent-validation-worksheet.md](docs/independent-validation-worksheet.md) — 독립 검증 워크시트

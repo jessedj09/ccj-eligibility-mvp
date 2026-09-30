@@ -15,7 +15,9 @@ from datetime import date
 
 from rule_engine import (
     RuleCondition, LayerRuleSet, NoticeRuleSet, income_threshold,
-    is_within_years, years_before,
+    is_within_years, marriage_cutoff, young_child_cutoff,
+    ReviewNeeded, resolve_interpretations,
+    REVIEW_AMBIGUOUS_SOURCE, REVIEW_SELF_REPORT_UNVERIFIED,
 )
 
 
@@ -80,19 +82,61 @@ def _student_asset_limit(household_size, young_child_count):
     return 130_000_000
 
 
+_GENERAL_BONUS_NAME = "자녀 가산 일반규칙 적용(원문 표에 이 가구원수 행이 없음)"
+_TABLE_NAME = "원문 표 그대로"
+
+
+def _no_table_row(p):
+    """가구원수 1인인데 출생자녀 가산을 받는 조합 — 자녀가 가구원에 포함되므로 입력 모순이거나
+    원문 표에 없는 조합이다. 임의로 한쪽을 택하지 않고 수동 검토로 넘긴다."""
+    return ReviewNeeded(
+        REVIEW_AMBIGUOUS_SOURCE,
+        "가구원수 1인인데 출생자녀 가산 대상 자녀가 있음 — 입력 모순이거나 원문 표에 없는 조합")
+
+
+def _student_interpretations(p):
+    """대학생 (비율%, 자산한도) 해석 후보.
+
+    원문 표(N2 p.5)는 가구원수 3인 이상에만 자녀 1명/2명 행이 있다. 그런데 대학생의 가구원수에는
+    직계비속이 포함되므로(N2 p.6) 본인+자녀 2인 가구가 가능하고, 이 조합은 표에 없다. 본문의
+    "출산자녀 1인 10%/2인 이상 20% 가산" 일반규칙을 적용하면 가산이 붙는다 — 표를 글자 그대로
+    읽으면 안 붙는다. 어느 쪽이 맞는지 원문만으로 확정할 수 없어 두 해석을 모두 계산한다.
+    """
+    size, child = p.household_size, p.young_child_count
+    options = {_TABLE_NAME: (_size_based_ratio(size, child), _student_asset_limit(size, child))}
+    if size == 2 and child >= 1:
+        options[_GENERAL_BONUS_NAME] = (120 if child == 1 else 130,
+                                        119_000_000 if child == 1 else 130_000_000)
+    return options
+
+
 def _make_student_conditions(prefix, marital_ref, home_ref, student_ref, income_ref,
                               asset_ref, car_ref, announcement_date):
     def student_check(p):
         return _student_status_ok(p, announcement_date)
 
     def income_check(p):
-        ratio = _size_based_ratio(p.household_size, p.young_child_count)
-        limit = income_threshold(p.household_size, ratio)
-        return _income_le(p.monthly_income, limit)
+        if p.monthly_income is None:
+            return None
+        if p.household_size <= 1 and p.young_child_count >= 1:
+            return _no_table_row(p)
+        limits = {name: income_threshold(p.household_size, ratio)
+                  for name, (ratio, _a) in _student_interpretations(p).items()}
+        if any(v is None for v in limits.values()):
+            return None
+        return resolve_interpretations(
+            {name: p.monthly_income <= v for name, v in limits.items()},
+            "대학생 출생자녀 가산 소득기준 해석 불일치")
 
     def asset_check(p):
-        limit = _student_asset_limit(p.household_size, p.young_child_count)
-        return _assets_le(p.total_assets, limit)
+        if p.total_assets is None:
+            return None
+        if p.household_size <= 1 and p.young_child_count >= 1:
+            return _no_table_row(p)
+        limits = {name: asset for name, (_r, asset) in _student_interpretations(p).items()}
+        return resolve_interpretations(
+            {name: p.total_assets <= v for name, v in limits.items()},
+            "대학생 출생자녀 가산 자산기준 해석 불일치")
 
     return [
         RuleCondition(f"{prefix}4", "marital_status", True, marital_ref,
@@ -160,9 +204,7 @@ def _marriage_or_child_ok(p, marriage_cutoff, child_cutoff):
     duration_ok = None
     if p.marriage_date is not None:
         duration_ok = p.marriage_date >= marriage_cutoff
-    child_ok = None
-    if p.youngest_child_birth_date is not None:
-        child_ok = p.youngest_child_birth_date >= child_cutoff
+    child_ok = _young_child_status(p, child_cutoff)
     if duration_ok or child_ok:
         return True
     if duration_ok is False and child_ok is False:
@@ -170,11 +212,18 @@ def _marriage_or_child_ok(p, marriage_cutoff, child_cutoff):
     return None  # 최소 한쪽이 미확인이고 나머지도 통과가 아님
 
 
-def _child_under6_ok(p, child_cutoff):
-    """①-㉰(한부모 전용) 6세 이하 자녀를 둔 자."""
+def _young_child_status(p, child_cutoff):
+    """6세 이하 자녀 여부: 자녀 없음 확정(False) / 막내 생년월일로 판정 / 모름(None)."""
+    if p.has_children is False:
+        return False
     if p.youngest_child_birth_date is None:
         return None
     return p.youngest_child_birth_date >= child_cutoff
+
+
+def _child_under6_ok(p, child_cutoff):
+    """①-㉰(한부모 전용) 6세 이하 자녀를 둔 자."""
+    return _young_child_status(p, child_cutoff)
 
 
 def _make_spouse_conditions(prefix, terms_func, income_ref, asset_ref, car_ref, sub_ref,
@@ -292,72 +341,101 @@ n3_student_conditions = _make_student_conditions(
 
 
 def _youth_age_or_rookie_ok(p):
-    """➀-㉮(19~39세) 또는 ➀-㉯(사회초년생, 자기신고).
+    """➀-㉮(19~39세) 또는 ➀-㉯(사회초년생).
 
-    사회초년생의 세부요건(소득활동기간 5년 이내, 예술인 인증 등 3가지 경로)은
-    이 엔진이 증빙을 검증하지 않는다 — is_social_rookie는 사용자 자기신고 사실로만 다룬다
-    (docs/rule-coverage-matrix.md '지원 범위 밖' 참조).
+    나이가 범위 안이면 사회초년생 정보와 무관하게 확정 충족이다. 나이가 범위 밖인데 사회초년생이
+    '예'라고 자기신고한 경우는 세부요건(소득활동기간 5년 이내, 재직/구직급여/예술인 3가지 경로)을
+    엔진이 검증하지 못하므로 ELIGIBLE로 확정하지 않고 수동 검토로 넘긴다(MVP0.2).
     """
-    age_ok = 19 <= p.age <= 39
-    if age_ok:
+    if 19 <= p.age <= 39:
         return True
     if p.is_social_rookie is True:
-        return True
+        return ReviewNeeded(
+            REVIEW_SELF_REPORT_UNVERIFIED,
+            "사회초년생 경로(소득활동기간 5년 이내 등 세부요건)는 자기신고이며 증빙을 검증하지 않음")
     if p.is_social_rookie is False:
         return False
     return None
 
 
-def _youth_income_ratio_and_size(p):
-    """소득판정에 적용할 (비율%, 가구원수) 쌍.
+def _youth_interpretations(p):
+    """청년 해석 후보 {이름: (소득한도, 자산한도, 자동차한도)}. 소득한도는 None일 수 있다(표에 없는 조합).
 
-    무자녀 세대원은 기존 결정(docs/01-decisions-log.md 5번)대로 가구원수를 1로 고정한다.
-    자녀가산이 있는 세대원의 가구원수 적용 방식은 원문 표(p.7)가 세대주 표와 동일한
-    수치를 그대로 반복 게재하고 있어, 실제로 세대원도 가구원수를 그대로 쓰는지 표가
-    단순 재게재(오탈자성)인지 원문만으로 확정할 수 없다 — 이 구현은 '표에 적힌 대로'
-    실제 household_size를 사용하는 쪽을 택했다(docs/rule-coverage-matrix.md 확인 필요 항목).
+    - 무자녀 세대원: 소득은 1인 120% 고정(결정 로그 5번, 소득기준표에 세대원 1인 행만 존재).
+    - 그 외: 원문 표 그대로(실제 가구원수 + 출생자녀 가산).
+    - 2인 가구 + 자녀: 표에 행이 없어 '일반규칙 가산' 해석을 추가(대학생과 동일한 이유).
+    - 세대원 + 자녀: 세대원 행이 세대주 행과 동일 수치로 재게재되어 있어 '표 그대로'와
+      '세대원은 여전히 1인 120% 고정' 두 해석을 추가.
+    자산·자동차는 세대주/세대원 구분 없이 실제 가구원수 기준(비대칭 유지).
     """
-    if p.house_head_status == "세대원" and p.young_child_count <= 0:
-        return 120, 1
-    size = p.household_size
-    child = p.young_child_count
-    if size <= 1:
-        return 120, size
-    if size == 2:
-        return 110, size
-    if child <= 0:
-        return 100, size
-    if child == 1:
-        return 110, size
-    return 120, size
-
-
-def _youth_asset_car_limits(p):
-    """자산·자동차 한도는 세대주/세대원 구분 없이 실제 가구원수 기준(기존 비대칭 결정 유지)."""
     size, child = p.household_size, p.young_child_count
-    if size <= 2 or child <= 0:
-        return 251_000_000, 45_420_000
-    if child == 1:
-        return 276_000_000, 49_960_000
-    return 301_000_000, 54_510_000
+    one_person_limit = income_threshold(1, 120)
+
+    if p.house_head_status == "세대원" and child <= 0:
+        return {_TABLE_NAME: (one_person_limit, 251_000_000, 45_420_000)}
+
+    def table_ratio(s, c):
+        if s <= 1:
+            return 120
+        if s == 2:
+            return 110
+        return 100 if c <= 0 else 110 if c == 1 else 120
+
+    def table_asset_car(s, c):
+        if s <= 2 or c <= 0:
+            return 251_000_000, 45_420_000
+        return (276_000_000, 49_960_000) if c == 1 else (301_000_000, 54_510_000)
+
+    asset, car = table_asset_car(size, child)
+    options = {_TABLE_NAME: (income_threshold(size, table_ratio(size, child)), asset, car)}
+
+    if size == 2 and child >= 1:
+        bonus_ratio = 120 if child == 1 else 130
+        bonus_asset, bonus_car = ((276_000_000, 49_960_000) if child == 1
+                                  else (301_000_000, 54_510_000))
+        options[_GENERAL_BONUS_NAME] = (income_threshold(2, bonus_ratio), bonus_asset, bonus_car)
+
+    if p.house_head_status == "세대원" and child >= 1:
+        options["세대원은 자녀가산과 무관하게 1인 120% 고정"] = (one_person_limit, asset, car)
+
+    return options
 
 
 def _youth_income_ok(p):
     if p.house_head_status is None:
         return None  # 세대주/세대원에 따라 적용 기준이 달라 확인 없이는 판단 불가
-    ratio, size = _youth_income_ratio_and_size(p)
-    limit = income_threshold(size, ratio)
-    return _income_le(p.monthly_income, limit)
+    if p.monthly_income is None:
+        return None
+    if p.household_size <= 1 and p.young_child_count >= 1:
+        return _no_table_row(p)
+    limits = {name: income for name, (income, _a, _c) in _youth_interpretations(p).items()}
+    if any(v is None for v in limits.values()):
+        return None
+    return resolve_interpretations(
+        {name: p.monthly_income <= v for name, v in limits.items()},
+        "청년 소득기준 해석 불일치")
 
 
 def _youth_asset_ok(p):
-    asset, _car = _youth_asset_car_limits(p)
-    return _assets_le(p.total_assets, asset)
+    if p.total_assets is None:
+        return None
+    if p.household_size <= 1 and p.young_child_count >= 1:
+        return _no_table_row(p)
+    limits = {name: asset for name, (_i, asset, _c) in _youth_interpretations(p).items()}
+    return resolve_interpretations(
+        {name: p.total_assets <= v for name, v in limits.items()},
+        "청년 자산기준 해석 불일치")
 
 
 def _youth_car_ok(p):
-    _asset, car = _youth_asset_car_limits(p)
-    return _car_ok(p, car)
+    if p.car_value == "확인불가":
+        return None
+    if p.household_size <= 1 and p.young_child_count >= 1:
+        return _no_table_row(p)
+    limits = {name: car for name, (_i, _a, car) in _youth_interpretations(p).items()}
+    return resolve_interpretations(
+        {name: p.car_value <= v for name, v in limits.items()},
+        "청년 자동차가액 기준 해석 불일치")
 
 
 n3_youth_conditions = [
@@ -386,29 +464,28 @@ n3_youth_conditions = [
                        "(신청 시점 미가입은 현재 자격에 영향 없음)"),
 ]
 
-# N3 원문(p.9)은 N1과 달리 "혼인기간 7년/6세 이하"의 리터럴 컷오프 날짜를 명시하지 않는다.
-# N1을 대조해보면 '6세 이하' 컷오프가 '혼인기간 7년' 컷오프보다 정확히 하루 늦다는 규칙성이
-# 있었지만(2019.7.29 vs 2019.7.30), 이 하루 차이가 일반화 가능한 계산식인지 N1만의 우연인지
-# 원문만으로는 확정할 수 없다. 이 구현은 두 컷오프를 모두 "공고일 - 7년"으로 근사한다
-# (docs/rule-coverage-matrix.md 확인 필요 항목 — 실사용 전 LH 재확인 권장).
-N3_MARRIAGE_CUTOFF = years_before(N3_ANNOUNCEMENT, 7)
-N3_CHILD_CUTOFF = N3_MARRIAGE_CUTOFF
+# N3 원문(p.9)은 N1과 달리 컷오프 날짜를 리터럴로 적지 않고 같은 문구("혼인기간 7년 이내 /
+# 6세 이하 자녀")만 쓴다. N1의 리터럴(2019.7.29 / 2019.7.30)은 "혼인=공고일-7년, 6세이하=만 7세
+# 미만=공고일-7년의 다음 날"이라는 일반 공식으로 정확히 재현되므로(tests 참조) N3에도 같은
+# 공식을 적용한다. 남는 가정은 "N3가 N1과 같은 LH 표준 문구·만 나이 기준을 쓴다"는 것뿐이다.
+N3_MARRIAGE_CUTOFF = marriage_cutoff(N3_ANNOUNCEMENT)
+N3_CHILD_CUTOFF = young_child_cutoff(N3_ANNOUNCEMENT)
 
 n3_married_conditions = _make_spouse_conditions(
     "N3-M", spouse_terms_married,
     "공고문 p.9 ③(+가산표)", "공고문 p.9-10 ④(가산표)", "공고문 p.9-10 ④(가산표)", "공고문 p.9 ⑤",
     "공고문 p.9 ①-㉮/㉯", {"혼인중", "예비신혼"},
     "혼인 중이거나 예비신혼부부인지", "married", N3_MARRIAGE_CUTOFF, N3_CHILD_CUTOFF,
-    "공고문 p.9 ② (※ N1과 달리 7년/6세 기준일이 원문에 명시되어 있지 않아 "
-    "공고일 기준 역산으로 근사함 — docs/rule-coverage-matrix.md 확인 필요)",
+    "공고문 p.9 ② (컷오프 날짜는 원문에 리터럴이 없어 N1과 같은 공식으로 공고일에서 도출 — "
+    "docs/rule-coverage-matrix.md §3)",
 )
 n3_singleparent_conditions = _make_spouse_conditions(
     "N3-S", spouse_terms_singleparent,
     "공고문 p.9 ③(+가산표)", "공고문 p.9-10 ④(가산표)", "공고문 p.9-10 ④(가산표)", "공고문 p.9 ⑤",
     "공고문 p.9 ①-㉰", {"한부모"},
     "한부모가족인지", "singleparent", N3_MARRIAGE_CUTOFF, N3_CHILD_CUTOFF,
-    "공고문 p.9 ①-㉰ (※ 6세 기준일이 원문에 명시되어 있지 않아 공고일 기준 역산으로 근사 — "
-    "docs/rule-coverage-matrix.md 확인 필요)",
+    "공고문 p.9 ①-㉰ (6세 컷오프는 원문에 리터럴이 없어 N1과 같은 공식으로 도출 — "
+    "docs/rule-coverage-matrix.md §3)",
 )
 
 N3 = NoticeRuleSet(

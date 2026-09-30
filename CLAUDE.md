@@ -22,16 +22,27 @@ Engine**이다.
   세대주로 추정하던 버그, 소득/자산 `None`(미입력)을 0으로 취급하며 예외까지 발생시키던
   버그도 수정했다. 상세 내용은 반드시 **[docs/rule-coverage-matrix.md](docs/rule-coverage-matrix.md)**
   를 읽을 것 — 이번 개정으로 확인이 필요한(원문 자체가 모호한) 쟁점들도 함께 정리되어 있다.
-- pytest: 회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 + explainability 5 +
-  MVP0.1 재현/수정 28 = **115개 전부 통과**.
-- 다음 단계: docs/04-open-items-and-next-steps.md 참조(외부 독립 검증, 이상치 테스트,
-  API 설계는 아직 미착수).
+- **MVP0.2(2026-09-30, 브랜치 `mvp0.2-manual-review`)**: 설계문서 v0.1의 `MANUAL_REVIEW`를
+  구현(대학생·청년 2인+자녀, 청년 세대원+자녀, 사회초년생 자기신고 → 수동 확인). 자녀 "없음"과
+  "모름"을 구분하는 `has_children` 추가. **MVP0.1의 N3 자녀 컷오프 1일 오류 수정**(만 7세를
+  6세 이하로 통과시키던 버그) — "6세 이하" 컷오프는 공고일 7년 전의 다음 날이라는 공식이 N1
+  리터럴을 정확히 재현한다. 독립 검증용 `docs/independent-validation-worksheet.md`,
+  LH 질의서 `docs/lh-inquiry-questions.md` 작성. 화면은 Streamlit `AppTest`로 28개
+  공고×계층×샘플 조합을 실제 실행해 예외 없음을 확인했다.
+- pytest: 총 **150개 전부 통과**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
+  explainability 6 + MVP0.1 28 + MVP0.2 34).
+- 다음 단계: docs/04-open-items-and-next-steps.md 참조(독립 검증 수행, LH 질의 회신 반영, 그 뒤
+  규칙의 데이터화(B)).
 
 ## 반드시 지켜야 할 원칙 (요약 — 근거는 docs/01-decisions-log.md)
 
 1. **LLM은 공고문 파싱에만 쓴다. 자격 판정(verdict)은 100% 결정론적 코드로만 한다.**
-2. **verdict는 4상태다**: `ELIGIBLE` / `INELIGIBLE` / `NEEDS_INFO` / `NOT_OFFERED`.
-   `NOT_OFFERED`(이 공고엔 해당 계층 자체가 없음)를 `INELIGIBLE`과 절대 섞지 말 것.
+2. **verdict는 5상태다**: `ELIGIBLE` / `INELIGIBLE` / `NEEDS_INFO` / `MANUAL_REVIEW` /
+   `NOT_OFFERED`. `NOT_OFFERED`(이 공고엔 해당 계층 자체가 없음)를 `INELIGIBLE`과 절대 섞지 말 것.
+   **`NEEDS_INFO`(사용자가 정보를 더 넣으면 해결)와 `MANUAL_REVIEW`(정책 해석 미확정·자기신고
+   의존 — 정보를 더 넣어도 해결 안 됨)를 섞지 말 것.** 우선순위: 확정 불충족 > MANUAL_REVIEW >
+   NEEDS_INFO > ELIGIBLE. 원문 표에 없는 조합이나 해석이 갈리는 조건은 임의로 한쪽을 택해
+   통과/탈락시키지 말고 `resolve_interpretations()`로 여러 해석을 계산해 갈릴 때만 MANUAL_REVIEW.
 3. **score = 충족 필수조건 수 / 전체 필수조건 수.** "당첨 확률 예측"이 아니다 — ML로
    당첨 가능성을 추정하는 기능은 MVP 범위에서 명시적으로 제외되어 있다.
 4. **등본에 이미 적힌 사실(세대주/세대원 여부, 1인가구 여부)은 Rule Engine이 추론하지
@@ -70,8 +81,8 @@ Engine**이다.
 - `src/explainability.py` — EvaluationResult → 사용자용 근거 문구(Explanation) 변환
 - `app.py` — Streamlit 데모 UI (판정 로직 없음, src/ 함수만 호출)
 - `mvp0/` — **실행 대상 아님.** 초기 스냅샷(옛 버전), `mvp0/README.md` 참조
-- `tests/` — pytest 스위트, **총 115개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
-  explainability 5 + MVP0.1 재현/수정 28)
+- `tests/` — pytest 스위트, **총 150개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
+  explainability 6 + MVP0.1 28 + MVP0.2 34)
 - `data/*.xlsx` — MVP0 설계 워크북 원본 (programs/notices/rules/reference_values/
   income_basis/profiles/match_matrix 시트 — 코드보다 사람이 보기 편한 원본)
 
@@ -84,3 +95,4 @@ Engine**이다.
 @docs/01-decisions-log.md
 @docs/03-validation-methodology.md
 @docs/rule-coverage-matrix.md
+@docs/lh-inquiry-questions.md

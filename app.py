@@ -34,6 +34,7 @@ VERDICT_STYLE = {
     "ELIGIBLE": ("✅", "success"),
     "INELIGIBLE": ("❌", "error"),
     "NEEDS_INFO": ("⚠️", "warning"),
+    "MANUAL_REVIEW": ("🔍", "warning"),
     "NOT_OFFERED": ("➖", "info"),
 }
 
@@ -130,7 +131,7 @@ with st.form("profile_form"):
                     value=_default("grad_or_dropout_date", None) or date.today(),
                 )
 
-        marriage_date, youngest_child_birth_date = None, None
+        marriage_date, youngest_child_birth_date, has_children = None, None, None
         if layer in ("신혼부부", "한부모"):
             if layer == "신혼부부" and marital_status == "혼인중":
                 marriage_known = st.checkbox(
@@ -138,12 +139,18 @@ with st.form("profile_form"):
                 if marriage_known:
                     marriage_date = st.date_input(
                         "혼인신고일", value=_default("marriage_date", None) or date.today())
-            child_known = st.checkbox(
-                "막내 자녀 생년월일(태아 포함 시 출산예정일)을 알고 있음",
-                value=_default("youngest_child_birth_date", None) is not None)
-            if child_known:
+            preset_child = _default("has_children", None)
+            if preset_child is None and _default("youngest_child_birth_date", None) is not None:
+                preset_child = True
+            child_labels = ["모름", "있음", "없음"]
+            child_choice = st.selectbox(
+                "자녀(태아 포함)", options=child_labels,
+                index=child_labels.index({None: "모름", True: "있음", False: "없음"}[preset_child]),
+            )
+            has_children = {"모름": None, "있음": True, "없음": False}[child_choice]
+            if has_children:
                 youngest_child_birth_date = st.date_input(
-                    "막내 자녀 생년월일/출산예정일",
+                    "막내 자녀 생년월일(태아는 출산예정일)",
                     value=_default("youngest_child_birth_date", None) or date.today())
 
     with col2:
@@ -161,9 +168,14 @@ with st.form("profile_form"):
         st.caption("미가입이어도 대부분의 계층은 '입주 전까지'만 가입하면 되므로 현재 자격에는 "
                    "영향이 없습니다(우선공급 배점에는 영향 가능).")
         young_child_count = st.number_input(
-            "2023.3.28 이후 출생 자녀 수(가산 소득·자산 기준용)", min_value=0, max_value=10,
-            value=_default("young_child_count", 0),
+            "출생자녀 가산 대상 자녀 수(0~2)", min_value=0, max_value=2,
+            value=min(_default("young_child_count", 0), 2),
         )
+        st.caption("산정 방법(공고문): 2023.3.28. 이후 출생(입양·태아 포함)한 자녀가 1명이라도 "
+                   "있으면, 그 이전에 태어난 기존 미성년 자녀도 합산해 최대 2명까지 인정합니다. "
+                   "단 신청자(또는 배우자) 세대별 주민등록표에 등재된 자녀만 해당합니다. "
+                   "이후 출생 자녀가 없으면 기존 미성년 자녀가 있어도 0명입니다. "
+                   "이 화면은 위 기준으로 이미 계산한 값을 입력받습니다.")
         has_child_under_2 = st.checkbox(
             "2세 미만 자녀 있음(우선공급 대상 여부 참고용 — 이 계산기는 우선공급 배점을 "
             "산출하지 않습니다)",
@@ -192,6 +204,7 @@ if submitted:
         grad_or_dropout_date=grad_or_dropout_date,
         marriage_date=marriage_date,
         youngest_child_birth_date=youngest_child_birth_date,
+        has_children=has_children,
     )
 
     errors = validate_profile(profile)
@@ -208,7 +221,7 @@ if submitted:
         if exp.score is not None:
             st.caption(f"참고: 확인된 필수조건 중 {exp.score}%를 충족했습니다 "
                        f"(불충족 조건이 하나라도 있으면 신청 자체가 불가하므로, 100% 미만이면 "
-                       f"이미 INELIGIBLE 또는 NEEDS_INFO 상태입니다).")
+                       f"이미 INELIGIBLE·MANUAL_REVIEW·NEEDS_INFO 상태입니다).")
 
         if exp.matched:
             st.subheader("충족한 조건")
@@ -220,8 +233,16 @@ if submitted:
             for item in exp.failed:
                 st.markdown(f"- {item.description} _(근거: {item.source_ref})_")
 
+        if exp.review:
+            st.subheader("자동 확정이 어려운 조건 (수동 확인 필요)")
+            st.caption("정보를 더 입력해도 해결되지 않습니다. 원문 해석이 갈리거나 자기신고로만 "
+                       "처리하는 항목이라 LH 청약플러스·고객센터 등으로 직접 확인해야 합니다.")
+            for item in exp.review:
+                st.markdown(f"- {item.description} _(근거: {item.source_ref})_")
+                st.caption(f"사유 `{item.code}`: {item.detail}")
+
         if exp.unknown:
-            st.subheader("확인이 필요한 조건")
+            st.subheader("추가로 입력하면 판정할 수 있는 조건")
             for item in exp.unknown:
                 st.markdown(f"- {item.description} _(근거: {item.source_ref})_")
 
@@ -236,8 +257,10 @@ with st.expander("이 계산기가 지원하는 범위 / 지원하지 않는 범
         "- 우선공급 배점(청약저축 납입횟수 등)은 이 화면에서 산출하지 않습니다.\n"
         "- 청년계층 '사회초년생' 세부요건(소득활동기간 5년 이내, 예술인 인증 등 증빙)은 "
         "자기신고 사실로만 처리하며 세부 증빙을 검증하지 않습니다.\n"
-        "- 번동3(N3)의 혼인기간 7년/자녀 6세 이하 기준일은 원문에 리터럴 날짜가 없어 "
-        "공고일 기준 근사치로 계산합니다 — 자세한 내용은 "
-        "docs/rule-coverage-matrix.md를 참고하세요.\n"
+        "- 원문 표에 없는 조합(예: 대학생·청년 2인 가구 + 출생자녀)이나 해석이 갈리는 조건은 "
+        "임의로 통과/탈락시키지 않고 '수동 확인 필요(MANUAL_REVIEW)'로 표시합니다 — 자세한 "
+        "내용은 docs/rule-coverage-matrix.md를 참고하세요.\n"
+        "- 번동3(N3)의 혼인기간·자녀연령 기준일은 원문에 날짜가 없어 N1 원문과 같은 공식으로 "
+        "공고일에서 도출했습니다.\n"
         "- 최종 신청 전 반드시 LH 청약플러스 원문 공고문으로 재확인하시기 바랍니다."
     )

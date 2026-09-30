@@ -65,10 +65,12 @@ def test_youth_age_out_of_range_and_confirmed_not_rookie_fails():
     assert "N3-R5b" in r.failed
 
 
-def test_youth_age_out_of_range_but_social_rookie_passes_this_condition():
+def test_youth_age_out_of_range_but_social_rookie_is_manual_review_not_pass():
+    # MVP0.2: 사회초년생 세부요건은 검증하지 못하므로 확정 충족이 아니라 수동 검토로 분류한다.
     p = youth(age=45, is_social_rookie=True, monthly_income=income_ok_for(1, 120))
     r = evaluate(p, N3, "청년")
-    assert "N3-R5b" in r.matched
+    assert "N3-R5b" in r.review
+    assert r.verdict == "MANUAL_REVIEW"
 
 
 def income_ok_for(size, ratio):
@@ -237,19 +239,20 @@ def test_failed_condition_takes_priority_over_unknown_conditions():
 
 
 # --- 코덱스 회귀 지정 사례 (자산 조건만 별도 검증, 최종 자격은 다른 조건도 확인) ---
-def test_codex_case_youth_head_2in_child1_asset_270m_passes_asset_condition():
+def test_codex_case_youth_head_2in_child1_asset_270m_is_manual_review():
+    # 원문 표에 '2인 가구 + 출생자녀 1명' 행이 없다. 표 그대로면 한도 251,000,000원(불충족),
+    # 본문 일반규칙(자녀 1명 10% 가산)이면 276,000,000원(충족) — 해석에 따라 결과가 갈리므로
+    # 자산 조건은 확정 FAIL/PASS가 아니라 수동 검토다. 최종 자격도 이 조건 하나로 결정되지 않는다.
     p = youth(house_head_status="세대주", household_size=2, young_child_count=1,
               total_assets=270_000_000)
     r = evaluate(p, N3, "청년")
-    # 2인가구는 원문 표에 자녀가산 행이 없어(자녀가 있으면 통상 3인 이상) 자산한도는
-    # 2인 기준(251,000,000원)이 그대로 적용된다 — 따라서 270,000,000원은 FAIL이다.
-    # (이 사례는 "표에 없는 조합"에 대한 해석을 보여주기 위한 것으로, 최종 신청자격은
-    # 이 자산조건 하나만으로 결정되지 않는다.)
-    assert "N3-R8" in r.failed
+    assert "N3-R8" in r.review
+    assert r.verdict == "MANUAL_REVIEW"
 
 
-def test_codex_case_student_2in_child1_asset_115m_fails_asset_condition():
+def test_codex_case_student_2in_child1_asset_115m_is_manual_review():
+    # 대학생 표도 '2인 + 자녀' 행이 없다: 표 그대로 108,000,000원(불충족) vs 일반규칙 119,000,000원(충족)
     p = student(household_size=2, young_child_count=1, total_assets=115_000_000)
     r = evaluate(p, N2, "대학생")
-    # 대학생 자녀가산표도 2인가구 자녀행이 없어 2인 기준(108,000,000원)이 그대로 적용 → FAIL
-    assert "N2-R7" in r.failed
+    assert "N2-R7" in r.review
+    assert r.verdict == "MANUAL_REVIEW"

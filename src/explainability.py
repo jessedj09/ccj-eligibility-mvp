@@ -10,7 +10,7 @@ Explainability Layer
 (CLAUDE.md 원칙 1의 연장: LLM은 물론 어떤 형태의 재판단도 여기 들어오지 않는다).
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
 
 from rule_engine import EvaluationResult, NoticeRuleSet, RuleCondition
@@ -21,6 +21,15 @@ class ReasonItem:
     rule_id: str
     description: str   # RuleCondition.note
     source_ref: str     # RuleCondition.source_ref
+
+
+@dataclass
+class ReviewItem:
+    rule_id: str
+    description: str   # RuleCondition.note
+    source_ref: str
+    code: str          # AMBIGUOUS_SOURCE / SELF_REPORT_UNVERIFIED
+    detail: str        # 어떤 해석들이 어떻게 갈렸는지 / 무엇이 검증되지 않았는지
 
 
 @dataclass
@@ -35,6 +44,7 @@ class Explanation:
     failed: List[ReasonItem]
     unknown: List[ReasonItem]
     notes: List[str]
+    review: List[ReviewItem] = field(default_factory=list)
 
 
 _HEADLINES = {
@@ -42,7 +52,9 @@ _HEADLINES = {
     # 명확히 한다 — 서류심사·경쟁 시 선정(추첨/배점)·미지원 세부요건은 이 결과에 포함되지 않는다.
     "ELIGIBLE": "현재 확인한 필수조건은 모두 충족했습니다.",
     "INELIGIBLE": "이 조건으로는 신청할 수 없습니다.",
-    "NEEDS_INFO": "추가 확인이 필요합니다.",
+    "NEEDS_INFO": "추가 정보를 입력하면 판정할 수 있습니다.",
+    # 정보를 더 입력해도 해결되지 않는다 — 원문 해석이 갈리거나 자기신고 항목이라 사람이 확인해야 한다.
+    "MANUAL_REVIEW": "자동으로 확정할 수 없는 조건이 있어 수동 확인이 필요합니다.",
 }
 
 SCOPE_CAVEAT = (
@@ -73,6 +85,12 @@ def explain(result: EvaluationResult, notice: NoticeRuleSet) -> Explanation:
 
     headline = _HEADLINES[result.verdict]
     notes = list(result.notes)
+    review_items = [
+        ReviewItem(rule_id=rid, description=conditions_by_id[rid].note,
+                   source_ref=conditions_by_id[rid].source_ref,
+                   code=reason.code, detail=reason.detail)
+        for rid, reason in result.review_reasons.items()
+    ]
     if result.verdict == "ELIGIBLE":
         notes.append(SCOPE_CAVEAT)
 
@@ -82,5 +100,5 @@ def explain(result: EvaluationResult, notice: NoticeRuleSet) -> Explanation:
         matched=_reason_items(result.matched, conditions_by_id),
         failed=_reason_items(result.failed, conditions_by_id),
         unknown=_reason_items(result.unknown, conditions_by_id),
-        notes=notes,
+        notes=notes, review=review_items,
     )
