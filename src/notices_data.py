@@ -15,7 +15,7 @@ from datetime import date
 
 from rule_engine import (
     RuleCondition, LayerRuleSet, NoticeRuleSet, income_threshold,
-    is_within_years, marriage_cutoff, young_child_cutoff,
+    is_within_years, marriage_cutoff, young_child_cutoff, bonus_child_count,
     ReviewNeeded, resolve_interpretations,
     REVIEW_AMBIGUOUS_SOURCE, REVIEW_SELF_REPORT_UNVERIFIED,
 )
@@ -26,6 +26,14 @@ def _car_ok(profile, limit):
     if profile.car_value == "확인불가":
         return None
     return profile.car_value <= limit
+
+
+def _children_for_bonus(p, announcement_date):
+    """출생자녀 가산 대상 자녀 수. 자녀 생년월일 목록이 있으면 엔진이 공고별 기준일로 직접 계산하고,
+    없으면 기존 입력(young_child_count)을 그대로 쓴다."""
+    if p.children_birth_dates is not None:
+        return bonus_child_count(p.children_birth_dates, announcement_date)
+    return p.young_child_count
 
 
 def _income_le(monthly_income, limit):
@@ -94,7 +102,7 @@ def _no_table_row(p):
         "가구원수 1인인데 출생자녀 가산 대상 자녀가 있음 — 입력 모순이거나 원문 표에 없는 조합")
 
 
-def _student_interpretations(p):
+def _student_interpretations(p, child):
     """대학생 (비율%, 자산한도) 해석 후보.
 
     원문 표(N2 p.5)는 가구원수 3인 이상에만 자녀 1명/2명 행이 있다. 그런데 대학생의 가구원수에는
@@ -102,7 +110,7 @@ def _student_interpretations(p):
     "출산자녀 1인 10%/2인 이상 20% 가산" 일반규칙을 적용하면 가산이 붙는다 — 표를 글자 그대로
     읽으면 안 붙는다. 어느 쪽이 맞는지 원문만으로 확정할 수 없어 두 해석을 모두 계산한다.
     """
-    size, child = p.household_size, p.young_child_count
+    size = p.household_size
     options = {_TABLE_NAME: (_size_based_ratio(size, child), _student_asset_limit(size, child))}
     if size == 2 and child >= 1:
         options[_GENERAL_BONUS_NAME] = (120 if child == 1 else 130,
@@ -118,10 +126,11 @@ def _make_student_conditions(prefix, marital_ref, home_ref, student_ref, income_
     def income_check(p):
         if p.monthly_income is None:
             return None
-        if p.household_size <= 1 and p.young_child_count >= 1:
+        child = _children_for_bonus(p, announcement_date)
+        if p.household_size <= 1 and child >= 1:
             return _no_table_row(p)
         limits = {name: income_threshold(p.household_size, ratio)
-                  for name, (ratio, _a) in _student_interpretations(p).items()}
+                  for name, (ratio, _a) in _student_interpretations(p, child).items()}
         if any(v is None for v in limits.values()):
             return None
         return resolve_interpretations(
@@ -131,9 +140,10 @@ def _make_student_conditions(prefix, marital_ref, home_ref, student_ref, income_
     def asset_check(p):
         if p.total_assets is None:
             return None
-        if p.household_size <= 1 and p.young_child_count >= 1:
+        child = _children_for_bonus(p, announcement_date)
+        if p.household_size <= 1 and child >= 1:
             return _no_table_row(p)
-        limits = {name: asset for name, (_r, asset) in _student_interpretations(p).items()}
+        limits = {name: asset for name, (_r, asset) in _student_interpretations(p, child).items()}
         return resolve_interpretations(
             {name: p.total_assets <= v for name, v in limits.items()},
             "대학생 출생자녀 가산 자산기준 해석 불일치")
@@ -166,9 +176,9 @@ def _make_student_conditions(prefix, marital_ref, home_ref, student_ref, income_
 # 신혼부부·한부모 자녀수 가산 결합표 (공고문 p.6, N1/N3 공통 — 표 자체가 동일함)
 # 맞벌이·가구원수·출생자녀수(2023.3.28 이후) 조합에 따라 소득비율·자산·자동차가 동시에 바뀐다.
 # ---------------------------------------------------------------------------
-def spouse_terms_married(profile):
+def spouse_terms_married(profile, child):
     """신혼부부/예비신혼부부용. 한부모가족은 별도 함수(spouse_terms_singleparent) 사용."""
-    dual, size, child = profile.dual_income, profile.household_size, profile.young_child_count
+    dual, size = profile.dual_income, profile.household_size
     if size <= 2:
         return (130 if dual else 110), 345_000_000, 45_420_000
     if size == 3:
@@ -183,9 +193,9 @@ def spouse_terms_married(profile):
     return (140 if dual else 120), 413_000_000, 54_510_000
 
 
-def spouse_terms_singleparent(profile):
+def spouse_terms_singleparent(profile, child):
     """한부모가족용. 맞벌이 개념 없음(단독세대주)."""
-    size, child = profile.household_size, profile.young_child_count
+    size = profile.household_size
     if size <= 2:
         return (110 if child == 0 else 120), (345_000_000 if child == 0 else 379_000_000), \
                (45_420_000 if child == 0 else 49_960_000)
@@ -228,18 +238,18 @@ def _child_under6_ok(p, child_cutoff):
 
 def _make_spouse_conditions(prefix, terms_func, income_ref, asset_ref, car_ref, sub_ref,
                              marital_field, marital_ok, marital_note, group,
-                             marriage_cutoff, child_cutoff, duration_ref):
+                             marriage_cutoff, child_cutoff, announcement_date, duration_ref):
     def income_check(p):
-        ratio, _asset, _car = terms_func(p)
+        ratio, _asset, _car = terms_func(p, _children_for_bonus(p, announcement_date))
         limit = income_threshold(p.household_size, ratio)
         return _income_le(p.monthly_income, limit)
 
     def asset_check(p):
-        _ratio, asset, _car = terms_func(p)
+        _ratio, asset, _car = terms_func(p, _children_for_bonus(p, announcement_date))
         return _assets_le(p.total_assets, asset)
 
     def car_check(p):
-        _ratio, _asset, car = terms_func(p)
+        _ratio, _asset, car = terms_func(p, _children_for_bonus(p, announcement_date))
         return _car_ok(p, car)
 
     conditions = [
@@ -293,14 +303,14 @@ n1_married_conditions = _make_spouse_conditions(
     "N1-M", spouse_terms_married,
     "공고문 p.5 ③(+p.6 자녀가산표)", "공고문 p.6 ④(자녀가산표)", "공고문 p.6 ④(자녀가산표)", "공고문 p.6 ⑤",
     "공고문 p.4 ①-㉮/㉯", {"혼인중", "예비신혼"},
-    "혼인 중이거나 예비신혼부부인지", "married", N1_MARRIAGE_CUTOFF, N1_CHILD_CUTOFF,
+    "혼인 중이거나 예비신혼부부인지", "married", N1_MARRIAGE_CUTOFF, N1_CHILD_CUTOFF, N1_ANNOUNCEMENT,
     "공고문 p.5 ②",
 )
 n1_singleparent_conditions = _make_spouse_conditions(
     "N1-S", spouse_terms_singleparent,
     "공고문 p.5 ③(+p.6 자녀가산표)", "공고문 p.6 ④(자녀가산표)", "공고문 p.6 ④(자녀가산표)", "공고문 p.6 ⑤",
     "공고문 p.4 ①-㉰", {"한부모"},
-    "한부모가족인지", "singleparent", N1_MARRIAGE_CUTOFF, N1_CHILD_CUTOFF,
+    "한부모가족인지", "singleparent", N1_MARRIAGE_CUTOFF, N1_CHILD_CUTOFF, N1_ANNOUNCEMENT,
     "공고문 p.4 ①-㉰",
 )
 
@@ -368,7 +378,7 @@ def _youth_interpretations(p):
       '세대원은 여전히 1인 120% 고정' 두 해석을 추가.
     자산·자동차는 세대주/세대원 구분 없이 실제 가구원수 기준(비대칭 유지).
     """
-    size, child = p.household_size, p.young_child_count
+    size, child = p.household_size, _children_for_bonus(p, N3_ANNOUNCEMENT)
     one_person_limit = income_threshold(1, 120)
 
     if p.house_head_status == "세대원" and child <= 0:
@@ -406,7 +416,7 @@ def _youth_income_ok(p):
         return None  # 세대주/세대원에 따라 적용 기준이 달라 확인 없이는 판단 불가
     if p.monthly_income is None:
         return None
-    if p.household_size <= 1 and p.young_child_count >= 1:
+    if p.household_size <= 1 and _children_for_bonus(p, N3_ANNOUNCEMENT) >= 1:
         return _no_table_row(p)
     limits = {name: income for name, (income, _a, _c) in _youth_interpretations(p).items()}
     if any(v is None for v in limits.values()):
@@ -419,7 +429,7 @@ def _youth_income_ok(p):
 def _youth_asset_ok(p):
     if p.total_assets is None:
         return None
-    if p.household_size <= 1 and p.young_child_count >= 1:
+    if p.household_size <= 1 and _children_for_bonus(p, N3_ANNOUNCEMENT) >= 1:
         return _no_table_row(p)
     limits = {name: asset for name, (_i, asset, _c) in _youth_interpretations(p).items()}
     return resolve_interpretations(
@@ -430,7 +440,7 @@ def _youth_asset_ok(p):
 def _youth_car_ok(p):
     if p.car_value == "확인불가":
         return None
-    if p.household_size <= 1 and p.young_child_count >= 1:
+    if p.household_size <= 1 and _children_for_bonus(p, N3_ANNOUNCEMENT) >= 1:
         return _no_table_row(p)
     limits = {name: car for name, (_i, _a, car) in _youth_interpretations(p).items()}
     return resolve_interpretations(
@@ -475,7 +485,7 @@ n3_married_conditions = _make_spouse_conditions(
     "N3-M", spouse_terms_married,
     "공고문 p.9 ③(+가산표)", "공고문 p.9-10 ④(가산표)", "공고문 p.9-10 ④(가산표)", "공고문 p.9 ⑤",
     "공고문 p.9 ①-㉮/㉯", {"혼인중", "예비신혼"},
-    "혼인 중이거나 예비신혼부부인지", "married", N3_MARRIAGE_CUTOFF, N3_CHILD_CUTOFF,
+    "혼인 중이거나 예비신혼부부인지", "married", N3_MARRIAGE_CUTOFF, N3_CHILD_CUTOFF, N3_ANNOUNCEMENT,
     "공고문 p.9 ② (컷오프 날짜는 원문에 리터럴이 없어 N1과 같은 공식으로 공고일에서 도출 — "
     "docs/rule-coverage-matrix.md §3)",
 )
@@ -483,7 +493,7 @@ n3_singleparent_conditions = _make_spouse_conditions(
     "N3-S", spouse_terms_singleparent,
     "공고문 p.9 ③(+가산표)", "공고문 p.9-10 ④(가산표)", "공고문 p.9-10 ④(가산표)", "공고문 p.9 ⑤",
     "공고문 p.9 ①-㉰", {"한부모"},
-    "한부모가족인지", "singleparent", N3_MARRIAGE_CUTOFF, N3_CHILD_CUTOFF,
+    "한부모가족인지", "singleparent", N3_MARRIAGE_CUTOFF, N3_CHILD_CUTOFF, N3_ANNOUNCEMENT,
     "공고문 p.9 ①-㉰ (6세 컷오프는 원문에 리터럴이 없어 N1과 같은 공식으로 도출 — "
     "docs/rule-coverage-matrix.md §3)",
 )

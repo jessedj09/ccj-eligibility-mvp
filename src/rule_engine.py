@@ -11,7 +11,7 @@ Eligibility Rule Engine — MVP0
 """
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional, Literal, List, Dict, Any
 
 Verdict = Literal["ELIGIBLE", "INELIGIBLE", "NEEDS_INFO", "MANUAL_REVIEW", "NOT_OFFERED"]
@@ -75,6 +75,27 @@ def young_child_cutoff(on: date) -> date:
     재현한다(tests/test_mvp0_2_manual_review.py). 하루 차이는 원문의 특이값이 아니라 만 나이 정의다."""
     from datetime import timedelta
     return years_before(on, 7) + timedelta(days=1)
+
+
+# 출생자녀 가산 기준일 — 3개 공고(N1 p.4, N2 p.5, N3 p.7) 모두 "'23.3.28. 이후 출산(입양·태아 포함)"이다.
+# "이후"는 이 문서의 다른 컷오프(혼인 7년 '2019.7.29. 이후' 등)와 같이 당일 포함으로 읽는다.
+CHILD_BONUS_CUTOFF = date(2023, 3, 28)
+CHILD_BONUS_MAX = 2
+
+
+def bonus_child_count(birth_dates: List[date], announcement_date: date) -> int:
+    """출생자녀 가산 대상 자녀 수 (원문: N1 p.4/N2 p.5/N3 p.7 각주).
+
+    기준일(2023.3.28.) 이후 출생(태아는 출산예정일)한 자녀가 1명이라도 있으면 기준일 이전에 출생한
+    기존 미성년 자녀(공고일 기준 만 19세 미만)도 합산하고, 최대 2명까지 인정한다. 기준일 이후 출생
+    자녀가 없으면 기존 미성년 자녀가 있어도 0명이다. (세대별 주민등록표 등재 자녀만 입력한다는 전제)
+    """
+    after = [d for d in birth_dates if d >= CHILD_BONUS_CUTOFF]
+    if not after:
+        return 0
+    adult_line = years_before(announcement_date, 19)  # 이 날짜 이전 출생이면 공고일에 이미 만 19세 이상
+    minor_before = [d for d in birth_dates if d < CHILD_BONUS_CUTOFF and d > adult_line]
+    return min(CHILD_BONUS_MAX, len(after) + len(minor_before))
 
 
 def is_within_years(event_date: date, on: date, n_years: int) -> bool:
@@ -150,10 +171,21 @@ class HouseholdProfile:
     # 자녀(6세 이하 여부와 무관)가 있는지: True/False/None(모름). False면 "6세 이하 자녀 없음"이
     # 확정된다. 이 필드가 없으면 '자녀 없음'과 '아직 입력 안 함'을 구분할 수 없어 혼인 7년 초과
     # 신혼부부·한부모가 영원히 NEEDS_INFO에 머문다(MVP0.2에서 발견).
+    children_birth_dates: Optional[List[date]] = None
+    # 세대별 주민등록표에 등재된 미성년 자녀 전원의 생년월일(태아는 출산예정일). None=미입력,
+    # []=자녀 없음 확정. 주어지면 has_children/youngest_child_birth_date를 여기서 파생하고
+    # 출생자녀 가산 수도 공고별 기준일로 엔진이 직접 계산한다(young_child_count는 무시됨).
+    # None이면 기존 입력(young_child_count, has_children, youngest_child_birth_date)을 그대로 쓴다.
     youngest_child_birth_date: Optional[date] = None
     # 막내 자녀 생년월일(태아 포함 시 예정일) — 신혼부부의 "6세 이하 자녀" 대체요건,
     # 한부모가족의 "6세 이하 자녀를 둔 자" 필수요건 판정용. young_child_count(출생자녀 가산용)와는
     # 별개 개념이다 — 가산은 2023.3.28 이후 출생아 수, 이 요건은 현재 6세 이하인지 여부다.
+
+    def __post_init__(self):
+        if self.children_birth_dates is not None:
+            self.has_children = len(self.children_birth_dates) > 0
+            self.youngest_child_birth_date = (
+                max(self.children_birth_dates) if self.children_birth_dates else None)
 
 
 # ---------------------------------------------------------------------------
@@ -274,8 +306,13 @@ def validate_profile(profile: HouseholdProfile) -> List[str]:
     today = date.today()
     if profile.marriage_date is not None and profile.marriage_date > today:
         errors.append("혼인일이 미래 날짜입니다.")
-    if profile.youngest_child_birth_date is not None and profile.youngest_child_birth_date > today:
-        errors.append("자녀 생년월일이 미래 날짜입니다.")
+    # 자녀 생년월일은 태아(출산예정일)를 포함하므로 미래 날짜를 허용하되 임신 기간을 넘는 날짜는 오류.
+    latest_due = today + timedelta(days=300)
+    child_dates = list(profile.children_birth_dates or [])
+    if profile.youngest_child_birth_date is not None:
+        child_dates.append(profile.youngest_child_birth_date)
+    if any(d > latest_due for d in child_dates):
+        errors.append("자녀 생년월일(출산예정일)이 너무 먼 미래입니다.")
     if profile.grad_or_dropout_date is not None and profile.grad_or_dropout_date > today:
         errors.append("졸업/중퇴일이 미래 날짜입니다.")
 

@@ -29,8 +29,13 @@ Engine**이다.
   리터럴을 정확히 재현한다. 독립 검증용 `docs/independent-validation-worksheet.md`,
   LH 질의서 `docs/lh-inquiry-questions.md` 작성. 화면은 Streamlit `AppTest`로 28개
   공고×계층×샘플 조합을 실제 실행해 예외 없음을 확인했다.
-- pytest: 총 **150개 전부 통과**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
-  explainability 6 + MVP0.1 28 + MVP0.2 34).
+- **MVP0.3(브랜치 `mvp0.3-child-count`)**: 출생자녀 가산 대상 자녀 수를 엔진이 직접 계산
+  (`children_birth_dates` → `bonus_child_count`). 화면은 자녀별 생년월일만 입력받는다. 입력 폼
+  (`st.form`)을 제거해 자녀/혼인 조건부 입력칸이 즉시 나타나도록 고쳤다(폼 안에서는 제출 전까지
+  조건부 위젯이 갱신되지 않던 MVP0.1 UX 결함). 자녀 생년월일 검증이 태아(출산예정일)를 오류로
+  막던 버그도 수정.
+- pytest: 총 **172개 전부 통과**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
+  explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22).
 - 다음 단계: docs/04-open-items-and-next-steps.md 참조(독립 검증 수행, LH 질의 회신 반영, 그 뒤
   규칙의 데이터화(B)).
 
@@ -81,8 +86,8 @@ Engine**이다.
 - `src/explainability.py` — EvaluationResult → 사용자용 근거 문구(Explanation) 변환
 - `app.py` — Streamlit 데모 UI (판정 로직 없음, src/ 함수만 호출)
 - `mvp0/` — **실행 대상 아님.** 초기 스냅샷(옛 버전), `mvp0/README.md` 참조
-- `tests/` — pytest 스위트, **총 150개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
-  explainability 6 + MVP0.1 28 + MVP0.2 34)
+- `tests/` — pytest 스위트, **총 172개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
+  explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22)
 - `data/*.xlsx` — MVP0 설계 워크북 원본 (programs/notices/rules/reference_values/
   income_basis/profiles/match_matrix 시트 — 코드보다 사람이 보기 편한 원본)
 

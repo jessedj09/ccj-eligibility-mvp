@@ -11,7 +11,7 @@ Explainability 레이어(explain)로 근거와 함께 화면에 보여준다.
 """
 
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
@@ -81,110 +81,107 @@ def _amount_input(label, field, key):
     return None if unknown else amount
 
 
-with st.form("profile_form"):
-    col1, col2 = st.columns(2)
-    with col1:
-        age = st.number_input("나이", min_value=0, max_value=120, value=_default("age", 30))
-        marital_status = st.selectbox(
-            "혼인 상태", options=["미혼", "혼인중", "예비신혼", "한부모"],
-            index=["미혼", "혼인중", "예비신혼", "한부모"].index(_default("marital_status", "미혼")),
-        )
-        home_ownership = st.selectbox(
-            "주택 소유", options=["무주택", "주택보유"],
-            index=["무주택", "주택보유"].index(_default("home_ownership", "무주택")),
-        )
-        household_size = st.number_input(
-            "가구원수(판정 대상)", min_value=1, max_value=10, value=_default("household_size", 1),
-        )
-        dual_income = st.checkbox("맞벌이 여부", value=_default("dual_income", False))
+col1, col2 = st.columns(2)
+with col1:
+    age = st.number_input("나이", min_value=0, max_value=120, value=_default("age", 30))
+    marital_status = st.selectbox(
+        "혼인 상태", options=["미혼", "혼인중", "예비신혼", "한부모"],
+        index=["미혼", "혼인중", "예비신혼", "한부모"].index(_default("marital_status", "미혼")),
+    )
+    home_ownership = st.selectbox(
+        "주택 소유", options=["무주택", "주택보유"],
+        index=["무주택", "주택보유"].index(_default("home_ownership", "무주택")),
+    )
+    household_size = st.number_input(
+        "가구원수(판정 대상)", min_value=1, max_value=10, value=_default("household_size", 1),
+    )
+    dual_income = st.checkbox("맞벌이 여부", value=_default("dual_income", False))
 
-        house_head_status = None
-        if layer == "청년":
-            hh = st.selectbox(
-                "세대주/세대원 (등본 기준)", options=["모름(미확인)", "세대주", "세대원"],
-                index=["모름(미확인)", "세대주", "세대원"].index(
-                    _default("house_head_status", None) or "모름(미확인)"),
+    house_head_status = None
+    if layer == "청년":
+        hh = st.selectbox(
+            "세대주/세대원 (등본 기준)", options=["모름(미확인)", "세대주", "세대원"],
+            index=["모름(미확인)", "세대주", "세대원"].index(
+                _default("house_head_status", None) or "모름(미확인)"),
+        )
+        house_head_status = None if hh == "모름(미확인)" else hh
+
+    is_social_rookie = None
+    if layer == "청년":
+        rookie = st.selectbox(
+            "사회초년생 해당 여부(19~39세가 아닐 때만 의미 있음)",
+            options=["모름", "예", "아니오"],
+            index=["모름", "예", "아니오"].index(
+                {True: "예", False: "아니오", None: "모름"}[_default("is_social_rookie", None)]),
+        )
+        is_social_rookie = {"모름": None, "예": True, "아니오": False}[rookie]
+
+    student_status, grad_or_dropout_date = None, None
+    if layer == "대학생":
+        options = ["모름", "재학중", "입학예정", "복학예정", "취업준비생"]
+        student_status_label = st.selectbox(
+            "재학 상태", options=options,
+            index=options.index(_default("student_status", None) or "모름"),
+        )
+        student_status = None if student_status_label == "모름" else student_status_label
+        if student_status == "취업준비생":
+            grad_or_dropout_date = st.date_input(
+                "대학·고등학교 졸업(또는 중퇴)일",
+                value=_default("grad_or_dropout_date", None) or date.today(),
+                min_value=date(1990, 1, 1), max_value=date.today(),
             )
-            house_head_status = None if hh == "모름(미확인)" else hh
 
-        is_social_rookie = None
-        if layer == "청년":
-            rookie = st.selectbox(
-                "사회초년생 해당 여부(19~39세가 아닐 때만 의미 있음)",
-                options=["모름", "예", "아니오"],
-                index=["모름", "예", "아니오"].index(
-                    {True: "예", False: "아니오", None: "모름"}[_default("is_social_rookie", None)]),
-            )
-            is_social_rookie = {"모름": None, "예": True, "아니오": False}[rookie]
+    marriage_date = None
+    if layer == "신혼부부" and marital_status == "혼인중":
+        marriage_known = st.checkbox(
+            "혼인일을 알고 있음", value=_default("marriage_date", None) is not None)
+        if marriage_known:
+            marriage_date = st.date_input(
+                "혼인신고일", value=_default("marriage_date", None) or date.today(),
+                min_value=date(1980, 1, 1), max_value=date.today())
 
-        student_status, grad_or_dropout_date = None, None
-        if layer == "대학생":
-            options = ["모름", "재학중", "입학예정", "복학예정", "취업준비생"]
-            student_status_label = st.selectbox(
-                "재학 상태", options=options,
-                index=options.index(_default("student_status", None) or "모름"),
-            )
-            student_status = None if student_status_label == "모름" else student_status_label
-            if student_status == "취업준비생":
-                grad_or_dropout_date = st.date_input(
-                    "대학·고등학교 졸업(또는 중퇴)일",
-                    value=_default("grad_or_dropout_date", None) or date.today(),
-                )
+    # 자녀: 생년월일 목록만 받고, 출생자녀 가산 수·6세 이하 여부·자녀 유무는 엔진이 계산한다.
+    preset_dates = _default("children_birth_dates", None)
+    if preset_dates is None:
+        yd = _default("youngest_child_birth_date", None)
+        preset_dates = [yd] if yd is not None else []
+    has_kids = st.selectbox(
+        "자녀(태아 포함) — 세대별 주민등록표에 등재된 미성년 자녀", ["없음", "있음"],
+        index=1 if preset_dates else 0)
+    children_birth_dates = []
+    if has_kids == "있음":
+        n_children = int(st.number_input(
+            "자녀 수", min_value=1, max_value=8, value=max(1, len(preset_dates))))
+        for i in range(n_children):
+            default_d = preset_dates[i] if i < len(preset_dates) else date.today()
+            children_birth_dates.append(st.date_input(
+                f"자녀 {i + 1} 생년월일(태아는 출산예정일)", value=default_d,
+                min_value=date(1990, 1, 1), max_value=date.today() + timedelta(days=300),
+                key=f"child_date_{i}"))
+    st.caption("출생자녀 가산은 공고문 기준대로 자동 계산합니다: 2023.3.28. 이후 출생(입양·태아 포함) "
+               "자녀가 1명이라도 있으면 그 이전에 태어난 기존 미성년 자녀도 합산해 최대 2명, "
+               "이후 출생 자녀가 없으면 0명입니다. 가산 기준일 이후 출생 여부와 미성년 여부는 "
+               "선택한 공고의 공고일로 판단합니다.")
 
-        marriage_date, youngest_child_birth_date, has_children = None, None, None
-        if layer in ("신혼부부", "한부모"):
-            if layer == "신혼부부" and marital_status == "혼인중":
-                marriage_known = st.checkbox(
-                    "혼인일을 알고 있음", value=_default("marriage_date", None) is not None)
-                if marriage_known:
-                    marriage_date = st.date_input(
-                        "혼인신고일", value=_default("marriage_date", None) or date.today())
-            preset_child = _default("has_children", None)
-            if preset_child is None and _default("youngest_child_birth_date", None) is not None:
-                preset_child = True
-            child_labels = ["모름", "있음", "없음"]
-            child_choice = st.selectbox(
-                "자녀(태아 포함)", options=child_labels,
-                index=child_labels.index({None: "모름", True: "있음", False: "없음"}[preset_child]),
-            )
-            has_children = {"모름": None, "있음": True, "없음": False}[child_choice]
-            if has_children:
-                youngest_child_birth_date = st.date_input(
-                    "막내 자녀 생년월일(태아는 출산예정일)",
-                    value=_default("youngest_child_birth_date", None) or date.today())
+with col2:
+    monthly_income = _amount_input("월소득(원)", "monthly_income", "income_input")
+    total_assets = _amount_input("총자산(원)", "total_assets", "assets_input")
+    car_default = _default("car_value", 0)
+    car_unknown = st.checkbox("자동차가액 확인불가", value=(car_default == "확인불가"))
+    car_value = st.number_input(
+        "자동차가액(원)", min_value=0, step=100_000,
+        value=0 if car_unknown else (car_default if isinstance(car_default, int) else 0),
+        disabled=car_unknown,
+    )
+    has_subscription_account = st.checkbox(
+        "청약통장 가입 여부(현재)", value=_default("has_subscription_account", False))
+    st.caption("미가입이어도 대부분의 계층은 '입주 전까지'만 가입하면 되므로 현재 자격에는 "
+               "영향이 없습니다(우선공급 배점에는 영향 가능).")
 
-    with col2:
-        monthly_income = _amount_input("월소득(원)", "monthly_income", "income_input")
-        total_assets = _amount_input("총자산(원)", "total_assets", "assets_input")
-        car_default = _default("car_value", 0)
-        car_unknown = st.checkbox("자동차가액 확인불가", value=(car_default == "확인불가"))
-        car_value = st.number_input(
-            "자동차가액(원)", min_value=0, step=100_000,
-            value=0 if car_unknown else (car_default if isinstance(car_default, int) else 0),
-            disabled=car_unknown,
-        )
-        has_subscription_account = st.checkbox(
-            "청약통장 가입 여부(현재)", value=_default("has_subscription_account", False))
-        st.caption("미가입이어도 대부분의 계층은 '입주 전까지'만 가입하면 되므로 현재 자격에는 "
-                   "영향이 없습니다(우선공급 배점에는 영향 가능).")
-        young_child_count = st.number_input(
-            "출생자녀 가산 대상 자녀 수(0~2)", min_value=0, max_value=2,
-            value=min(_default("young_child_count", 0), 2),
-        )
-        st.caption("산정 방법(공고문): 2023.3.28. 이후 출생(입양·태아 포함)한 자녀가 1명이라도 "
-                   "있으면, 그 이전에 태어난 기존 미성년 자녀도 합산해 최대 2명까지 인정합니다. "
-                   "단 신청자(또는 배우자) 세대별 주민등록표에 등재된 자녀만 해당합니다. "
-                   "이후 출생 자녀가 없으면 기존 미성년 자녀가 있어도 0명입니다. "
-                   "이 화면은 위 기준으로 이미 계산한 값을 입력받습니다.")
-        has_child_under_2 = st.checkbox(
-            "2세 미만 자녀 있음(우선공급 대상 여부 참고용 — 이 계산기는 우선공급 배점을 "
-            "산출하지 않습니다)",
-            value=_default("has_child_under_2", False),
-        )
+if st.button("판정하기", type="primary"):
+    st.session_state["judged"] = True
 
-    submitted = st.form_submit_button("판정하기")
-
-if submitted:
+if st.session_state.get("judged"):
     profile = HouseholdProfile(
         profile_id=preset_id if preset_id != "직접 입력" else "직접입력",
         age=age,
@@ -196,15 +193,12 @@ if submitted:
         total_assets=total_assets,
         car_value="확인불가" if car_unknown else car_value,
         has_subscription_account=has_subscription_account,
-        has_child_under_2=has_child_under_2,
         dual_income=dual_income,
-        young_child_count=young_child_count,
         is_social_rookie=is_social_rookie,
         student_status=student_status,
         grad_or_dropout_date=grad_or_dropout_date,
         marriage_date=marriage_date,
-        youngest_child_birth_date=youngest_child_birth_date,
-        has_children=has_children,
+        children_birth_dates=children_birth_dates,
     )
 
     errors = validate_profile(profile)
