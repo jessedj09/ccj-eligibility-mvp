@@ -34,8 +34,12 @@ Engine**이다.
   (`st.form`)을 제거해 자녀/혼인 조건부 입력칸이 즉시 나타나도록 고쳤다(폼 안에서는 제출 전까지
   조건부 위젯이 갱신되지 않던 MVP0.1 UX 결함). 자녀 생년월일 검증이 태아(출산예정일)를 오류로
   막던 버그도 수정.
-- pytest: 총 **172개 전부 통과**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
-  explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22).
+- **B단계(진행 중, 브랜치 `mvp0.4-rule-data`)**: 규칙을 `rules/*.json` 데이터로 옮기는 중.
+  설계 `docs/06-rule-data-design.md`. P1 완료: 로더 `src/rule_data.py`, `rules/notices/N2.json`,
+  기존 코드와의 차분 테스트(`tests/test_rule_data.py`). 아직 `src/notices_data.py`(legacy)가 앱의
+  실제 규칙이고, P3에서 데이터 규칙으로 교체 후 삭제한다. **규칙을 고칠 때는 그 공고가 이미 JSON으로
+  이전됐는지 먼저 확인할 것**(이전된 공고는 JSON이 기준, legacy와 차분 테스트로 묶여 있음).
+- pytest: 총 **207개 전부 통과**(기존 172 + 규칙 데이터화 35).
 - 다음 단계: docs/04-open-items-and-next-steps.md 참조(독립 검증 수행, LH 질의 회신 반영, 그 뒤
   규칙의 데이터화(B)).
 
@@ -80,13 +84,15 @@ Engine**이다.
   원문 해석 쟁점, 지원 범위 밖 항목 — 규칙을 고치기 전에 반드시 먼저 볼 것)
 - `src/rule_engine.py` — 판정 엔진 본체 (HouseholdProfile, RuleCondition, evaluate(),
   validate_profile(), 날짜 컷오프 헬퍼)
-- `src/notices_data.py` — 공고 3건의 실제 규칙 데이터
+- `src/notices_data.py` — 공고 3건의 실제 규칙 데이터(legacy, B단계에서 `rules/`로 이전 중)
+- `src/rule_data.py` — JSON 규칙 로더·조건식 컴파일러(닫힌 연산자 집합)
+- `rules/` — 데이터화된 규칙(`notices/N2.json`, `reference/income_standard.json`)
 - `src/priority_scoring.py` — 우선공급 배점(verdict와 분리된 별도 점수)
 - `src/profiles_data.py` — 테스트용 프로필 12개 + 수기 정답지
 - `src/explainability.py` — EvaluationResult → 사용자용 근거 문구(Explanation) 변환
 - `app.py` — Streamlit 데모 UI (판정 로직 없음, src/ 함수만 호출)
 - `mvp0/` — **실행 대상 아님.** 초기 스냅샷(옛 버전), `mvp0/README.md` 참조
-- `tests/` — pytest 스위트, **총 172개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
+- `tests/` — pytest 스위트, **총 207개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
   explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22)
 - `data/*.xlsx` — MVP0 설계 워크북 원본 (programs/notices/rules/reference_values/
   income_basis/profiles/match_matrix 시트 — 코드보다 사람이 보기 편한 원본)

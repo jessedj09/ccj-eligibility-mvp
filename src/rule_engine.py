@@ -213,6 +213,7 @@ class NoticeRuleSet:
     title: str
     announcement_date: Optional[date] = None   # 입주자모집공고일 — 혼인기간/자녀연령/졸업경과 계산 기준일
     layers: Dict[Layer, LayerRuleSet] = field(default_factory=dict)
+    meta: Dict[str, Any] = field(default_factory=dict)   # 버전·출처 문서·검수 상태 등(데이터 파일에서 로드)
 
 
 # ---------------------------------------------------------------------------
