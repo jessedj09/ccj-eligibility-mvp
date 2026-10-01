@@ -27,6 +27,7 @@ RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
 LAYERS = ("대학생", "청년", "신혼부부", "한부모")
 REVIEW_STATUSES = ("DRAFT", "REVIEWED", "PUBLISHED", "RETIRED")
 CTX_KEYS = ("announcement_date",)
+TIMINGS = ("NOW", "BEFORE_MOVE_IN")
 
 
 class RuleDataError(ValueError):
@@ -124,17 +125,33 @@ def _resolve_readings(results: Dict[str, Any], detail: str):
 # ---------------------------------------------------------------------------
 # 결정표 (원문 표를 행 단위로 그대로 옮긴 것)
 # ---------------------------------------------------------------------------
-def _match_spec(spec: Any, value: int) -> bool:
+def _match_spec(spec: Any, value: Any) -> bool:
+    """결정표 행의 열 조건: 'any' / 정수(정확히 일치) / 'N+'(이상) / 그 밖의 문자열(정확히 일치)."""
     if spec == "any":
         return True
+    if isinstance(spec, bool):
+        raise RuleDataError(f"결정표 행 조건에 불리언은 쓸 수 없습니다: {spec!r}")
     if isinstance(spec, int):
         return value == spec
-    if isinstance(spec, str) and spec.endswith("+") and spec[:-1].isdigit():
-        return value >= int(spec[:-1])
-    raise RuleDataError(f"결정표 행 조건 표기가 올바르지 않습니다: {spec!r} (any / 정수 / 'N+' 만 허용)")
+    if isinstance(spec, str) and spec.endswith("+"):
+        if not spec[:-1].isdigit():
+            raise RuleDataError(f"결정표 행 조건 표기가 올바르지 않습니다: {spec!r} ('N+' 형식이 아님)")
+        return isinstance(value, int) and value >= int(spec[:-1])
+    if isinstance(spec, str):
+        return value == spec
+    raise RuleDataError(f"결정표 행 조건 표기가 올바르지 않습니다: {spec!r}")
 
 
 class DecisionTable:
+    """원문 표를 행 단위로 그대로 옮긴 결정표.
+
+    - 행 조건 `when`은 열마다 any / 정수 / 'N+' / 문자열. 위에서부터 처음 맞는 행이 선택된다.
+    - 행의 `out`에서 '=열이름' 문자열은 그 열의 입력값을 그대로 쓴다(예: "=size").
+    - 행의 `result: "NO_ROW"`는 "원문 표에 없는 조합"을 명시한다(수동 확인으로 이어짐).
+    - `readings`가 둘 이상이면 첫 번째가 기본 해석이고, 나머지는 **기본 해석과 다른 행이 선택될 때만**
+      계산한다(표가 모호한 지점에서만 해석이 갈리고, 나머지에서는 단일 해석으로 확정).
+    """
+
     def __init__(self, name: str, doc: Dict[str, Any], compile_input: Callable):
         self.name = name
         self.columns: List[str] = list(doc["columns"])
@@ -147,26 +164,41 @@ class DecisionTable:
         self.inputs = {c: compile_input(doc["inputs"][c], f"tables.{name}.inputs.{c}")
                        for c in self.columns}
         for i, row in enumerate(self.rows):
+            where = f"tables.{name}.rows[{i}]"
             for c in self.columns:
                 if c not in row["when"]:
-                    raise RuleDataError(f"tables.{name}.rows[{i}]에 열 '{c}' 조건이 없습니다")
+                    raise RuleDataError(f"{where}에 열 '{c}' 조건이 없습니다")
                 _match_spec(row["when"][c], 0)
-            if len(row["out"]) != len(self.outputs):
-                raise RuleDataError(f"tables.{name}.rows[{i}].out 길이가 outputs와 다릅니다")
+            if row.get("result") not in (None, "NO_ROW"):
+                raise RuleDataError(f"{where}.result는 'NO_ROW'만 허용됩니다: {row['result']!r}")
+            if row.get("result") != "NO_ROW":
+                if len(row["out"]) != len(self.outputs):
+                    raise RuleDataError(f"{where}.out 길이가 outputs와 다릅니다")
+                for o in row["out"]:
+                    if isinstance(o, str) and o.startswith("=") and o[1:] not in self.columns:
+                        raise RuleDataError(f"{where}.out이 없는 열을 참조합니다: {o!r}")
             for r in row.get("readings", []):
                 if r not in self.readings:
-                    raise RuleDataError(f"tables.{name}.rows[{i}]가 선언되지 않은 reading '{r}'를 씁니다")
+                    raise RuleDataError(f"{where}가 선언되지 않은 reading '{r}'를 씁니다")
 
-    def select(self, env: _Env, reading: str):
+    def inputs_of(self, env: _Env):
         values = {c: self.inputs[c](env) for c in self.columns}
-        if any(v is None for v in values.values()):
-            return None
+        return None if any(v is None for v in values.values()) else values
+
+    def select(self, values: Optional[Dict[str, Any]], reading: str):
+        """(선택된 행, 출력). 입력 미확인이면 (None, None), 맞는 행이 없으면 (None, NoRow)."""
+        if values is None:
+            return None, None
         for row in self.rows:
             if row.get("readings") and reading not in row["readings"]:
                 continue
             if all(_match_spec(row["when"][c], values[c]) for c in self.columns):
-                return dict(zip(self.outputs, row["out"]))
-        return self.no_row
+                if row.get("result") == "NO_ROW":
+                    return row, self.no_row
+                out = [values[o[1:]] if isinstance(o, str) and o.startswith("=") else o
+                       for o in row["out"]]
+                return row, dict(zip(self.outputs, out))
+        return None, self.no_row
 
 
 # ---------------------------------------------------------------------------
@@ -347,19 +379,27 @@ def _build_condition(doc: Dict[str, Any], tables: Dict[str, DecisionTable], ann:
         if table is None:
             value = check_fn(_Env(profile, ctx))
         else:
-            results = {}
-            for reading in table.readings:
-                env = _Env(profile, ctx)
-                env.terms = table.select(env, reading)
-                results[reading] = check_fn(env)
+            env = _Env(profile, ctx)
+            values = table.inputs_of(env)
+            base, *alternatives = table.readings
+            base_row, env.terms = table.select(values, base)
+            results = {base: check_fn(env)}
+            for reading in alternatives:
+                row, terms = table.select(values, reading)
+                if row is base_row:
+                    continue        # 기본 해석과 같은 행 → 해석이 갈리지 않는다
+                results[reading] = check_fn(_Env(profile, ctx, terms))
             value = _resolve_readings(results, detail)
         value = _to_review(value)
         if not (value is None or isinstance(value, (bool, ReviewNeeded))):
             raise RuleDataError(f"{where}/{cid}: 조건식 결과가 참/거짓이 아닙니다: {value!r}")
         return value
 
+    timing = doc.get("timing", "NOW")
+    if timing not in TIMINGS:
+        raise RuleDataError(f"{where}/{cid}: timing은 {TIMINGS} 중 하나여야 합니다: {timing!r}")
     return RuleCondition(cid, doc["field"], doc["required"], _source_ref(doc["source"]),
-                         check, note=doc["note"])
+                         check, note=doc["note"], timing=timing)
 
 
 def build_notice(doc: Dict[str, Any]) -> NoticeRuleSet:
@@ -377,10 +417,10 @@ def build_notice(doc: Dict[str, Any]) -> NoticeRuleSet:
         tables[name] = DecisionTable(name, tdoc, lambda n, p, c=base: c.compile(n, p))
 
     layers: Dict[str, LayerRuleSet] = {}
-    seen_ids = set()
     for layer, ldoc in doc["layers"].items():
         if layer not in LAYERS:
             raise RuleDataError(f"알 수 없는 계층 '{layer}' (허용: {LAYERS})")
+        seen_ids = set()   # 조건 ID는 계층 안에서만 유일하면 된다(설명 계층이 계층 단위로 조회)
         conditions = []
         for cdoc in ldoc["conditions"]:
             cond = _build_condition(cdoc, tables, ann, f"{doc['notice_id']}/{layer}")

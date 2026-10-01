@@ -1,0 +1,809 @@
+{
+  "notice_id": "N3",
+  "title": "서울번동3 행복주택",
+  "announcement_date": "2026-08-19",
+  "version": 1,
+  "valid_from": "2026-08-19",
+  "supersedes": null,
+  "source": {
+    "document": "서울번동3_행복주택_예비입주자_표준모집공고문.pdf",
+    "sha256": "5deb8acbdb2112f274f67c3c03e01f754fa4fc986d45c30868e16bc001532f6f",
+    "pages": 29
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "대학생·청년 계층만 데이터화됨(P2). 신혼부부·한부모는 P3에서 이전. 독립 검토가 없어 DRAFT.",
+    "log": []
+  },
+  "tables": {
+    "student_terms": {
+      "label": "대학생 계층 출생자녀 가산 소득·자산 기준 (N2 p.5 결합표)",
+      "columns": [
+        "size",
+        "child"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "ratio",
+        "asset_limit"
+      ],
+      "readings": [
+        "원문 표 그대로",
+        "자녀 가산 일반규칙 적용(원문 표에 이 가구원수 행이 없음)"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "child": 0
+          },
+          "out": [
+            120,
+            108000000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0
+          },
+          "out": [
+            110,
+            108000000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "1+"
+          },
+          "out": [
+            110,
+            108000000
+          ],
+          "readings": [
+            "원문 표 그대로"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 1
+          },
+          "out": [
+            120,
+            119000000
+          ],
+          "readings": [
+            "자녀 가산 일반규칙 적용(원문 표에 이 가구원수 행이 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "2+"
+          },
+          "out": [
+            130,
+            130000000
+          ],
+          "readings": [
+            "자녀 가산 일반규칙 적용(원문 표에 이 가구원수 행이 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 0
+          },
+          "out": [
+            100,
+            108000000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 1
+          },
+          "out": [
+            110,
+            119000000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "2+"
+          },
+          "out": [
+            120,
+            130000000
+          ]
+        }
+      ],
+      "no_row": {
+        "code": "AMBIGUOUS_SOURCE",
+        "detail": "가구원수 1인인데 출생자녀 가산 대상 자녀가 있음 — 입력 모순이거나 원문 표에 없는 조합"
+      }
+    },
+    "youth_income_terms": {
+      "label": "청년 계층 소득기준: 가구원수×출생자녀수×세대주/세대원 (N3 p.7-8 소득기준표+자녀가산 결합표)",
+      "columns": [
+        "size",
+        "child",
+        "head"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        },
+        "head": {
+          "var": "house_head_status"
+        }
+      },
+      "outputs": [
+        "ratio",
+        "income_size"
+      ],
+      "readings": [
+        "원문 표 그대로",
+        "자녀 가산 일반규칙 적용(원문 표에 이 가구원수 행이 없음)",
+        "세대원은 자녀가산과 무관하게 1인 120% 고정"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "child": "1+",
+            "head": "any"
+          },
+          "result": "NO_ROW"
+        },
+        {
+          "when": {
+            "size": "any",
+            "child": 0,
+            "head": "세대원"
+          },
+          "out": [
+            120,
+            1
+          ]
+        },
+        {
+          "when": {
+            "size": "any",
+            "child": "1+",
+            "head": "세대원"
+          },
+          "out": [
+            120,
+            1
+          ],
+          "readings": [
+            "세대원은 자녀가산과 무관하게 1인 120% 고정"
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": 0,
+            "head": "any"
+          },
+          "out": [
+            120,
+            "=size"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0,
+            "head": "any"
+          },
+          "out": [
+            110,
+            "=size"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "1+",
+            "head": "any"
+          },
+          "out": [
+            110,
+            "=size"
+          ],
+          "readings": [
+            "원문 표 그대로",
+            "세대원은 자녀가산과 무관하게 1인 120% 고정"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 1,
+            "head": "any"
+          },
+          "out": [
+            120,
+            "=size"
+          ],
+          "readings": [
+            "자녀 가산 일반규칙 적용(원문 표에 이 가구원수 행이 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "2+",
+            "head": "any"
+          },
+          "out": [
+            130,
+            "=size"
+          ],
+          "readings": [
+            "자녀 가산 일반규칙 적용(원문 표에 이 가구원수 행이 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 0,
+            "head": "any"
+          },
+          "out": [
+            100,
+            "=size"
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 1,
+            "head": "any"
+          },
+          "out": [
+            110,
+            "=size"
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "2+",
+            "head": "any"
+          },
+          "out": [
+            120,
+            "=size"
+          ]
+        }
+      ],
+      "no_row": {
+        "code": "AMBIGUOUS_SOURCE",
+        "detail": "가구원수 1인인데 출생자녀 가산 대상 자녀가 있음 — 입력 모순이거나 원문 표에 없는 조합"
+      }
+    },
+    "youth_asset_car_terms": {
+      "label": "청년 계층 자산·자동차 한도: 가구원수×출생자녀수 (N3 p.7-8 결합표; 세대주/세대원 구분 없음)",
+      "columns": [
+        "size",
+        "child"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "asset_limit",
+        "car_limit"
+      ],
+      "readings": [
+        "원문 표 그대로",
+        "자녀 가산 일반규칙 적용(원문 표에 이 가구원수 행이 없음)"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "child": "1+"
+          },
+          "result": "NO_ROW"
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": 0
+          },
+          "out": [
+            251000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0
+          },
+          "out": [
+            251000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "1+"
+          },
+          "out": [
+            251000000,
+            45420000
+          ],
+          "readings": [
+            "원문 표 그대로"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 1
+          },
+          "out": [
+            276000000,
+            49960000
+          ],
+          "readings": [
+            "자녀 가산 일반규칙 적용(원문 표에 이 가구원수 행이 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "2+"
+          },
+          "out": [
+            301000000,
+            54510000
+          ],
+          "readings": [
+            "자녀 가산 일반규칙 적용(원문 표에 이 가구원수 행이 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 0
+          },
+          "out": [
+            251000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 1
+          },
+          "out": [
+            276000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "2+"
+          },
+          "out": [
+            301000000,
+            54510000
+          ]
+        }
+      ],
+      "no_row": {
+        "code": "AMBIGUOUS_SOURCE",
+        "detail": "가구원수 1인인데 출생자녀 가산 대상 자녀가 있음 — 입력 모순이거나 원문 표에 없는 조합"
+      }
+    }
+  },
+  "layers": {
+    "대학생": {
+      "conditions": [
+        {
+          "id": "N3-R4",
+          "field": "marital_status",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "②",
+            "quote": [
+              "혼인 중이 아닐 것"
+            ]
+          },
+          "note": "미혼인지",
+          "check": {
+            "eq": [
+              {
+                "var": "marital_status"
+              },
+              "미혼"
+            ]
+          }
+        },
+        {
+          "id": "N3-R5",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "(무주택자로서; 본인 검증은 p.3)",
+            "quote": [
+              "무주택자로서 아래의 요건",
+              {
+                "page": 3,
+                "text": "대학생, 청년 계층의 주택 소유여부는 신청자 본인에 한하여 검증합니다"
+              }
+            ]
+          },
+          "note": "무주택자인지(본인 기준)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N3-R5c",
+          "field": "student_status",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "①-㉮/㉯",
+            "quote": [
+              "재학중이거나 다음 학기에 입학 또는 복학 예정일 것",
+              "졸업 또는 중퇴한 지 2년 이내일 것"
+            ]
+          },
+          "note": "'대학'에 재학중/입학·복학예정이거나, 대학·고등학교 졸업·중퇴 2년 이내의 취업준비생인지",
+          "check": {
+            "any": [
+              {
+                "in": [
+                  {
+                    "var": "student_status"
+                  },
+                  [
+                    "재학중",
+                    "입학예정",
+                    "복학예정"
+                  ]
+                ]
+              },
+              {
+                "all": [
+                  {
+                    "eq": [
+                      {
+                        "var": "student_status"
+                      },
+                      "취업준비생"
+                    ]
+                  },
+                  {
+                    "gte": [
+                      {
+                        "var": "grad_or_dropout_date"
+                      },
+                      {
+                        "fn": "years_before",
+                        "args": [
+                          {
+                            "ctx": "announcement_date"
+                          },
+                          2
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "N3-R6",
+          "field": "income(본인+부모)",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "③",
+            "quote": [
+              "신청자 부모와 본인의 월평균소득 합계가 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하"
+            ]
+          },
+          "note": "본인+부모(등본 등재 여부 무관, 1인가구는 본인만) 합산 소득이 출생자녀 가산을 반영한 소득기준 이내인지",
+          "table": "student_terms",
+          "reading_detail": "대학생 출생자녀 가산 소득기준 해석 불일치",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "lookup": [
+                  "income_standard",
+                  {
+                    "var": "household_size"
+                  },
+                  {
+                    "term": "ratio"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "N3-R7",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "④",
+            "quote": [
+              "신청자 본인의 총 자산가액 합산기준이 10,800만원 이하"
+            ]
+          },
+          "note": "본인 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+          "table": "student_terms",
+          "reading_detail": "대학생 출생자녀 가산 자산기준 해석 불일치",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          }
+        },
+        {
+          "id": "N3-R8",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "④",
+            "quote": [
+              "자동차가액 산출대상 자동차를 소유하고 있지 않을 것"
+            ]
+          },
+          "note": "자동차를 소유하고 있지 않은지(대학생계층은 소유 자체가 금지됨)",
+          "check": {
+            "eq": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              0
+            ]
+          }
+        }
+      ]
+    },
+    "청년": {
+      "conditions": [
+        {
+          "id": "N3-R5",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "page": 7,
+            "clause": "(무주택자로서)",
+            "quote": [
+              "무주택자로서 아래의 요건",
+              {
+                "page": 3,
+                "text": "대학생, 청년 계층의 주택 소유여부는 신청자 본인에 한하여 검증합니다"
+              }
+            ]
+          },
+          "note": "무주택자인지",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N3-R5b",
+          "field": "age_or_social_rookie",
+          "required": true,
+          "source": {
+            "page": 7,
+            "clause": "①-㉮/㉯",
+            "quote": [
+              "19세 이상 39세 이하인 자"
+            ]
+          },
+          "note": "19세 이상 39세 이하이거나, 사회초년생(소득활동기간 5년 이내 등)에 해당하는지",
+          "check": {
+            "any": [
+              {
+                "between": [
+                  {
+                    "var": "age"
+                  },
+                  19,
+                  39
+                ]
+              },
+              {
+                "eq": [
+                  {
+                    "var": "is_social_rookie"
+                  },
+                  true
+                ],
+                "review_if_true": {
+                  "code": "SELF_REPORT_UNVERIFIED",
+                  "detail": "사회초년생 경로(소득활동기간 5년 이내 등 세부요건)는 자기신고이며 증빙을 검증하지 않음"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N3-R6",
+          "field": "marital_status",
+          "required": true,
+          "source": {
+            "page": 7,
+            "clause": "②",
+            "quote": [
+              "혼인 중이 아닐 것"
+            ]
+          },
+          "note": "미혼인지",
+          "check": {
+            "eq": [
+              {
+                "var": "marital_status"
+              },
+              "미혼"
+            ]
+          }
+        },
+        {
+          "id": "N3-R7/R7b",
+          "field": "household_income",
+          "required": true,
+          "source": {
+            "page": 7,
+            "clause": "③, p.8 소득기준표",
+            "quote": [
+              "월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하"
+            ]
+          },
+          "note": "소득이 자녀수·세대주 여부에 따른 소득기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "lookup": [
+                  "income_standard",
+                  {
+                    "term": "income_size"
+                  },
+                  {
+                    "term": "ratio"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "youth_income_terms",
+          "reading_detail": "청년 소득기준 해석 불일치"
+        },
+        {
+          "id": "N3-R8",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "page": 7,
+            "clause": "④",
+            "quote": [
+              "해당세대가 보유하고 있는 총 자산가액이 25,100만원 이하"
+            ]
+          },
+          "note": "총자산이 자녀수에 따른 자산기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "youth_asset_car_terms",
+          "reading_detail": "청년 자산기준 해석 불일치"
+        },
+        {
+          "id": "N3-R9",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "page": 7,
+            "clause": "④",
+            "quote": [
+              "총 자산 중 자동차가액이 4,542만원 이하"
+            ]
+          },
+          "note": "자동차가액이 자녀수에 따른 자동차기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "youth_asset_car_terms",
+          "reading_detail": "청년 자동차가액 기준 해석 불일치"
+        },
+        {
+          "id": "N3-R10",
+          "field": "has_subscription_account",
+          "required": true,
+          "source": {
+            "page": 7,
+            "clause": "⑤",
+            "quote": [
+              "본인 입주전까지 주택청약종합저축(청약저축 포함) 가입사실을 증명할 수 있을 것"
+            ]
+          },
+          "note": "[입주 전까지 이행] 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+          "check": true,
+          "timing": "BEFORE_MOVE_IN"
+        }
+      ]
+    }
+  }
+}

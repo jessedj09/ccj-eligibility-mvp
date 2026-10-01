@@ -197,8 +197,9 @@ class RuleCondition:
     field: str
     required: bool
     source_ref: str
-    check: Any        # callable(profile) -> True/False/None(확인불가)
+    check: Any        # callable(profile) -> True/False/None(확인불가)/ReviewNeeded
     note: str = ""
+    timing: str = "NOW"   # "NOW": 지금 충족해야 함 / "BEFORE_MOVE_IN": 입주 전까지 이행(현재 자격과 구분)
 
 
 @dataclass

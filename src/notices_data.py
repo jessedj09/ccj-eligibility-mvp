@@ -344,9 +344,10 @@ N2 = NoticeRuleSet(
 # ---------------------------------------------------------------------------
 N3_ANNOUNCEMENT = date(2026, 8, 19)
 
+# 출처 쪽수는 원문 PDF 대조로 확인한 값(대학생 계층은 N3 p.5; 이전 버전은 청년 계층 쪽수 p.7로 잘못 표기).
 n3_student_conditions = _make_student_conditions(
-    "N3-R", "공고문 p.7 ②", "공고문 p.7", "공고문 p.7 ①-㉮/㉯", "공고문 p.7 ③",
-    "공고문 p.7 ④", "공고문 p.7 ④", N3_ANNOUNCEMENT,
+    "N3-R", "공고문 p.5 ②", "공고문 p.5 (무주택자로서; 본인 검증은 p.3)", "공고문 p.5 ①-㉮/㉯",
+    "공고문 p.5 ③", "공고문 p.5 ④", "공고문 p.5 ④", N3_ANNOUNCEMENT,
 )
 
 
@@ -366,6 +367,9 @@ def _youth_age_or_rookie_ok(p):
     if p.is_social_rookie is False:
         return False
     return None
+
+
+_FIXED_NAME = "세대원은 자녀가산과 무관하게 1인 120% 고정"   # 소득 판정에만 의미 있는 해석 후보
 
 
 def _youth_interpretations(p):
@@ -406,7 +410,7 @@ def _youth_interpretations(p):
         options[_GENERAL_BONUS_NAME] = (income_threshold(2, bonus_ratio), bonus_asset, bonus_car)
 
     if p.house_head_status == "세대원" and child >= 1:
-        options["세대원은 자녀가산과 무관하게 1인 120% 고정"] = (one_person_limit, asset, car)
+        options[_FIXED_NAME] = (one_person_limit, asset, car)
 
     return options
 
@@ -431,7 +435,8 @@ def _youth_asset_ok(p):
         return None
     if p.household_size <= 1 and _children_for_bonus(p, N3_ANNOUNCEMENT) >= 1:
         return _no_table_row(p)
-    limits = {name: asset for name, (_i, asset, _c) in _youth_interpretations(p).items()}
+    limits = {name: asset for name, (_i, asset, _c) in _youth_interpretations(p).items()
+              if name != _FIXED_NAME}
     return resolve_interpretations(
         {name: p.total_assets <= v for name, v in limits.items()},
         "청년 자산기준 해석 불일치")
@@ -442,7 +447,8 @@ def _youth_car_ok(p):
         return None
     if p.household_size <= 1 and _children_for_bonus(p, N3_ANNOUNCEMENT) >= 1:
         return _no_table_row(p)
-    limits = {name: car for name, (_i, _a, car) in _youth_interpretations(p).items()}
+    limits = {name: car for name, (_i, _a, car) in _youth_interpretations(p).items()
+              if name != _FIXED_NAME}
     return resolve_interpretations(
         {name: p.car_value <= v for name, v in limits.items()},
         "청년 자동차가액 기준 해석 불일치")
