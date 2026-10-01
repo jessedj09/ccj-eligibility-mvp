@@ -24,6 +24,8 @@ Verdict = Literal["ELIGIBLE", "INELIGIBLE", "NEEDS_INFO", "MANUAL_REVIEW", "NOT_
 # ---------------------------------------------------------------------------
 REVIEW_AMBIGUOUS_SOURCE = "AMBIGUOUS_SOURCE"            # 원문 표에 없는 조합이거나 해석이 갈림
 REVIEW_SELF_REPORT_UNVERIFIED = "SELF_REPORT_UNVERIFIED"  # 자기신고로만 처리하는 세부요건에 의존
+REVIEW_INPUT_INCONSISTENT = "INPUT_INCONSISTENT"        # 입력끼리 모순(가구원수 < 부부+자녀 등): 입력 확인 필요
+REVIEW_CODES = frozenset({REVIEW_AMBIGUOUS_SOURCE, REVIEW_SELF_REPORT_UNVERIFIED, REVIEW_INPUT_INCONSISTENT})
 
 
 @dataclass(frozen=True)

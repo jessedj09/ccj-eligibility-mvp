@@ -28,7 +28,7 @@ class ReviewItem:
     rule_id: str
     description: str   # RuleCondition.note
     source_ref: str
-    code: str          # AMBIGUOUS_SOURCE / SELF_REPORT_UNVERIFIED
+    code: str          # AMBIGUOUS_SOURCE / SELF_REPORT_UNVERIFIED / INPUT_INCONSISTENT
     detail: str        # 어떤 해석들이 어떻게 갈렸는지 / 무엇이 검증되지 않았는지
 
 

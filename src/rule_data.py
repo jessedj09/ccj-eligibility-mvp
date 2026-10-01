@@ -20,7 +20,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from rule_engine import (
     HouseholdProfile, LayerRuleSet, NoticeRuleSet, RuleCondition, ReviewNeeded,
-    REVIEW_AMBIGUOUS_SOURCE, resolve_interpretations, years_before, bonus_child_count,
+    REVIEW_AMBIGUOUS_SOURCE, REVIEW_CODES, resolve_interpretations, years_before, bonus_child_count,
     marriage_cutoff, young_child_cutoff,
 )
 
@@ -152,6 +152,7 @@ class DecisionTable:
     - 행 조건 `when`은 열마다 any / 정수 / 'N+' / 문자열. 위에서부터 처음 맞는 행이 선택된다.
     - 행의 `out`에서 '=열이름' 문자열은 그 열의 입력값을 그대로 쓴다(예: "=size").
     - 행의 `result: "NO_ROW"`는 "원문 표에 없는 조합"을 명시한다(수동 확인으로 이어짐).
+      그 행에 `no_row: {code, detail}`이 있으면 표 공통 `no_row` 대신 그 사유를 쓴다(예: 입력 모순).
     - `readings`가 둘 이상이면 첫 번째가 기본 해석이고, 나머지는 **기본 해석과 다른 행이 선택될 때만**
       계산한다(표가 모호한 지점에서만 해석이 갈리고, 나머지에서는 단일 해석으로 확정).
     """
@@ -162,6 +163,7 @@ class DecisionTable:
         self.outputs: List[str] = list(doc["outputs"])
         self.readings: List[str] = list(doc.get("readings") or [""])
         self.rows: List[Dict[str, Any]] = doc["rows"]
+        self._row_no_row: Dict[int, _NoRow] = {}
         no_row = doc.get("no_row", {})
         self.no_row = _NoRow(no_row.get("code", REVIEW_AMBIGUOUS_SOURCE),
                              no_row.get("detail", "원문 표에 없는 조합"))
@@ -175,6 +177,13 @@ class DecisionTable:
                 _match_spec(row["when"][c], 0)
             if row.get("result") not in (None, "NO_ROW"):
                 raise RuleDataError(f"{where}.result는 'NO_ROW'만 허용됩니다: {row['result']!r}")
+            if "no_row" in row:
+                if row.get("result") != "NO_ROW":
+                    raise RuleDataError(f"{where}: no_row는 result가 'NO_ROW'인 행에서만 쓸 수 있습니다")
+                nr = row["no_row"]
+                if set(nr) != {"code", "detail"} or nr["code"] not in REVIEW_CODES:
+                    raise RuleDataError(f"{where}.no_row는 code({sorted(REVIEW_CODES)})와 detail이 필요합니다")
+                self._row_no_row[id(row)] = _NoRow(nr["code"], nr["detail"])
             if row.get("result") != "NO_ROW":
                 if len(row["out"]) != len(self.outputs):
                     raise RuleDataError(f"{where}.out 길이가 outputs와 다릅니다")
@@ -198,7 +207,7 @@ class DecisionTable:
                 continue
             if all(_match_spec(row["when"][c], values[c]) for c in self.columns):
                 if row.get("result") == "NO_ROW":
-                    return row, self.no_row
+                    return row, self._row_no_row.get(id(row), self.no_row)
                 out = [values[o[1:]] if isinstance(o, str) and o.startswith("=") else o
                        for o in row["out"]]
                 return row, dict(zip(self.outputs, out))

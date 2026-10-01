@@ -94,6 +94,9 @@ with col1:
     )
     household_size = st.number_input(
         "가구원수(판정 대상)", min_value=1, max_value=10, value=_default("household_size", 1),
+        help="신혼부부는 부부 2인 이상입니다. 예비신혼부부는 신청자 본인과 예비배우자, 공고일 기준 동일 세대에 "
+             "등재된 직계존속·비속을 포함한 '혼인으로 구성될 세대' 기준이며 2인 이상입니다. "
+             "한부모는 본인과 자녀를 포함합니다.",
     )
     dual_income = st.checkbox("맞벌이 여부", value=_default("dual_income", False))
 
