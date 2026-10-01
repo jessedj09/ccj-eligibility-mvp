@@ -103,30 +103,13 @@ def is_within_years(event_date: date, on: date, n_years: int) -> bool:
     return event_date >= years_before(on, n_years)
 
 # ---------------------------------------------------------------------------
-# 1. reference_values — 도시근로자 가구원수별 가구당 월평균소득 (2025년도 기준)
-#    3개 공고문 전부 교차검증되어 일치함(income_basis 시트 참조)
+# 1. reference_values — 도시근로자 가구원수별 가구당 월평균소득(2025년도 기준)은 코드가 아니라
+#    rules/reference/income_standard.json이 유일한 원본이다(3개 공고문 전부 교차검증되어 일치).
 # ---------------------------------------------------------------------------
-INCOME_TABLE: Dict[int, Dict[int, int]] = {
-    # 가구원수: {비율(%): 원}
-    1: {100: None, 110: None, 120: 4_576_036, 130: None, 140: None},
-    2: {100: None, 110: 6_452_897, 120: 7_039_524, 130: 7_626_151, 140: 8_212_778},
-    3: {100: 8_168_429, 110: 8_985_272, 120: 9_802_115, 130: 10_618_958, 140: 11_435_801},
-    4: {100: 8_802_202, 110: 9_682_422, 120: 10_562_642, 130: 11_442_863, 140: 12_323_083},
-    5: {100: 9_326_985, 110: 10_259_684, 120: 11_192_382, 130: 12_125_081, 140: 13_057_779},
-    6: {100: 9_906_263, 110: 10_896_889, 120: 11_887_516, 130: 12_878_142, 140: 13_868_768},
-}
-PER_PERSON_ADDER_7PLUS = 579_278  # 7인 이상 가구는 6인 기준 + 1인당 이 금액
-
-
 def income_threshold(household_size: int, ratio_pct: int) -> Optional[int]:
     """가구원수·비율로 소득 상한액 조회. 표에 없는 조합이면 None(=확인불가)."""
-    size = min(household_size, 6)
-    base = INCOME_TABLE.get(size, {}).get(ratio_pct)
-    if base is None:
-        return None
-    if household_size > 6:
-        return base + PER_PERSON_ADDER_7PLUS * (household_size - 6)
-    return base
+    from rule_data import load_reference  # rule_data가 rule_engine을 import하므로 순환을 피해 지연 import
+    return load_reference("income_standard").lookup(household_size, ratio_pct)
 
 
 # ---------------------------------------------------------------------------

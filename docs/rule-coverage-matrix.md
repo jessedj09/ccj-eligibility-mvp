@@ -40,14 +40,14 @@
 
 | 계층 | 조건 | 원문 위치 | 적용대상/예외 | 필요 정보 | 구현 위치 | 상태 | 테스트 |
 |---|---|---|---|---|---|---|---|
-| 신혼부부·한부모 | 혼인중/예비신혼/한부모 신분 | p.4①-㉮/㉯/㉰ | 신혼부부=㉮, 예비신혼=㉯, 한부모=㉰ | `marital_status` | `N1-M-marital`/`N1-S-marital` | 구현 | test_regression |
+| 신혼부부·한부모 | 혼인중/예비신혼/한부모 신분 | **p.5**①-㉮/㉯/㉰ | 신혼부부=㉮, 예비신혼=㉯, 한부모=㉰ | `marital_status` | `N1-M-marital`/`N1-S-marital` | 구현 | test_regression |
 | 〃 | 무주택(세대구성원 전원, 예비신혼은 혼인 후 세대) | p.4 | — | `home_ownership` | `N1-M-home`/`N1-S-home` | 구현(세대구성원 전원 여부는 `home_ownership` 단일값으로 단순화 — 02-data-schema.md 기존 한계) | test_regression |
 | 신혼부부(혼인중)만 | 혼인기간 7년 이내 또는 6세이하 자녀 | p.5②, 컷오프 p.5(2019.7.29/2019.7.30) | 예비신혼부부는 이 조건 자체가 없음(①-㉯만 요구) | `marriage_date` 또는 `youngest_child_birth_date` | `N1-M-duration` | **구현(리터럴 컷오프 사용)** | test_mvp0_1_fixes 다수 |
 | 한부모만 | 6세 이하 자녀를 둔 한부모 | p.5①-㉰ | — | `youngest_child_birth_date` | `N1-S-child6` | **구현(리터럴 컷오프)** | test_mvp0_1_fixes |
-| 신혼부부·한부모 | 소득(자녀가산 결합) | p.5③, p.6 가산표 | 맞벌이 신혼부부만 130%대 존재, 한부모는 맞벌이 개념 없음 | `monthly_income`,`dual_income`,`young_child_count` | `spouse_terms_married/singleparent`,`N1-M-income` | 구현 | test_child_bonus |
-| 〃 | 자산(자녀가산 결합) | p.6④ | — | `total_assets` | `N1-M-assets` | 구현 | test_child_bonus |
-| 〃 | 자동차(자녀가산 결합) | p.6④ | — | `car_value` | `N1-M-car` | 구현 | test_boundaries |
-| 〃 | 청약통장 가입(입주 전까지) | p.6⑤ | 한부모는 본인만 해당 | `has_subscription_account` | `N1-M-sub`/`N1-S-sub` | **구현(단, "입주 전까지 이행"이라는 유예 성격을 note에 명시 — 접수상태와 분리)** | — |
+| 신혼부부·한부모 | 소득(자녀가산 결합) | p.5③(가산표 p.5, 상세 소득기준표 p.6) | 맞벌이 신혼부부만 130%대 존재, 한부모는 맞벌이 개념 없음 | `monthly_income`,`dual_income`,`young_child_count` | `spouse_terms_married/singleparent`,`N1-M-income` | 구현 | test_child_bonus |
+| 〃 | 자산(자녀가산 결합) | **p.5**④ | — | `total_assets` | `N1-M-assets` | 구현 | test_child_bonus |
+| 〃 | 자동차(자녀가산 결합) | **p.5**④ | — | `car_value` | `N1-M-car` | 구현 | test_boundaries |
+| 〃 | 청약통장 가입(입주 전까지) | **p.5**⑤ | 한부모는 본인만 해당 | `has_subscription_account` | `N1-M-sub`/`N1-S-sub` | **구현(단, "입주 전까지 이행"이라는 유예 성격을 note에 명시 — 접수상태와 분리)** | — |
 | 신혼부부·한부모 | 우선공급(2세미만 자녀) 배점 | p.7 | verdict와 무관, 별도 점수 | `residence_region`,`residence_years`,`subscription_payment_count` | `src/priority_scoring.py` | 구현(단, ①항목 적용범위는 01-decisions-log.md #7 caveat 유지 — **확인필요**) | test_priority_scoring |
 | 서류조건(혼인관계증명서 등) | — | p.4~6 | — | — | — | **범위밖**(verdict 영향 없음) | — |
 
@@ -78,6 +78,10 @@
 | 신혼부부·한부모 | 혼인기간 7년/자녀 6세이하, 한부모 자녀 6세이하 | p.9②, ①-㉰ | 리터럴 컷오프 날짜는 없으나 N1 리터럴을 재현하는 공식으로 도출(§3 정정) | `marriage_date`,`youngest_child_birth_date` | `N3-M-duration`,`N3-S-child6` | **구현(공식 도출, MVP0.2에서 자녀 컷오프 1일 오류 수정)** | test_regression(P04/P06/P07/P08) |
 | 신혼부부·한부모 | 소득·자산·자동차(자녀가산) | p.9③④, 가산표 | N1과 동일 표 | 동일 | `N3-M-income` 등 | 구현 | test_child_bonus(N1 기준 검증, N3는 회귀로 커버) |
 | 대학생 | (N2와 동일 6개 조건, 공고일만 2026-08-19로 다름) | **p.5**(무주택 본인 검증 근거는 p.3) | — | 동일 | `N3-R4~R8` | 구현 | test_regression, test_rule_data_n3 |
+
+> **N1 출처 쪽수 정정(MVP0.5)**: N1 신혼부부·한부모의 혼인 상태(p.4→**p.5**), 자산·자동차·청약통장(p.6→**p.5**)
+> 쪽수와, 쪽수 없이 "공통 무주택요건"으로만 적혀 있던 무주택 근거(→p.4 "무주택세대구성원"; N3는 p.9)도
+> 같은 방식으로 정정했다. N3 신혼부부·한부모의 "p.9-10" 표기는 `p.9 ④(가산표 p.9-10)` 형식으로 정리했다.
 
 > **출처 쪽수 정정(MVP0.4)**: 이전 버전은 N3 대학생 조건의 근거를 "공고문 p.7"로 표시했으나(청년 계층
 > 쪽수를 잘못 복사) 실제 위치는 **p.5**다. 사용자 화면의 "근거"에 그대로 노출되던 오류로, 데이터화하면서

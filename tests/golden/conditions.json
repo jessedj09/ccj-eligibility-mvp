@@ -1,0 +1,392 @@
+{
+ "N1/신혼부부": [
+  {
+   "id": "N1-M-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉮/㉯",
+   "note": "혼인 중이거나 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N1-M-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.4 (무주택세대구성원)",
+   "note": "무주택 세대구성원인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N1-M-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.5 ③(자녀가산표 p.5, 상세 소득기준표 p.6)",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N1-M-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5 ④(자녀가산표)",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N1-M-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5 ④(자녀가산표)",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N1-M-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.5 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N1-M-duration",
+   "field": "marriage_duration_or_child",
+   "required": true,
+   "source_ref": "공고문 p.5 ②",
+   "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아포함)를 두었는지 (예비신혼부부는 이 요건이 적용되지 않음)",
+   "timing": "NOW"
+  }
+ ],
+ "N1/한부모": [
+  {
+   "id": "N1-S-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉰",
+   "note": "한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N1-S-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.4 (무주택세대구성원)",
+   "note": "무주택 세대구성원인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N1-S-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.5 ③(자녀가산표 p.5, 상세 소득기준표 p.6)",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N1-S-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5 ④(자녀가산표)",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N1-S-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5 ④(자녀가산표)",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N1-S-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.5 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N1-S-child6",
+   "field": "youngest_child_birth_date",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉰",
+   "note": "6세 이하 자녀(태아포함)를 둔 한부모인지",
+   "timing": "NOW"
+  }
+ ],
+ "N2/대학생": [
+  {
+   "id": "N2-R4",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ②",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N2-R5",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "무주택자인지(본인 기준)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N2-R5c",
+   "field": "student_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉮/㉯",
+   "note": "'대학'에 재학중/입학·복학예정이거나, 대학·고등학교 졸업·중퇴 2년 이내의 취업준비생인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N2-R6",
+   "field": "income(본인+부모)",
+   "required": true,
+   "source_ref": "공고문 p.5 ③",
+   "note": "본인+부모(등본 등재 여부 무관, 1인가구는 본인만) 합산 소득이 출생자녀 가산을 반영한 소득기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N2-R7",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "본인 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N2-R8",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "자동차를 소유하고 있지 않은지(대학생계층은 소유 자체가 금지됨)",
+   "timing": "NOW"
+  }
+ ],
+ "N3/대학생": [
+  {
+   "id": "N3-R4",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ②",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R5",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.5 (무주택자로서; 본인 검증은 p.3)",
+   "note": "무주택자인지(본인 기준)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R5c",
+   "field": "student_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉮/㉯",
+   "note": "'대학'에 재학중/입학·복학예정이거나, 대학·고등학교 졸업·중퇴 2년 이내의 취업준비생인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R6",
+   "field": "income(본인+부모)",
+   "required": true,
+   "source_ref": "공고문 p.5 ③",
+   "note": "본인+부모(등본 등재 여부 무관, 1인가구는 본인만) 합산 소득이 출생자녀 가산을 반영한 소득기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R7",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "본인 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R8",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "자동차를 소유하고 있지 않은지(대학생계층은 소유 자체가 금지됨)",
+   "timing": "NOW"
+  }
+ ],
+ "N3/청년": [
+  {
+   "id": "N3-R5",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.7 (무주택자로서)",
+   "note": "무주택자인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R5b",
+   "field": "age_or_social_rookie",
+   "required": true,
+   "source_ref": "공고문 p.7 ①-㉮/㉯",
+   "note": "19세 이상 39세 이하이거나, 사회초년생(소득활동기간 5년 이내 등)에 해당하는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R6",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.7 ②",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R7/R7b",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.7 ③, p.8 소득기준표",
+   "note": "소득이 자녀수·세대주 여부에 따른 소득기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R8",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.7 ④",
+   "note": "총자산이 자녀수에 따른 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R9",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.7 ④",
+   "note": "자동차가액이 자녀수에 따른 자동차기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-R10",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.7 ⑤",
+   "note": "[입주 전까지 이행] 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  }
+ ],
+ "N3/신혼부부": [
+  {
+   "id": "N3-M-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.9 ①-㉮/㉯",
+   "note": "혼인 중이거나 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-M-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.9 (무주택세대구성원)",
+   "note": "무주택 세대구성원인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-M-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.9 ③(+가산표)",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-M-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.9 ④(가산표 p.9-10)",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-M-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.9 ④(가산표 p.9-10)",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-M-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.9 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N3-M-duration",
+   "field": "marriage_duration_or_child",
+   "required": true,
+   "source_ref": "공고문 p.9 ②",
+   "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아포함)를 두었는지 (예비신혼부부는 이 요건이 적용되지 않음)",
+   "timing": "NOW"
+  }
+ ],
+ "N3/한부모": [
+  {
+   "id": "N3-S-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.9 ①-㉰",
+   "note": "한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-S-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.9 (무주택세대구성원)",
+   "note": "무주택 세대구성원인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-S-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.9 ③(+가산표)",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-S-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.9 ④(가산표 p.9-10)",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-S-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.9 ④(가산표 p.9-10)",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N3-S-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.9 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N3-S-child6",
+   "field": "youngest_child_birth_date",
+   "required": true,
+   "source_ref": "공고문 p.9 ①-㉰",
+   "note": "6세 이하 자녀(태아포함)를 둔 한부모인지",
+   "timing": "NOW"
+  }
+ ]
+}

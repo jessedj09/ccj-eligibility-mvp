@@ -1,0 +1,681 @@
+{
+  "notice_id": "N1",
+  "title": "서울공릉 신혼희망타운 행복주택",
+  "announcement_date": "2026-07-29",
+  "version": 1,
+  "valid_from": "2026-07-29",
+  "supersedes": null,
+  "source": {
+    "document": "서울공릉신혼희망타운행복주택입주자모집공고문(최종).pdf",
+    "sha256": "23ecedea26b926695e4640cc698d3597a971963575b3c204b8b97da455335f37",
+    "pages": 41
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "규칙을 구조화한 사람과 판정 코드를 만든 사람이 같아 독립 검토가 없었다.",
+    "log": []
+  },
+  "tables": {
+    "spouse_terms_married": {
+      "label": "신혼부부·예비신혼부부 출생자녀 가산 소득·자산·자동차 기준: 가구원수×출생자녀수×맞벌이",
+      "source": {
+        "page": 5,
+        "quote": [
+          "345,000,000원",
+          "379,000,000원",
+          "413,000,000원",
+          "45,420,000원",
+          "49,960,000원",
+          "54,510,000원"
+        ]
+      },
+      "columns": [
+        "size",
+        "child",
+        "dual"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        },
+        "dual": {
+          "var": "dual_income"
+        }
+      },
+      "outputs": [
+        "ratio",
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": "1-2",
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            130,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "1-2",
+            "child": "any",
+            "dual": false
+          },
+          "out": [
+            110,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": 0,
+            "dual": true
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            100,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": "1+",
+            "dual": true
+          },
+          "out": [
+            130,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": "1+",
+            "dual": false
+          },
+          "out": [
+            110,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": 0,
+            "dual": true
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            100,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": 1,
+            "dual": true
+          },
+          "out": [
+            130,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            110,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": "2+",
+            "dual": true
+          },
+          "out": [
+            140,
+            413000000,
+            54510000
+          ]
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            120,
+            413000000,
+            54510000
+          ]
+        }
+      ]
+    },
+    "spouse_terms_singleparent": {
+      "label": "한부모가족 출생자녀 가산 소득·자산·자동차 기준: 가구원수×출생자녀수 (맞벌이 개념 없음)",
+      "source": {
+        "page": 5,
+        "quote": [
+          "345,000,000원",
+          "379,000,000원",
+          "413,000,000원",
+          "45,420,000원",
+          "49,960,000원",
+          "54,510,000원"
+        ]
+      },
+      "columns": [
+        "size",
+        "child"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "ratio",
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": "1-2",
+            "child": 0
+          },
+          "out": [
+            110,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "1-2",
+            "child": "1+"
+          },
+          "out": [
+            120,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 0
+          },
+          "out": [
+            100,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 1
+          },
+          "out": [
+            110,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "2+"
+          },
+          "out": [
+            120,
+            413000000,
+            54510000
+          ]
+        }
+      ]
+    }
+  },
+  "layers": {
+    "신혼부부": {
+      "conditions": [
+        {
+          "id": "N1-M-marital",
+          "field": "marital_status",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "①-㉮/㉯",
+            "quote": [
+              "(신혼부부) 혼인중인 자",
+              "(예비신혼부부) 혼인을 계획 중이며 입주 전까지 혼인사실을 증명할 수 있을 것"
+            ]
+          },
+          "note": "혼인 중이거나 예비신혼부부인지",
+          "check": {
+            "in": [
+              {
+                "var": "marital_status"
+              },
+              [
+                "혼인중",
+                "예비신혼"
+              ]
+            ]
+          }
+        },
+        {
+          "id": "N1-M-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "page": 4,
+            "clause": "(무주택세대구성원)",
+            "quote": [
+              "무주택세대구성원(예비신혼부부의 경우 혼인으로 구성될 세대의 세대구성원"
+            ]
+          },
+          "note": "무주택 세대구성원인지",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N1-M-income",
+          "field": "household_income",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "③(자녀가산표 p.5, 상세 소득기준표 p.6)",
+            "quote": [
+              "월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하(맞벌이 부부 120퍼센트 이하)일 것"
+            ]
+          },
+          "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "lookup": [
+                  "income_standard",
+                  {
+                    "var": "household_size"
+                  },
+                  {
+                    "term": "ratio"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "spouse_terms_married"
+        },
+        {
+          "id": "N1-M-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "page": 5,
+            "quote": [
+              "총 자산가액 합산기준 34,500만원 이하"
+            ],
+            "clause": "④(자녀가산표)"
+          },
+          "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "spouse_terms_married"
+        },
+        {
+          "id": "N1-M-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "page": 5,
+            "quote": [
+              "총 자산 중 자동차가액이 4,542만원 이하일 것"
+            ],
+            "clause": "④(자녀가산표)"
+          },
+          "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "spouse_terms_married"
+        },
+        {
+          "id": "N1-M-sub",
+          "field": "has_subscription_account",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "⑤",
+            "quote": [
+              "본인 또는 배우자(예비신혼부부의 경우는 혼인 예정인 배우자) 중 1인이 입주 전까지 주택청약종합저축(청약저축 포함) 가입사실을 증명할 수 있을 것"
+            ]
+          },
+          "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+          "check": true,
+          "timing": "BEFORE_MOVE_IN"
+        },
+        {
+          "id": "N1-M-duration",
+          "field": "marriage_duration_or_child",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "②",
+            "quote": [
+              "혼인기간이 7년 이내일 것 또는 6세 이하 자녀(태아포함)를 둔 자",
+              "2019. 7. 29. 이후 혼인신고",
+              "2019. 7. 30. 이후 출생"
+            ]
+          },
+          "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아포함)를 두었는지 (예비신혼부부는 이 요건이 적용되지 않음)",
+          "check": {
+            "any": [
+              {
+                "eq": [
+                  {
+                    "var": "marital_status"
+                  },
+                  "예비신혼"
+                ]
+              },
+              {
+                "gte": [
+                  {
+                    "var": "marriage_date"
+                  },
+                  {
+                    "date": "2019-07-29"
+                  }
+                ]
+              },
+              {
+                "if": [
+                  {
+                    "is": [
+                      {
+                        "var": "has_children"
+                      },
+                      false
+                    ]
+                  },
+                  false,
+                  {
+                    "gte": [
+                      {
+                        "var": "youngest_child_birth_date"
+                      },
+                      {
+                        "date": "2019-07-30"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "한부모": {
+      "conditions": [
+        {
+          "id": "N1-S-marital",
+          "field": "marital_status",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "①-㉰",
+            "quote": [
+              "(한부모가족) 6세이하"
+            ]
+          },
+          "note": "한부모가족인지",
+          "check": {
+            "in": [
+              {
+                "var": "marital_status"
+              },
+              [
+                "한부모"
+              ]
+            ]
+          }
+        },
+        {
+          "id": "N1-S-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "page": 4,
+            "clause": "(무주택세대구성원)",
+            "quote": [
+              "무주택세대구성원(예비신혼부부의 경우 혼인으로 구성될 세대의 세대구성원"
+            ]
+          },
+          "note": "무주택 세대구성원인지",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N1-S-income",
+          "field": "household_income",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "③(자녀가산표 p.5, 상세 소득기준표 p.6)",
+            "quote": [
+              "월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하(맞벌이 부부 120퍼센트 이하)일 것"
+            ]
+          },
+          "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "lookup": [
+                  "income_standard",
+                  {
+                    "var": "household_size"
+                  },
+                  {
+                    "term": "ratio"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "spouse_terms_singleparent"
+        },
+        {
+          "id": "N1-S-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "page": 5,
+            "quote": [
+              "총 자산가액 합산기준 34,500만원 이하"
+            ],
+            "clause": "④(자녀가산표)"
+          },
+          "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "spouse_terms_singleparent"
+        },
+        {
+          "id": "N1-S-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "page": 5,
+            "quote": [
+              "총 자산 중 자동차가액이 4,542만원 이하일 것"
+            ],
+            "clause": "④(자녀가산표)"
+          },
+          "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "spouse_terms_singleparent"
+        },
+        {
+          "id": "N1-S-sub",
+          "field": "has_subscription_account",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "⑤",
+            "quote": [
+              "본인 또는 배우자(예비신혼부부의 경우는 혼인 예정인 배우자) 중 1인이 입주 전까지 주택청약종합저축(청약저축 포함) 가입사실을 증명할 수 있을 것"
+            ]
+          },
+          "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+          "check": true,
+          "timing": "BEFORE_MOVE_IN"
+        },
+        {
+          "id": "N1-S-child6",
+          "field": "youngest_child_birth_date",
+          "required": true,
+          "source": {
+            "page": 5,
+            "clause": "①-㉰",
+            "quote": [
+              "(한부모가족) 6세이하(2019. 7. 30. 이후 출생, 태아포함) 자녀를 둔 한부모인 자"
+            ]
+          },
+          "note": "6세 이하 자녀(태아포함)를 둔 한부모인지",
+          "check": {
+            "if": [
+              {
+                "is": [
+                  {
+                    "var": "has_children"
+                  },
+                  false
+                ]
+              },
+              false,
+              {
+                "gte": [
+                  {
+                    "var": "youngest_child_birth_date"
+                  },
+                  {
+                    "date": "2019-07-30"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

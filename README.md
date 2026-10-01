@@ -32,7 +32,7 @@ python -m pytest -q
 ```
 
 - 회귀(match_matrix 대조) 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 + explainability 6 +
-  MVP0.1 재현/수정 28 + MVP0.2 수동검토 34 + MVP0.3 자녀 수 계산 22 + 규칙 데이터화 45 = **총 217개**, 모두 통과해야 한다.
+  MVP0.1 재현/수정 28 + MVP0.2 수동검토 34 + MVP0.3 자녀 수 계산 22 + 규칙 데이터화·골든 = **총 212개**, 모두 통과해야 한다.
 - 테스트가 검증하는 것과 검증하지 못하는 것의 차이는
   [docs/03-validation-methodology.md](docs/03-validation-methodology.md)를 반드시 읽을 것.
 

@@ -1,138 +1,44 @@
 # -*- coding: utf-8 -*-
-"""test_rule_data.py — 규칙 데이터화(B단계 P1) 검증.
+"""test_rule_data.py — 규칙 데이터 로더·조건식 평가기 검증.
 
-1) 차분 테스트: 기존 파이썬 규칙(notices_data.N2)과 JSON 규칙(rules/notices/N2.json)이 같은 입력에
-   verdict·score·matched·failed·unknown·review(사유 코드·상세 문구 포함)까지 전부 같은 결과를 내는지.
-   입력은 모든 수치 한도·컷오프 날짜의 경계(-1/0/+1)와 enum·None 조합에서 만든다(데이터의 한도에서
-   자동 파생 + 시드 고정 무작위 표본).
-2) 평가기 단위 테스트: any/all 우선순위, None/표에 없음/해석 불일치 전파.
-3) 로더 검증: 잘못된 데이터가 로드 시점에 거부되는지(런타임 오판정 방지).
+1) 평가기 단위 테스트: any/all 우선순위, None/표에 없음/해석 불일치 전파, 연산자 의미.
+2) 로더 검증: 잘못된 데이터가 로드 시점에 거부되는지(런타임 오판정 방지).
+3) 기준값 표: JSON 원본의 값이 PDF 원문 수치와 같다.
+기존 파이썬 규칙과의 차분 테스트는 B단계 P1~P3에서 동등성을 증명한 뒤 골든 스냅샷
+(test_rules_golden.py)으로 대체되었다.
 """
 
 import copy
-import hashlib
-import itertools
 import json
-import random
-from datetime import date, timedelta
-from pathlib import Path
+from datetime import date
 
 import pytest
-from rule_engine import (
-    CHILD_BONUS_CUTOFF, HouseholdProfile, evaluate, income_threshold, years_before,
-)
-from notices_data import N2 as LEGACY_N2, N2_ANNOUNCEMENT
-from rule_data import (
-    RuleDataError, build_notice, load_notice, load_reference, RULES_DIR,
-)
-
-N2 = load_notice("N2")
-PROJECT = Path(__file__).resolve().parent.parent
+from rule_engine import HouseholdProfile, evaluate, income_threshold
+from rule_data import RuleDataError, build_notice, load_reference, RULES_DIR
 
 
-def snapshot(r):
-    return (r.verdict, r.score, tuple(r.matched), tuple(r.failed), tuple(r.unknown),
-            tuple(r.review), tuple(r.notes),
-            {k: (v.code, v.detail) for k, v in r.review_reasons.items()})
+# 소득기준표(전년도 도시근로자 가구원수별 가구당 월평균소득) 원문 수치 — N1 p.6 / N2 p.5 / N3 p.8 표를
+# 손으로 옮긴 값. JSON 원본이 이 값과 같아야 한다.
+INCOME_FROM_PDF = {
+    (1, 120): 4_576_036,
+    (2, 110): 6_452_897, (2, 120): 7_039_524, (2, 130): 7_626_151, (2, 140): 8_212_778,
+    (3, 100): 8_168_429, (3, 110): 8_985_272, (3, 120): 9_802_115, (3, 130): 10_618_958, (3, 140): 11_435_801,
+    (4, 100): 8_802_202, (4, 110): 9_682_422, (4, 120): 10_562_642, (4, 130): 11_442_863, (4, 140): 12_323_083,
+    (5, 100): 9_326_985, (5, 110): 10_259_684, (5, 120): 11_192_382, (5, 130): 12_125_081, (5, 140): 13_057_779,
+    (6, 100): 9_906_263, (6, 110): 10_896_889, (6, 120): 11_887_516, (6, 130): 12_878_142, (6, 140): 13_868_768,
+}
 
 
-# ---------------------------------------------------------------------------
-# 정적 동일성 — 설명 계층이 쓰는 모든 필드가 기존과 글자까지 같다
-# ---------------------------------------------------------------------------
-def test_n2_static_fields_identical_to_legacy():
-    assert (N2.notice_id, N2.title, N2.announcement_date) == \
-           (LEGACY_N2.notice_id, LEGACY_N2.title, LEGACY_N2.announcement_date)
-    new, old = N2.layers["대학생"].conditions, LEGACY_N2.layers["대학생"].conditions
-    assert [(c.rule_id, c.field, c.required, c.source_ref, c.note) for c in new] == \
-           [(c.rule_id, c.field, c.required, c.source_ref, c.note) for c in old]
+def test_income_reference_matches_pdf_table():
+    for (size, ratio), expected in INCOME_FROM_PDF.items():
+        assert load_reference("income_standard").lookup(size, ratio) == expected, (size, ratio)
+        assert income_threshold(size, ratio) == expected
 
 
-def test_reference_lookup_identical_to_income_threshold():
-    ref = load_reference("income_standard")
-    for size, ratio in itertools.product(range(1, 13), (100, 110, 120, 130, 140, 150)):
-        assert ref.lookup(size, ratio) == income_threshold(size, ratio), (size, ratio)
-
-
-def test_n2_meta_status_and_source_hash():
-    assert N2.meta["review"]["status"] == "DRAFT"
-    assert N2.meta["version"] == 1
-    pdf = next((PROJECT / "sample_lh").glob("*관악봉천*.pdf"))
-    assert hashlib.sha256(pdf.read_bytes()).hexdigest() == N2.meta["source"]["sha256"]
-
-
-# ---------------------------------------------------------------------------
-# 차분 테스트
-# ---------------------------------------------------------------------------
-AFTER, AFTER2, BEFORE_MINOR = date(2024, 1, 1), date(2025, 6, 1), date(2015, 5, 5)
-ADULT_LINE = years_before(N2_ANNOUNCEMENT, 19)
-GRAD_CUT = years_before(N2_ANNOUNCEMENT, 2)
-SIZES = [1, 2, 3, 4, 6, 7, 8]
-CHILD_LISTS = [
-    None, [], [AFTER], [AFTER, BEFORE_MINOR], [BEFORE_MINOR], [AFTER, AFTER2, BEFORE_MINOR],
-    [AFTER, ADULT_LINE], [AFTER, ADULT_LINE + timedelta(days=1)],
-    [CHILD_BONUS_CUTOFF], [CHILD_BONUS_CUTOFF - timedelta(days=1)],
-]
-LEGACY_COUNTS = [0, 1, 2, 3]
-GRAD_DATES = [None, GRAD_CUT - timedelta(days=1), GRAD_CUT, GRAD_CUT + timedelta(days=1),
-              date(2000, 1, 1), N2_ANNOUNCEMENT]
-STATUSES = [None, "재학중", "입학예정", "복학예정", "취업준비생", "해당없음"]
-
-INCOMES = [None, 0, 1]
-for _size in SIZES:
-    for _ratio in (100, 110, 120, 130, 140):
-        _limit = income_threshold(_size, _ratio)
-        if _limit is not None:
-            INCOMES += [_limit - 1, _limit, _limit + 1]
-ASSETS = [None, 0] + [v + d for v in (108_000_000, 119_000_000, 130_000_000) for d in (-1, 0, 1)]
-CARS = [0, 1, "확인불가"]
-
-
-def make_profile(marital, home, status, grad, size, kids, legacy_count, income, assets, car):
-    return HouseholdProfile(
-        "D", 22, marital, home, household_size=size, monthly_income=income,
-        total_assets=assets, car_value=car, student_status=status, grad_or_dropout_date=grad,
-        children_birth_dates=kids, young_child_count=legacy_count)
-
-
-def assert_same(profile):
-    old = snapshot(evaluate(profile, LEGACY_N2, "대학생"))
-    new = snapshot(evaluate(profile, N2, "대학생"))
-    assert old == new, f"\n입력: {profile}\n기존: {old}\n데이터: {new}"
-
-
-def _biased(rng, pool, pass_values, p_pass=0.75):
-    """통과하는 값에 가중치를 둔 표본 — 무작위로만 뽑으면 다른 조건에서 먼저 탈락해
-    '모든 조건이 통과 근처'인 영역(경계 판정이 실제로 결과를 가르는 영역)이 거의 검증되지 않는다."""
-    return rng.choice(pass_values) if rng.random() < p_pass else rng.choice(pool)
-
-
-def test_differential_random_sample_n2():
-    rng = random.Random(20261001)
-    for _ in range(40_000):
-        assert_same(make_profile(
-            _biased(rng, ["미혼", "혼인중"], ["미혼"]),
-            _biased(rng, ["무주택", "주택보유"], ["무주택"]),
-            _biased(rng, STATUSES, ["재학중", "입학예정", "복학예정"]),
-            rng.choice(GRAD_DATES), rng.choice(SIZES),
-            rng.choice(CHILD_LISTS), rng.choice(LEGACY_COUNTS),
-            rng.choice(INCOMES), rng.choice(ASSETS),
-            _biased(rng, CARS, [0], 0.85)))
-
-
-def test_differential_exhaustive_household_x_children_x_assets_n2():
-    # 결정표(가구원수×자녀수×해석)와 자산 경계는 전수 조합으로 비교한다
-    for size, kids, count, assets in itertools.product(SIZES, CHILD_LISTS, LEGACY_COUNTS, ASSETS):
-        assert_same(make_profile("미혼", "무주택", "재학중", None, size, kids, count, 1, assets, 0))
-
-
-def test_differential_exhaustive_status_x_grad_date_n2():
-    for status, grad in itertools.product(STATUSES, GRAD_DATES):
-        assert_same(make_profile("미혼", "무주택", status, grad, 1, None, 0, 1, 1, 0))
-
-
-def test_differential_exhaustive_income_boundaries_n2():
-    for size, kids, income in itertools.product(SIZES, CHILD_LISTS, INCOMES):
-        assert_same(make_profile("미혼", "무주택", "재학중", None, size, kids, 0, income, 1, 0))
+def test_income_reference_missing_combinations_and_7plus_adder():
+    assert income_threshold(1, 100) is None and income_threshold(1, 110) is None   # 표에 없는 조합
+    assert income_threshold(7, 120) == 11_887_516 + 579_278        # 7인 이상: 6인 + 1인당 579,278원
+    assert income_threshold(9, 100) == 9_906_263 + 579_278 * 3
 
 
 # ---------------------------------------------------------------------------

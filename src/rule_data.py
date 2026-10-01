@@ -21,6 +21,7 @@ from typing import Any, Callable, Dict, List, Optional
 from rule_engine import (
     HouseholdProfile, LayerRuleSet, NoticeRuleSet, RuleCondition, ReviewNeeded,
     REVIEW_AMBIGUOUS_SOURCE, resolve_interpretations, years_before, bonus_child_count,
+    marriage_cutoff, young_child_cutoff,
 )
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
@@ -126,13 +127,16 @@ def _resolve_readings(results: Dict[str, Any], detail: str):
 # 결정표 (원문 표를 행 단위로 그대로 옮긴 것)
 # ---------------------------------------------------------------------------
 def _match_spec(spec: Any, value: Any) -> bool:
-    """결정표 행의 열 조건: 'any' / 정수(정확히 일치) / 'N+'(이상) / 그 밖의 문자열(정확히 일치)."""
+    """결정표 행의 열 조건: 'any' / 불리언·정수(정확히 일치) / 'A-B'(범위) / 'N+'(이상) / 그 밖의 문자열(정확히 일치)."""
     if spec == "any":
         return True
     if isinstance(spec, bool):
-        raise RuleDataError(f"결정표 행 조건에 불리언은 쓸 수 없습니다: {spec!r}")
+        return value is spec                      # 불리언은 1/0과 섞이지 않게 정확히 일치
     if isinstance(spec, int):
-        return value == spec
+        return value == spec and not isinstance(value, bool)
+    if isinstance(spec, str) and "-" in spec and all(x.isdigit() for x in spec.split("-"))             and len(spec.split("-")) == 2:
+        lo, hi = (int(x) for x in spec.split("-"))
+        return isinstance(value, int) and lo <= value <= hi
     if isinstance(spec, str) and spec.endswith("+"):
         if not spec[:-1].isdigit():
             raise RuleDataError(f"결정표 행 조건 표기가 올바르지 않습니다: {spec!r} ('N+' 형식이 아님)")
@@ -219,9 +223,19 @@ def _fn_years_before(env: _Env, d, n):
 
 
 # 허용 목록(whitelist) 함수: 이름 → (구현, 인자 개수). 데이터는 이 목록 밖의 함수를 부를 수 없다.
+def _fn_marriage_cutoff(env: _Env):
+    return marriage_cutoff(env.ctx["announcement_date"])
+
+
+def _fn_young_child_cutoff(env: _Env):
+    return young_child_cutoff(env.ctx["announcement_date"])
+
+
 FUNCTIONS = {
     "child_bonus_count": (_fn_child_bonus_count, 0),
     "years_before": (_fn_years_before, 2),
+    "marriage_cutoff": (_fn_marriage_cutoff, 0),          # 공고일 7년 전(혼인기간 7년 이내)
+    "young_child_cutoff": (_fn_young_child_cutoff, 0),    # 공고일 7년 전의 다음 날(6세 이하 자녀)
 }
 
 
@@ -237,6 +251,7 @@ class _Compiler:
             "lookup": self._lookup, "term": self._term,
             "eq": self._cmp, "ne": self._cmp, "lte": self._cmp, "gte": self._cmp,
             "in": self._in, "between": self._between, "all": self._logic, "any": self._logic,
+            "is": self._is, "if": self._if,
         }
         companions = {"var": {"unknown_values"}, "fn": {"args"}}
         ops = [k for k in node if k in builders]
@@ -339,6 +354,33 @@ class _Compiler:
             vals, review = _operands([a(env)])
             return review if vals is None and review is not None else (
                 None if vals is None else lo <= vals[0] <= hi)
+        return f
+
+    def _is(self, op, node, path):
+        """정확 일치 판정 — None을 전파하지 않는다(None/False를 구분해야 할 때 사용). 항상 참/거짓."""
+        a_node, literal = node["is"]
+        a = self.compile(a_node, path + ".0")
+        if isinstance(literal, (dict, list)):
+            raise RuleDataError(f"{path}: is의 두 번째 인자는 null/불리언/숫자/문자열 상수여야 합니다")
+        def f(env):
+            v = a(env)
+            if literal is None:
+                return v is None
+            return v is not None and type(v) is type(literal) and v == literal
+        return f
+
+    def _if(self, op, node, path):
+        """조건 분기: 조건이 참이면 then, 거짓이면 else, 모르면(None) None."""
+        cond_node, then_node, else_node = node["if"]
+        cond = self.compile(cond_node, path + ".cond")
+        then, other = self.compile(then_node, path + ".then"), self.compile(else_node, path + ".else")
+        def f(env):
+            c = _to_review(cond(env))
+            if c is True:
+                return then(env)
+            if c is False:
+                return other(env)
+            return c            # None 또는 ReviewNeeded는 그대로 전파
         return f
 
     def _logic(self, op, node, path):
