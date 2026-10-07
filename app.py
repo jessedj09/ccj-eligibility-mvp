@@ -23,6 +23,13 @@ from notices_data import ALL_NOTICES
 from explainability import explain
 from profiles_data import PROFILES
 
+REVIEW_BADGE = {
+    "DRAFT": ("🟠 초안(DRAFT)", "규칙을 만든 쪽 외의 독립 검토를 아직 거치지 않았습니다. 참고용으로만 쓰세요."),
+    "REVIEWED": ("🟡 검토됨(REVIEWED)", "독립 검토를 마쳤으나 아직 공개 확정 전입니다."),
+    "PUBLISHED": ("🟢 확정(PUBLISHED)", "독립 검토를 마치고 공개 확정된 규칙입니다."),
+    "RETIRED": ("⚪ 폐기(RETIRED)", "더 이상 쓰지 않는 규칙입니다."),
+}
+
 st.set_page_config(page_title="주거·복지 Eligibility 데모", page_icon="🏠")
 st.title("🏠 주거·복지 Eligibility 판정 데모")
 st.caption("LH 행복주택 공고 3건(N1/N2/N3) 대상 — 판정은 결정론적 Rule Engine이 수행합니다. "
@@ -47,6 +54,9 @@ with st.sidebar:
     notice = ALL_NOTICES[notice_id]
     st.caption(f"입주자모집공고일: {notice.announcement_date} "
                f"(혼인기간·자녀연령·졸업경과 등은 이 날짜 기준으로 계산합니다)")
+    review_status = notice.meta["review"]["status"]
+    label, hint = REVIEW_BADGE[review_status]
+    st.caption(f"규칙 검수 상태: **{label}** — {hint}")
     layer = st.selectbox("계층", options=list(notice.layers.keys()))
 
     st.header("프로필")
@@ -232,8 +242,9 @@ if st.session_state.get("judged"):
 
         if exp.review:
             st.subheader("자동 확정이 어려운 조건 (수동 확인 필요)")
-            st.caption("정보를 더 입력해도 해결되지 않습니다. 원문 해석이 갈리거나 자기신고로만 "
-                       "처리하는 항목이라 LH 청약플러스·고객센터 등으로 직접 확인해야 합니다.")
+            st.caption("정보를 더 입력해도 해결되지 않는 항목입니다. 사유가 `INPUT_INCONSISTENT`이면 입력(가구원수·자녀 등)을 "
+                       "고쳐 다시 판정하세요. 그 밖에는 원문 해석이 갈리거나 자기신고로만 처리하는 항목이라 "
+                       "LH 청약플러스·고객센터 등으로 직접 확인해야 합니다.")
             for item in exp.review:
                 st.markdown(f"- {item.description} _(근거: {item.source_ref})_")
                 st.caption(f"사유 `{item.code}`: {item.detail}")

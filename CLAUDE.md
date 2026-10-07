@@ -37,10 +37,9 @@ Engine**이다.
 - **B단계(P1~P3 완료)**: 규칙이 `rules/*.json` 데이터가 됐다(설계 `docs/06-rule-data-design.md`). **규칙을 고칠 때는
   파이썬이 아니라 JSON을 고친다.** `src/notices_data.py`는 31줄 호환 계층일 뿐이다. 변경 흐름: JSON 수정 →
   `pytest`(골든 `tests/test_rules_golden.py`가 바뀐 결과를 입력과 함께 보여 줌) → 의도한 변화면
-  `python tools/regen_golden.py`로 갱신하고 이유를 커밋에 남긴다. 남은 단계는 P4(원문 대조 도구·검수 배지). 아직 `src/notices_data.py`(legacy)가 앱의
-  실제 규칙이고, P3에서 데이터 규칙으로 교체 후 삭제한다. **규칙을 고칠 때는 그 공고가 이미 JSON으로
-  이전됐는지 먼저 확인할 것**(이전된 공고는 JSON이 기준, legacy와 차분 테스트로 묶여 있음).
-- pytest: 총 **212개 전부 통과**(약 4초).
+  `python tools/regen_golden.py`로 갱신하고 이유를 커밋에 남긴다. 원문 근거(쪽수·인용문·수치)는 `python tools/verify_sources.py`(pytest `test_source_verify.py`에도 포함)가 공고문 PDF와 자동 대조한다 — 근거를 고치면 이 도구가 통과해야 한다. `source.derivation`(공고문에 없는 지침)은 대조 제외.
+  legacy 파이썬 규칙은 P3에서 삭제됐다. 모든 공고(N1~N3)는 JSON이 유일한 기준이다.
+- pytest: 총 **244개 전부 통과**(약 20초 — 원문 대조가 PDF 3건을 읽는다).
 - 다음 단계: docs/04-open-items-and-next-steps.md 참조(독립 검증 수행, LH 질의 회신 반영, 그 뒤
   규칙의 데이터화(B)).
 
@@ -95,7 +94,7 @@ Engine**이다.
 - `app.py` — Streamlit 데모 UI (판정 로직 없음, src/ 함수만 호출)
 - `mvp0/` — **실행 대상 아님.** 초기 스냅샷(옛 버전), `mvp0/README.md` 참조
 - `tests/` — pytest 스위트, **총 212개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
-  explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22)
+  explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22 + 규칙 데이터화·골든·가구원수 모순 MVP0.6·원문 대조 P4)
 - `data/*.xlsx` — MVP0 설계 워크북 원본 (programs/notices/rules/reference_values/
   income_basis/profiles/match_matrix 시트 — 코드보다 사람이 보기 편한 원본)
 
