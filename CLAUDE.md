@@ -52,8 +52,8 @@ Engine**이다.
   지역 `in` 목록의 오타는 로드 시 거부. 조건이 읽는 필드는 `RuleCondition.inputs`/`LayerRuleSet.inputs`에 기록되고,
   화면은 그 계층이 쓰는 지역 질문만 묻는다. 검증 `tests/test_c2_region.py`(같은 날 같은 템플릿인 N6과 판정 동등).
 - pytest: 총 **302개 전부 통과**(약 1분 — 원문 대조가 PDF 10건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(2~4분).
-- 다음 단계: docs/04-open-items-and-next-steps.md 참조(독립 검증 수행, LH 질의 회신 반영, 그 뒤
-  규칙의 데이터화(B)).
+- **다음 과제: C3 — 행복주택 새 계층**(고령자·산업단지근로자·주거급여수급자·지역전략산업종사자). 상세와 이후 순서는
+  docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 
 ## 반드시 지켜야 할 원칙 (요약 — 근거는 docs/01-decisions-log.md)
 
