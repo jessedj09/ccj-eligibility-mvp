@@ -20,6 +20,7 @@ import streamlit as st
 
 from rule_engine import HouseholdProfile, evaluate, validate_profile
 from notices_data import ALL_NOTICES
+from rule_data import REGION_NONE, region_groups
 from explainability import explain
 from profiles_data import PROFILES
 
@@ -207,6 +208,29 @@ with col2:
     st.caption("미가입이어도 대부분의 계층은 '입주 전까지'만 가입하면 되므로 현재 자격에는 "
                "영향이 없습니다(우선공급 배점에는 영향 가능).")
 
+# 지역 — 선택한 공고·계층의 조건이 지역 필드를 읽을 때만 묻는다(예: 1순위 지역만 모집하는 공고)
+REGION_LABELS = {
+    "residence_area": "본인 거주지(주민등록상)",
+    "school_area": "재학 중(또는 다음 학기 입·복학 예정)인 대학 캠퍼스 소재지",
+    "income_base_area": "본인 소득 근거지(사업자등록증 소재지, 실제 근무지 증빙 시 근무지)",
+    "spouse_residence_area": "배우자(예비신혼은 예비배우자) 거주지",
+    "spouse_income_base_area": "배우자(예비신혼은 예비배우자) 소득 근거지",
+}
+region_fields = [f for f in REGION_LABELS if f in notice.layers[layer].inputs]
+regions = {}
+if region_fields:
+    st.subheader("지역")
+    st.caption("이 공고는 순위 지역(서울특별시·연접 시 등)이 신청 자격을 가릅니다. 시·군 단위로 골라 주세요. "
+               "'해당없음'은 그런 곳이 없다는 뜻입니다(예: 소득이 없어 소득 근거지가 없음, 대학생이 아님).")
+    region_options = ["모름", REGION_NONE] + [n for names in region_groups().values() for n in names]
+    group_of = {n: g for g, names in region_groups().items() for n in names}
+    for f in region_fields:
+        choice = st.selectbox(
+            REGION_LABELS[f], options=region_options, key=f"region_{f}",
+            format_func=lambda n: f"경기 {n}" if group_of.get(n) == "경기도" else n,
+        )
+        regions[f] = None if choice == "모름" else choice
+
 if st.button("판정하기", type="primary"):
     st.session_state["judged"] = True
 
@@ -228,6 +252,7 @@ if st.session_state.get("judged"):
         grad_or_dropout_date=grad_or_dropout_date,
         marriage_date=marriage_date,
         children_birth_dates=children_birth_dates,
+        **regions,
     )
 
     errors = validate_profile(profile)

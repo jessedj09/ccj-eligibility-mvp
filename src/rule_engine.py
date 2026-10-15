@@ -166,6 +166,14 @@ class HouseholdProfile:
     # 한부모가족의 "6세 이하 자녀를 둔 자" 필수요건 판정용. young_child_count(출생자녀 가산용)와는
     # 별개 개념이다 — 가산은 2023.3.28 이후 출생아 수, 이 요건은 현재 6세 이하인지 여부다.
 
+    # --- C2: 지역(순위 지역이 자격을 가르는 공고용). 값은 rules/reference/regions.json의 표준 이름,
+    #     None = 모름, "해당없음" = 그런 장소가 없음(예: 소득이 없어 소득 근거지가 없음 → 그 경로는 불충족).
+    residence_area: Optional[str] = None          # 본인 주민등록상 거주지
+    school_area: Optional[str] = None             # 재학 중(또는 다음 학기 입·복학 예정)인 대학 캠퍼스 소재지
+    income_base_area: Optional[str] = None        # 본인 소득 근거지(사업자등록증 소재지, 실제 근무지 증빙 시 근무지)
+    spouse_residence_area: Optional[str] = None   # 배우자(예비신혼은 예비배우자) 거주지
+    spouse_income_base_area: Optional[str] = None # 배우자(예비신혼은 예비배우자) 소득 근거지
+
     def __post_init__(self):
         if self.children_birth_dates is not None:
             self.has_children = len(self.children_birth_dates) > 0
@@ -185,12 +193,18 @@ class RuleCondition:
     check: Any        # callable(profile) -> True/False/None(확인불가)/ReviewNeeded
     note: str = ""
     timing: str = "NOW"   # "NOW": 지금 충족해야 함 / "BEFORE_MOVE_IN": 입주 전까지 이행(현재 자격과 구분)
+    inputs: frozenset = frozenset()   # 이 조건이 읽는 프로필 필드(화면이 필요한 질문만 묻는 데 쓴다)
 
 
 @dataclass
 class LayerRuleSet:
     layer: Layer
     conditions: List[RuleCondition]
+
+    @property
+    def inputs(self) -> frozenset:
+        """이 계층의 조건들이 읽는 프로필 필드 전체."""
+        return frozenset().union(*(c.inputs for c in self.conditions))
 
 
 @dataclass
@@ -306,6 +320,11 @@ def validate_profile(profile: HouseholdProfile) -> List[str]:
     if profile.has_children is False and (
             profile.youngest_child_birth_date is not None or profile.young_child_count > 0):
         errors.append("자녀가 없다고 입력했는데 자녀 생년월일 또는 출생자녀 가산 수가 입력되어 있습니다.")
+    from rule_data import REGION_FIELDS, REGION_NONE, region_names  # 순환 import 회피(지연 import)
+    for name in REGION_FIELDS:
+        value = getattr(profile, name)
+        if value is not None and value != REGION_NONE and value not in region_names():
+            errors.append(f"지역 값이 표준 이름이 아닙니다: {name}={value!r}")
     if profile.house_head_status not in (None, "세대주", "세대원"):
         errors.append("세대주/세대원 값이 올바르지 않습니다.")
 

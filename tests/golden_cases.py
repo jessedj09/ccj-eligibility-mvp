@@ -36,7 +36,22 @@ DATES = {
                grad=date(2024, 6, 29), adult=date(2007, 6, 29)),
     "N8": dict(ann=date(2026, 9, 29), marriage=date(2019, 9, 29), child=date(2019, 9, 30),
                grad=date(2024, 9, 29), adult=date(2007, 9, 29)),
+    # C2(1순위 지역만 모집). N10 p.1 "2019.05.16. 이후 출생".
+    "N9": dict(ann=date(2026, 5, 7), marriage=date(2019, 5, 7), child=date(2019, 5, 8),
+               grad=date(2024, 5, 7), adult=date(2007, 5, 7)),
+    "N10": dict(ann=date(2026, 5, 15), marriage=date(2019, 5, 15), child=date(2019, 5, 16),
+                grad=date(2024, 5, 15), adult=date(2007, 5, 15)),
 }
+# 지역 조건이 있는 공고와 계층별 지역 입력(원문 PDF의 순위 문구에서 손으로 옮김). 다른 공고에는 지역 입력을 넣지 않는다
+# — 넣으면 기존 그룹의 입력·난수 소비가 바뀌어 골든 기록 전체가 달라진다.
+REGION_FIELDS_BY_LAYER = {
+    "N9": {"대학생": ["residence_area", "school_area"]},
+    "N10": {"대학생": ["residence_area", "school_area"], "청년": ["residence_area", "income_base_area"],
+            "신혼부부": ["residence_area", "income_base_area", "spouse_residence_area", "spouse_income_base_area"],
+            "한부모": ["residence_area", "income_base_area"]},
+}
+# 서울·연접(통과) / 경기 비연접·지방(불충족) / 해당없음 / 모름. 손으로 고른 고정 값.
+REGIONS = [None, "서울특별시", "고양시", "인천광역시", "수원시", "의왕시", "부산광역시", "해당없음"]
 GROUPS: List[Tuple[str, str]] = [
     ("N1", "신혼부부"), ("N1", "한부모"), ("N2", "대학생"),
     ("N3", "대학생"), ("N3", "청년"), ("N3", "신혼부부"), ("N3", "한부모"),
@@ -44,6 +59,8 @@ GROUPS: List[Tuple[str, str]] = [
     ("N4", "신혼부부"), ("N4", "한부모"), ("N5", "대학생"), ("N5", "청년"),
     ("N6", "대학생"), ("N6", "청년"), ("N6", "신혼부부"), ("N6", "한부모"),
     ("N7", "신혼부부"), ("N7", "한부모"), ("N8", "신혼부부"), ("N8", "한부모"),
+    # C2
+    ("N9", "대학생"), ("N10", "대학생"), ("N10", "청년"), ("N10", "신혼부부"), ("N10", "한부모"),
 ]
 
 INCOMES = [
@@ -119,8 +136,15 @@ def _pools(nid: str) -> Dict[str, list]:
     }
 
 
-def _attributes(layer: str, pools) -> Dict[str, Tuple[list, object]]:
+def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, object]]:
     """계층별 (값 풀, 기준 프로필의 기본값). 기본값은 '모든 조건이 통과'하는 쪽."""
+    attrs = _layer_attributes(layer, pools)
+    for i, f in enumerate(REGION_FIELDS_BY_LAYER.get(nid, {}).get(layer, [])):
+        attrs[f] = (REGIONS, "서울특별시" if i == 0 else None)   # 기본: 본인 거주지만 서울, 나머지 모름
+    return attrs
+
+
+def _layer_attributes(layer: str, pools) -> Dict[str, Tuple[list, object]]:
     common = {
         "home": (["무주택", "주택보유"], "무주택"),
         "size": (SIZES, 3), "kids": (pools["kids"], None), "count": (COUNTS, 0),
@@ -146,18 +170,20 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
         is_social_rookie=v.get("rookie"), student_status=v.get("status"),
         grad_or_dropout_date=v.get("grad"), marriage_date=v.get("marriage"),
         has_children=v.get("has_children"), youngest_child_birth_date=v.get("youngest"),
-        children_birth_dates=v["kids"], young_child_count=v["count"])
+        children_birth_dates=v["kids"], young_child_count=v["count"],
+        **{f: v[f] for f in ("residence_area", "school_area", "income_base_area", "spouse_residence_area",
+                             "spouse_income_base_area") if f in v})
 
 
 # 통과 값에 가중해서 '모든 조건이 통과 근처'인 영역(경계가 실제로 판정을 가르는 영역)을 충분히 뽑는다
-_PASS = {"marital": 0.8, "home": 0.8, "status": 0.7, "head": 0.7, "car": 0.85}
+_PASS = {"marital": 0.8, "home": 0.8, "status": 0.7, "head": 0.7, "car": 0.85, "residence_area": 0.6}
 RANDOM_PER_GROUP = 3500
 
 
 def cases() -> Iterator[Tuple[str, str, HouseholdProfile]]:
     """(공고, 계층, 프로필) — 항상 같은 순서·같은 값."""
     for gi, (nid, layer) in enumerate(GROUPS):
-        attrs = _attributes(layer, _pools(nid))
+        attrs = _attributes(layer, _pools(nid), nid)
         base = {k: default for k, (_pool, default) in attrs.items()}
         n = 0
         # 1) 한 번에 한 항목만 풀 전체를 훑는다(기준 프로필 대비)

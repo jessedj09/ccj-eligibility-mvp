@@ -1068,5 +1068,319 @@
    "note": "6세 이하 자녀(태아포함)를 둔 한부모인지",
    "timing": "NOW"
   }
+ ],
+ "N9/대학생": [
+  {
+   "id": "N9-R4",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ②",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N9-R5",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.5 무주택자로서",
+   "note": "무주택자인지(본인 기준)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N9-R5c",
+   "field": "student_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉮/㉯",
+   "note": "'대학'에 재학중/입학·복학예정이거나, 대학·고등학교 졸업·중퇴 2년 이내의 취업준비생인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N9-R6",
+   "field": "income(본인+부모)",
+   "required": true,
+   "source_ref": "공고문 p.5 ③",
+   "note": "본인+부모(등본 등재 여부 무관, 1인가구는 본인만) 합산 소득이 출생자녀 가산을 반영한 소득기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N9-R7",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "본인 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N9-R8",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "자동차를 소유하고 있지 않은지(대학생계층은 소유 자체가 금지됨)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N9-region",
+   "field": "residence_area/school_area",
+   "required": true,
+   "source_ref": "공고문 p.6 순위",
+   "note": "거주지 또는 재학 중인(다음 학기 입·복학 예정 포함) 대학 캠퍼스 소재지가 서울특별시 또는 연접 13개 시인지 (이 공고는 1순위만 모집)",
+   "timing": "NOW"
+  }
+ ],
+ "N10/대학생": [
+  {
+   "id": "N10-R4",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ②",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R5",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.5 무주택자로서",
+   "note": "무주택자인지(본인 기준)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R5c",
+   "field": "student_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉮/㉯",
+   "note": "'대학'에 재학중/입학·복학예정이거나, 대학·고등학교 졸업·중퇴 2년 이내의 취업준비생인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R6",
+   "field": "income(본인+부모)",
+   "required": true,
+   "source_ref": "공고문 p.5 ③",
+   "note": "본인+부모(등본 등재 여부 무관, 1인가구는 본인만) 합산 소득이 출생자녀 가산을 반영한 소득기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R7",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "본인 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R8",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "자동차를 소유하고 있지 않은지(대학생계층은 소유 자체가 금지됨)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-region",
+   "field": "residence_area/school_area",
+   "required": true,
+   "source_ref": "공고문 p.6 순위",
+   "note": "거주지 또는 재학 중인(다음 학기 입·복학 예정 포함) 대학 캠퍼스 소재지가 서울특별시 또는 연접 13개 시인지 (이 공고는 1순위만 모집)",
+   "timing": "NOW"
+  }
+ ],
+ "N10/청년": [
+  {
+   "id": "N10-R5",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.7 무주택자로서",
+   "note": "무주택자인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R5b",
+   "field": "age_or_social_rookie",
+   "required": true,
+   "source_ref": "공고문 p.7 ①-㉮/㉯",
+   "note": "19세 이상 39세 이하이거나, 사회초년생(소득활동기간 5년 이내 등)에 해당하는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R6",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.7 ②",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R7/R7b",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.7 ③",
+   "note": "소득이 자녀수·세대주 여부에 따른 소득기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R8",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.7 ④",
+   "note": "총자산이 자녀수에 따른 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R9",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.7 ④",
+   "note": "자동차가액이 자녀수에 따른 자동차기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-R10",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.7 ⑤",
+   "note": "[입주 전까지 이행] 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N10-region",
+   "field": "residence_area/income_base_area",
+   "required": true,
+   "source_ref": "공고문 p.8 순위",
+   "note": "거주지 또는 소득 근거지(사업자등록증 소재지, 실제 근무지 증빙 시 근무지)가 서울특별시 또는 연접 13개 시인지 (이 공고는 1순위만 모집)",
+   "timing": "NOW"
+  }
+ ],
+ "N10/신혼부부": [
+  {
+   "id": "N10-M-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.9 ①-㉮/㉯",
+   "note": "혼인 중이거나 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-M-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.9 무주택세대구성원",
+   "note": "무주택 세대구성원인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-M-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.9 ③",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-M-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.9 ④",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-M-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.9 ④",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-M-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.9 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N10-M-duration",
+   "field": "marriage_duration_or_child",
+   "required": true,
+   "source_ref": "공고문 p.9 ②",
+   "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아포함)를 두었는지 (예비신혼부부는 이 요건이 적용되지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-region",
+   "field": "residence_area/income_base_area/spouse_residence_area/spouse_income_base_area",
+   "required": true,
+   "source_ref": "공고문 p.10 순위",
+   "note": "본인 또는 배우자(예비배우자)의 거주지나 소득 근거지 중 하나가 서울특별시 또는 연접 13개 시인지 (이 공고는 1순위만 모집)",
+   "timing": "NOW"
+  }
+ ],
+ "N10/한부모": [
+  {
+   "id": "N10-S-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.9 ①-㉰",
+   "note": "한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-S-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.9 무주택세대구성원",
+   "note": "무주택 세대구성원인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-S-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.9 ③",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-S-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.9 ④",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-S-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.9 ④",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-S-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.9 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N10-S-child6",
+   "field": "youngest_child_birth_date",
+   "required": true,
+   "source_ref": "공고문 p.9 ①-㉰",
+   "note": "6세 이하 자녀(태아포함)를 둔 한부모인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-region",
+   "field": "residence_area/income_base_area",
+   "required": true,
+   "source_ref": "공고문 p.10 순위",
+   "note": "본인의 거주지나 소득 근거지가 서울특별시 또는 연접 13개 시인지(한부모는 배우자가 없어 본인 기준; 이 공고는 1순위만 모집)",
+   "timing": "NOW"
+  }
  ]
 }

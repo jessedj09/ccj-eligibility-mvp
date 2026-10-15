@@ -249,9 +249,27 @@ FUNCTIONS = {
 }
 
 
+# 지역 필드: `in`의 목록은 rules/reference/regions.json의 표준 이름이어야 한다(오타면 영원히 불충족이 되므로 로드 시 거부)
+REGION_FIELDS = ("residence_area", "school_area", "income_base_area", "spouse_residence_area", "spouse_income_base_area")
+REGION_NONE = "해당없음"
+
+
+@lru_cache(maxsize=None)
+def region_groups() -> Dict[str, tuple]:
+    """지역 표준 이름을 묶음별로(화면 선택지용): {"서울·인천": (...), "경기도": (...), "그 밖의 시도": (...)}."""
+    doc = json.loads((RULES_DIR / "reference" / "regions.json").read_text(encoding="utf-8"))
+    return {group: tuple(names) for group, names in doc["groups"].items()}
+
+
+@lru_cache(maxsize=None)
+def region_names() -> frozenset:
+    return frozenset(n for names in region_groups().values() for n in names)
+
+
 class _Compiler:
     def __init__(self, table_outputs: Optional[List[str]] = None):
         self.table_outputs = table_outputs  # 이 조건이 쓰는 결정표의 출력 이름(term 검증용)
+        self.used_vars: set = set()         # 조건식이 읽는 프로필 필드(화면 질문 결정용)
 
     def compile(self, node: Any, path: str) -> Callable[[_Env], Any]:
         if not isinstance(node, dict):
@@ -287,6 +305,7 @@ class _Compiler:
         name = node["var"]
         if name not in _PROFILE_FIELDS:
             raise RuleDataError(f"{path}: 프로필에 없는 변수 '{name}'")
+        self.used_vars.add(name)
         unknown = list(node.get("unknown_values", []))
         def f(env):
             v = getattr(env.profile, name)
@@ -351,6 +370,10 @@ class _Compiler:
     def _in(self, op, node, path):
         a_node, options = node["in"]
         a = self.compile(a_node, path + ".0")
+        if isinstance(a_node, dict) and a_node.get("var") in REGION_FIELDS:
+            unknown = sorted(set(options) - region_names())
+            if unknown:
+                raise RuleDataError(f"{path}: 지역 표준 이름이 아닙니다 {unknown} (rules/reference/regions.json)")
         def f(env):
             vals, review = _operands([a(env)])
             return review if vals is None and review is not None else (
@@ -423,7 +446,9 @@ def _build_condition(doc: Dict[str, Any], tables: Dict[str, DecisionTable], ann:
         if doc["table"] not in tables:
             raise RuleDataError(f"{where}/{cid}: 정의되지 않은 결정표 '{doc['table']}'")
         table = tables[doc["table"]]
-    check_fn = _Compiler(table.outputs if table else None).compile(doc["check"], f"{where}/{cid}.check")
+    compiler = _Compiler(table.outputs if table else None)
+    check_fn = compiler.compile(doc["check"], f"{where}/{cid}.check")
+    inputs = frozenset(compiler.used_vars) | (table.used_vars if table else frozenset())
     ctx = {"announcement_date": ann}
     detail = doc.get("reading_detail", f"{cid} 해석 불일치")
 
@@ -451,7 +476,7 @@ def _build_condition(doc: Dict[str, Any], tables: Dict[str, DecisionTable], ann:
     if timing not in TIMINGS:
         raise RuleDataError(f"{where}/{cid}: timing은 {TIMINGS} 중 하나여야 합니다: {timing!r}")
     return RuleCondition(cid, doc["field"], doc["required"], _source_ref(doc["source"]),
-                         check, note=doc["note"], timing=timing)
+                         check, note=doc["note"], timing=timing, inputs=inputs)
 
 
 def build_notice(doc: Dict[str, Any]) -> NoticeRuleSet:
@@ -467,6 +492,7 @@ def build_notice(doc: Dict[str, Any]) -> NoticeRuleSet:
     for name, tdoc in doc.get("tables", {}).items():
         base = _Compiler()
         tables[name] = DecisionTable(name, tdoc, lambda n, p, c=base: c.compile(n, p))
+        tables[name].used_vars = frozenset(base.used_vars)
 
     layers: Dict[str, LayerRuleSet] = {}
     for layer, ldoc in doc["layers"].items():

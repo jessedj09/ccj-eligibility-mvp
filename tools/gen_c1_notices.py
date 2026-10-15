@@ -57,10 +57,69 @@ TARGETS = [
          notes=["우선공급(의왕시 거주) 자격이 없으면 일반공급으로 넘어가지 않는다(p.7) — 이 판정은 일반공급 자격 기준이다."]),
 ]
 
+# --- C2: 1순위 지역만 모집하는 공고(지역이 자격) -----------------------------------------------
+SEOUL_ADJ = ["서울특별시", "의정부시", "남양주시", "하남시", "구리시", "성남시", "과천시", "안양시", "광명시",
+             "부천시", "인천광역시", "김포시", "고양시", "양주시"]
+GAJWA_LIST = "연접지역(의정부시, 남양주시, 하남시, 구리시, 성남시, 과천시, 안양시, 광명시, 부천시, 인천광역시, 김포시, 고양시, 양주시)"
+ORI_LIST = "연접지역(의정부시,남양주시,구리시,하남시,성남시,과천시,안양시,광명시,부천시,인천광역시,김포시,고양시,양주시)"
+
+
+def region_cond(fields, quotes, note):
+    return {"fields": fields, "quote": quotes, "note": note}
+
+
+TARGETS += [
+    dict(nid="N9", pdf="sample_lh/서울가좌행복주택예비입주자모집공고문(`26.05.07).pdf",
+         title="서울가좌 행복주택", ann="2026-05-07", template="N3", layers=["대학생"],
+         unsupported=[{"name": "고령자", "page": 7, "note": "새 계층 구현 후 지원 예정"}],
+         notes=["이번 공고는 1순위(서울특별시·연접 13개 시)만 모집한다(p.6) — 2·3순위 지역은 신청할 수 없다."],
+         region={"대학생": region_cond(
+             ["residence_area", "school_area"],
+             ["해당 주택건설지역(서울특별시) 또는 " + GAJWA_LIST + "이 거주지나 재학 중인 대학 소재지인 자",
+              "2,3순위 이번 공고에서는 모집하지 않음"],
+             "거주지 또는 재학 중인(다음 학기 입·복학 예정 포함) 대학 캠퍼스 소재지가 서울특별시 또는 연접 13개 시인지 "
+             "(이 공고는 1순위만 모집)")}),
+    dict(nid="N10", pdf="sample_lh/서울오류행복주택예비입주자모집공고문(2026.05.15).pdf",
+         title="서울오류 행복주택", ann="2026-05-15", template="N3",
+         layers=["대학생", "청년", "신혼부부", "한부모"], marriage=None, child="2019-05-16",
+         unsupported=[{"name": "고령자", "page": 11, "note": "새 계층 구현 후 지원 예정"},
+                      {"name": "주거급여수급자", "page": 12,
+                       "note": "공고에 소득·자산 기준 조항이 없고 수급자 증명으로만 확인 — 새 계층 구현 후 지원 예정"}],
+         notes=["이번 공고는 1순위(서울특별시·연접 13개 시)만 모집한다(p.6·p.8·p.10) — 2·3순위 지역은 신청할 수 없다.",
+                "같은 날 공고된 서울금천 행복주택과 중복 신청할 수 없다(중복 시 모두 무효, p.1)."],
+         region={
+             "대학생": region_cond(
+                 ["residence_area", "school_area"],
+                 ["해당 주택건설지역(서울특별시) 또는 " + ORI_LIST + "이 거주지나 재학 중인 대학 소재지인 자",
+                  "2순위,3순위 이번 공고에서는 모집하지 않음"],
+                 "거주지 또는 재학 중인(다음 학기 입·복학 예정 포함) 대학 캠퍼스 소재지가 서울특별시 또는 연접 13개 시인지 "
+                 "(이 공고는 1순위만 모집)"),
+             "청년": region_cond(
+                 ["residence_area", "income_base_area"],
+                 ["해당 주택건설지역(서울특별시) 또는 " + ORI_LIST + "이 거주지나 소득 근거지인 자",
+                  "2순위,3순위 이번 공고에서는 모집하지 않음"],
+                 "거주지 또는 소득 근거지(사업자등록증 소재지, 실제 근무지 증빙 시 근무지)가 서울특별시 또는 연접 13개 시인지 "
+                 "(이 공고는 1순위만 모집)"),
+             "신혼부부": region_cond(
+                 ["residence_area", "income_base_area", "spouse_residence_area", "spouse_income_base_area"],
+                 ["신청자 본인 또는 배우자(예비신혼부부의 경우 대표신청자 또는 예비배우자)가 해당 주택 건설지역(서울특별시) 또는 "
+                  + ORI_LIST + "이 거주지나 소득 근거지인 자", "2순위,3순위 이번 공고에서는 모집하지 않음"],
+                 "본인 또는 배우자(예비배우자)의 거주지나 소득 근거지 중 하나가 서울특별시 또는 연접 13개 시인지 "
+                 "(이 공고는 1순위만 모집)"),
+             "한부모": region_cond(
+                 ["residence_area", "income_base_area"],
+                 ["신청자 본인 또는 배우자(예비신혼부부의 경우 대표신청자 또는 예비배우자)가 해당 주택 건설지역(서울특별시) 또는 "
+                  + ORI_LIST + "이 거주지나 소득 근거지인 자", "2순위,3순위 이번 공고에서는 모집하지 않음"],
+                 "본인의 거주지나 소득 근거지가 서울특별시 또는 연접 13개 시인지(한부모는 배우자가 없어 본인 기준; "
+                 "이 공고는 1순위만 모집)"),
+         }),
+]
+
 # 템플릿 인용문 대신 쓸 대상 공고의 원문 문구(표현이 다른 곳). 쪽은 자동 탐색.
 NO_OWN = "'무주택자'란 주택을 소유하고 있지 않은 자를 말함(세대 내 다른 구성원이 주택을 소유해도 신청 가능함)"
 OVERRIDES = {
     ("N5", "N5-R5"): ["무주택자로서 아래의 요건", NO_OWN],
+    ("N9", "N9-R5"): ["무주택자로서 아래의 요건", NO_OWN],
     ("N7", "N7-S-child6"): ["(한부모가족) 6세이하(2019.6.30. 이후 출생, 태아포함) 자녀를 둔 한부모인 자"],
     ("N8", "N8-M-duration"): ["혼인기간이 7년 이내(전 배우자였던 사람과 재혼하는 경우 이전 혼인기간 포함)일 것 또는 "
                               "6세 이하 자녀(태아포함)를 둔 자"],
@@ -158,6 +217,14 @@ def build(t):
             if cid.endswith("-duration") or cid.endswith("-child6"):
                 c = cutoffs(c, t, pages, anchor, missing)
             conds.append(c)
+        if t.get("region", {}).get(layer):
+            rc = t["region"][layer]
+            cond = {"id": f"{t['nid']}-region", "field": "/".join(rc["fields"]), "required": True,
+                    "source": relocate({"page": anchor, "clause": "순위", "quote": rc["quote"]}, pages, anchor,
+                                       f"{layer}/region", missing),
+                    "note": rc["note"],
+                    "check": {"any": [{"in": [{"var": f}, SEOUL_ADJ]} for f in rc["fields"]]}}
+            conds.append(cond)
         doc["layers"][layer] = {"conditions": conds}
     for name, layer in sorted(used_tables):
         if name in doc["tables"]:

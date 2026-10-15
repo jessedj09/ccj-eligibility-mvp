@@ -5,6 +5,7 @@
 2) 모든 공고 × 미지원 계층: 판정 버튼 없이 '아직 판정을 지원하지 않습니다' 안내가 나오는지
 3) 자녀 입력: '있음'을 고르면 판정 전에 바로 생년월일 칸이 나타나는지(폼 제거 회귀)
 4) 출생자녀 가산 경계: N1 신혼부부 4인·가산 자녀 2명 → 자산 413,000,000 충족 / 413,000,001 불충족
+5) 지역(C2): N10 대학생 — 거주지·대학 소재지에 따라 충족/불충족, 지역이 필요 없는 공고에는 지역 질문 없음
 """
 import os
 import sys
@@ -72,6 +73,22 @@ def main():
         at.button[0].click().run()
         assert not at.exception, at.exception
         return results(at)
+
+    def region(area, school):
+        at = fresh("N10", "대학생")
+        at.sidebar.selectbox[2].select("P01").run()     # N3 대학생 ELIGIBLE 샘플 — 지역 외 조건은 모두 충족
+        find(at, "selectbox", "본인 거주지").select(area).run()
+        find(at, "selectbox", "재학 중").select(school).run()
+        at.button[0].click().run()
+        assert not at.exception, at.exception
+        return results(at)
+
+    r_seoul, r_out, r_school = region("서울특별시", "모름"), region("수원시", "해당없음"), region("수원시", "고양시")
+    assert r_seoul[0].startswith("✅") and r_out[0].startswith("❌") and r_school[0].startswith("✅"),         (r_seoul, r_out, r_school)
+    at = fresh("N3", "대학생")
+    assert not [w for w in at.selectbox if w.label.startswith("본인 거주지")], "지역이 필요 없는 공고에 지역 질문이 나옴"
+    print("5) N10 대학생 지역: 서울 →", r_seoul[0][:2], "/ 수원·대학 없음 →", r_out[0][:2], "/ 수원·고양 대학 →", r_school[0][:2],
+          "| N3에는 지역 질문 없음")
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)
