@@ -33,7 +33,7 @@ def test_notice_meta_layers_and_source_hash(nid):
 
 
 def test_shim_exports_the_loaded_notices():
-    assert ALL_NOTICES == {"N1": N1, "N2": N2, "N3": N3}
+    assert {"N1": N1, "N2": N2, "N3": N3}.items() <= ALL_NOTICES.items()
     assert N1 is load_notice("N1")
 
 

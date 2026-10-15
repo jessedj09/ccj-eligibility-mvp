@@ -10,14 +10,15 @@ notices_data.py — 공고 규칙의 공개 진입점
 
 from datetime import date
 
-from rule_data import load_notice
+from rule_data import load_notice, notice_ids
 from rule_engine import marriage_cutoff, young_child_cutoff
 
 N1 = load_notice("N1")   # 서울공릉 신혼희망타운 행복주택 — 신혼부부·한부모
 N2 = load_notice("N2")   # 서울관악봉천 행복주택 — 대학생
 N3 = load_notice("N3")   # 서울번동3 행복주택 — 대학생·청년·신혼부부·한부모
 
-ALL_NOTICES = {"N1": N1, "N2": N2, "N3": N3}
+# 앱·테스트가 순회하는 전체 공고(rules/notices/*.json). 수기 정답지(match_matrix)는 N1~N3만 있다.
+ALL_NOTICES = {nid: load_notice(nid) for nid in notice_ids()}
 
 N1_ANNOUNCEMENT = N1.announcement_date
 N2_ANNOUNCEMENT = N2.announcement_date

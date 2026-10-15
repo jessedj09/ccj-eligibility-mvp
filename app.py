@@ -45,6 +45,8 @@ VERDICT_STYLE = {
     "NOT_OFFERED": ("➖", "info"),
 }
 
+main_notice = st.empty()   # 미지원 계층을 고르면 본문 맨 위에 안내를 띄우는 자리
+
 with st.sidebar:
     st.header("공고 · 계층 선택")
     notice_id = st.selectbox(
@@ -52,12 +54,23 @@ with st.sidebar:
         format_func=lambda nid: f"{nid} — {ALL_NOTICES[nid].title}",
     )
     notice = ALL_NOTICES[notice_id]
-    st.caption(f"입주자모집공고일: {notice.announcement_date} "
+    program = " · ".join(x for x in (notice.meta.get("issuer"), notice.meta.get("program")) if x)
+    st.caption(f"{program + ' / ' if program else ''}입주자모집공고일: {notice.announcement_date} "
                f"(혼인기간·자녀연령·졸업경과 등은 이 날짜 기준으로 계산합니다)")
     review_status = notice.meta["review"]["status"]
     label, hint = REVIEW_BADGE[review_status]
     st.caption(f"규칙 검수 상태: **{label}** — {hint}")
-    layer = st.selectbox("계층", options=list(notice.layers.keys()))
+    unsupported = {u["name"]: u for u in notice.meta.get("unsupported_layers", [])}
+    layer = st.selectbox(
+        "계층", options=list(notice.layers.keys()) + list(unsupported),
+        format_func=lambda name: f"{name} (아직 지원 안 함)" if name in unsupported else name,
+    )
+    if layer in unsupported:
+        u = unsupported[layer]
+        where = f" (공고문 p.{u['page']})" if u.get("page") else ""
+        main_notice.info(f"**{layer}** 계층은 이 공고에 있지만{where} 아직 판정을 지원하지 않습니다. "
+                         f"{u['note']}")
+        st.stop()
 
     st.header("프로필")
     preset_options = ["직접 입력"] + [pid for pid, (_, l) in PRESETS.items() if l == layer]
@@ -90,6 +103,9 @@ def _amount_input(label, field, key):
     )
     return None if unknown else amount
 
+
+for note in notice.meta.get("notes", []):
+    st.caption(f"📌 {note}")
 
 col1, col2 = st.columns(2)
 with col1:

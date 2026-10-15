@@ -38,8 +38,15 @@ Engine**이다.
   파이썬이 아니라 JSON을 고친다.** `src/notices_data.py`는 31줄 호환 계층일 뿐이다. 변경 흐름: JSON 수정 →
   `pytest`(골든 `tests/test_rules_golden.py`가 바뀐 결과를 입력과 함께 보여 줌) → 의도한 변화면
   `python tools/regen_golden.py`로 갱신하고 이유를 커밋에 남긴다. 원문 근거(쪽수·인용문·수치)는 `python tools/verify_sources.py`(pytest `test_source_verify.py`에도 포함)가 공고문 PDF와 자동 대조한다 — 근거를 고치면 이 도구가 통과해야 한다. `source.derivation`(공고문에 없는 지침)은 대조 제외.
-  legacy 파이썬 규칙은 P3에서 삭제됐다. 모든 공고(N1~N3)는 JSON이 유일한 기준이다.
-- pytest: 총 **244개 전부 통과**(약 20초 — 원문 대조가 PDF 3건을 읽는다).
+  legacy 파이썬 규칙은 P3에서 삭제됐다. 모든 공고는 JSON이 유일한 기준이다.
+- **C0(2026-10-15)**: 실제 공고 26건(LH 17·SH 9, `sample_lh/`·`sample_sh/`)을 분석해 일반화 가능성을 정리했다 —
+  **[docs/07-notice-generalization.md](docs/07-notice-generalization.md)**(공고별 분석 `docs/notice-analysis/`).
+  새 사업유형(매입임대·든든전세·장기전세·미리내집 등)을 넣기 전에 반드시 읽을 것.
+- **C1**: LH 행복주택 5건 추가(N4 하남감일·위례, N5 부천영상, N6 서울금천, N7 서울대방, N8 의왕청계2 — 기존 4계층만).
+  `tools/gen_c1_notices.py`가 N1/N3 템플릿에서 생성하고 인용문 쪽을 자동 탐색한다. 템플릿과의 판정 동등성은
+  `tests/test_c1_notices.py`가 확인한다. 공고에 있지만 아직 구현하지 않은 계층은 `unsupported_layers`로 적고
+  화면에 "아직 지원 안 함"으로 보인다(판정하지 않음). 서울가좌·서울오류는 지역 순위가 자격을 가르므로 C2(지역 모델)로 미룸.
+- pytest: 총 **270개 전부 통과**(약 50초 — 원문 대조가 PDF 8건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(1~3분).
 - 다음 단계: docs/04-open-items-and-next-steps.md 참조(독립 검증 수행, LH 질의 회신 반영, 그 뒤
   규칙의 데이터화(B)).
 
@@ -71,6 +78,9 @@ Engine**이다.
    통과시키는 경계 버그가 있다(MVP0.1에서 실제로 잡음). 반드시 `rule_engine.is_within_years()`
    처럼 "정확한 컷오프 날짜와의 직접 비교"를 쓸 것. 원문에 리터럴 컷오프 날짜가 있으면
    그 값을 그대로 쓰고(N1), 없으면 근사치임을 명시할 것(N3, rule-coverage-matrix.md §3).
+   **기준일 관행은 발행기관마다 다르다**: LH는 혼인 7년 = 공고일−7년 당일, SH는 공고일−7년의 **다음 날**
+   (SH25 p.13 "2019.4.25. 이후, 당일포함" — 공고 4.24). `marriage_cutoff`는 LH 관행이다. SH 공고에는
+   원문 날짜 리터럴을 쓸 것(docs/07 §3).
 
 ## 파일 구조
 
@@ -86,15 +96,17 @@ Engine**이다.
   validate_profile(), 날짜 컷오프 헬퍼)
 - `src/notices_data.py` — `rules/`에서 로드한 N1/N2/N3·`ALL_NOTICES`를 내보내는 호환 계층(규칙 본체 아님)
 - `src/rule_data.py` — JSON 규칙 로더·조건식 컴파일러(닫힌 연산자 집합, 로드 시 구조·참조 검증)
-- `rules/` — **규칙의 원본**: `notices/N1·N2·N3.json`(조건·결정표·출처·검수 상태), `reference/income_standard.json`
-- `tests/golden/` + `tools/regen_golden.py` — 골든 스냅샷(고정 입력 35,925건의 결과 기록)과 재생성 도구
+- `rules/` — **규칙의 원본**: `notices/N1~N8.json`(조건·결정표·출처·검수 상태·미지원 계층), `reference/income_standard.json`
+- `sample_lh/`·`sample_sh/` — 공고문 PDF 원본(원문 대조 도구가 `source.document` 파일명으로 찾는다)
+- `tests/golden/` + `tools/regen_golden.py` — 골든 스냅샷(고정 입력 97,519건의 결과 기록)과 재생성 도구
+- `tools/verify_sources.py`(원문 대조), `tools/ui_smoke.py`(화면 헤드리스 점검), `tools/gen_c1_notices.py`(템플릿 기반 공고 생성)
 - `src/priority_scoring.py` — 우선공급 배점(verdict와 분리된 별도 점수)
 - `src/profiles_data.py` — 테스트용 프로필 12개 + 수기 정답지
 - `src/explainability.py` — EvaluationResult → 사용자용 근거 문구(Explanation) 변환
 - `app.py` — Streamlit 데모 UI (판정 로직 없음, src/ 함수만 호출)
 - `mvp0/` — **실행 대상 아님.** 초기 스냅샷(옛 버전), `mvp0/README.md` 참조
-- `tests/` — pytest 스위트, **총 212개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
-  explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22 + 규칙 데이터화·골든·가구원수 모순 MVP0.6·원문 대조 P4)
+- `tests/` — pytest 스위트, **총 270개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
+  explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22 + 규칙 데이터화·골든·가구원수 모순 MVP0.6·원문 대조 P4·C1 공고 추가)
 - `data/*.xlsx` — MVP0 설계 워크북 원본 (programs/notices/rules/reference_values/
   income_basis/profiles/match_matrix 시트 — 코드보다 사람이 보기 편한 원본)
 

@@ -24,10 +24,26 @@ DATES = {
                grad=date(2024, 7, 15), adult=date(2007, 7, 15)),
     "N3": dict(ann=date(2026, 8, 19), marriage=date(2019, 8, 19), child=date(2019, 8, 20),
                grad=date(2024, 8, 19), adult=date(2007, 8, 19)),
+    # C1 추가 공고(LH 행복주택). 원문 날짜: N4 p.1 "2019.10.02. 이후 출생", N6 p.2 "2019.05.16. 이후 출생",
+    # N7 p.1·p.5 "2019.6.29. 이후 혼인신고"·"2019.6.30. 이후 출생". 나머지는 LH 관행(공고일−7년 당일 / 다음 날)으로 손계산.
+    "N4": dict(ann=date(2026, 10, 1), marriage=date(2019, 10, 1), child=date(2019, 10, 2),
+               grad=date(2024, 10, 1), adult=date(2007, 10, 1)),
+    "N5": dict(ann=date(2026, 8, 18), marriage=date(2019, 8, 18), child=date(2019, 8, 19),
+               grad=date(2024, 8, 18), adult=date(2007, 8, 18)),
+    "N6": dict(ann=date(2026, 5, 15), marriage=date(2019, 5, 15), child=date(2019, 5, 16),
+               grad=date(2024, 5, 15), adult=date(2007, 5, 15)),
+    "N7": dict(ann=date(2026, 6, 29), marriage=date(2019, 6, 29), child=date(2019, 6, 30),
+               grad=date(2024, 6, 29), adult=date(2007, 6, 29)),
+    "N8": dict(ann=date(2026, 9, 29), marriage=date(2019, 9, 29), child=date(2019, 9, 30),
+               grad=date(2024, 9, 29), adult=date(2007, 9, 29)),
 }
 GROUPS: List[Tuple[str, str]] = [
     ("N1", "신혼부부"), ("N1", "한부모"), ("N2", "대학생"),
     ("N3", "대학생"), ("N3", "청년"), ("N3", "신혼부부"), ("N3", "한부모"),
+    # C1 — 뒤에 덧붙여야 기존 그룹의 난수 시드(그룹 순번)가 바뀌지 않는다
+    ("N4", "신혼부부"), ("N4", "한부모"), ("N5", "대학생"), ("N5", "청년"),
+    ("N6", "대학생"), ("N6", "청년"), ("N6", "신혼부부"), ("N6", "한부모"),
+    ("N7", "신혼부부"), ("N7", "한부모"), ("N8", "신혼부부"), ("N8", "한부모"),
 ]
 
 INCOMES = [

@@ -10,7 +10,7 @@ from profiles_data import PROFILES, EXPECTED
 CASES = [
     (profile, layer, notice_id)
     for profile, layer in PROFILES
-    for notice_id in ALL_NOTICES
+    for notice_id in EXPECTED[profile.profile_id]   # 수기 정답지는 N1~N3에만 있다
 ]
 
 

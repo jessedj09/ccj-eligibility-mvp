@@ -16,7 +16,7 @@ import pytest
 from rule_data import load_notice
 
 GOLDEN = golden_lib.load_outcomes()
-NOTICES = {nid: load_notice(nid) for nid in ("N1", "N2", "N3")}
+NOTICES = {nid: load_notice(nid) for nid, _ in golden_cases.GROUPS}
 MAX_SHOWN = 5
 
 

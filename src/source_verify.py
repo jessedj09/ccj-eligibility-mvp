@@ -22,7 +22,7 @@ from typing import Dict, List
 
 PROJECT = Path(__file__).resolve().parent.parent
 RULES = PROJECT / "rules"
-PDF_GLOB = {"N1": "*공릉*.pdf", "N2": "*관악봉천*.pdf", "N3": "*번동3*.pdf"}
+SAMPLE_DIRS = ("sample_lh", "sample_sh")
 
 # PDF는 ➀(U+2780 계열)를 쓰고 데이터는 ①을 쓰는 등 표기가 섞여 있다.
 _DINGBAT = {chr(0x2780 + i): chr(0x2460 + i) for i in range(10)}
@@ -36,9 +36,18 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", "", text)
 
 
+def notice_doc(nid: str) -> dict:
+    return json.loads((RULES / "notices" / f"{nid}.json").read_text(encoding="utf-8"))
+
+
 @lru_cache(maxsize=None)
 def pdf_path(nid: str) -> Path:
-    return next((PROJECT / "sample_lh").glob(PDF_GLOB[nid]))
+    """공고 데이터의 source.document 파일을 sample_lh/·sample_sh/에서 찾는다."""
+    name = notice_doc(nid)["source"]["document"]
+    for d in SAMPLE_DIRS:
+        if (PROJECT / d / name).exists():
+            return PROJECT / d / name
+    raise FileNotFoundError(f"{nid}: 공고문 PDF '{name}'을 {SAMPLE_DIRS}에서 찾지 못했습니다")
 
 
 @lru_cache(maxsize=None)
@@ -83,7 +92,7 @@ def _check_source(report: Report, nid: str, where: str, source: dict) -> None:
 
 
 def verify_notice(nid: str) -> Report:
-    doc = json.loads((RULES / "notices" / f"{nid}.json").read_text(encoding="utf-8"))
+    doc = notice_doc(nid)
     report = Report()
     report.checked += 1
     if hashlib.sha256(pdf_path(nid).read_bytes()).hexdigest() != doc["source"]["sha256"]:
@@ -115,6 +124,7 @@ def verify_income_reference() -> Report:
 
 
 def verify_all() -> Dict[str, Report]:
-    result = {nid: verify_notice(nid) for nid in PDF_GLOB}
+    from rule_data import notice_ids
+    result = {nid: verify_notice(nid) for nid in notice_ids()}
     result["income_standard"] = verify_income_reference()
     return result

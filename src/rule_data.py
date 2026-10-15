@@ -29,6 +29,7 @@ LAYERS = ("대학생", "청년", "신혼부부", "한부모")
 REVIEW_STATUSES = ("DRAFT", "REVIEWED", "PUBLISHED", "RETIRED")
 CTX_KEYS = ("announcement_date",)
 TIMINGS = ("NOW", "BEFORE_MOVE_IN")
+ISSUERS = ("LH", "SH")
 
 
 class RuleDataError(ValueError):
@@ -481,9 +482,24 @@ def build_notice(doc: Dict[str, Any]) -> NoticeRuleSet:
             conditions.append(cond)
         layers[layer] = LayerRuleSet(layer, conditions)
 
-    meta = {k: doc[k] for k in ("version", "valid_from", "supersedes", "source", "review") if k in doc}
+    for i, u in enumerate(doc.get("unsupported_layers", [])):
+        if set(u) - {"name", "page", "note"} or not {"name", "note"} <= set(u):
+            raise RuleDataError(f"unsupported_layers[{i}]는 name·note(·page)만 가질 수 있습니다: {u!r}")
+        if u["name"] in layers:
+            raise RuleDataError(f"'{u['name']}'은 구현된 계층과 미지원 계층에 동시에 있습니다")
+    if "issuer" in doc and doc["issuer"] not in ISSUERS:
+        raise RuleDataError(f"issuer는 {ISSUERS} 중 하나여야 합니다: {doc['issuer']!r}")
+
+    meta = {k: doc[k] for k in ("version", "valid_from", "supersedes", "source", "review",
+                                "issuer", "program", "unsupported_layers", "notes") if k in doc}
     return NoticeRuleSet(notice_id=doc["notice_id"], title=doc["title"], announcement_date=ann,
                          layers=layers, meta=meta)
+
+
+def notice_ids() -> List[str]:
+    """rules/notices/에 있는 공고 ID 전부(N1, N2, …, N10 순 — 숫자 부분으로 정렬)."""
+    ids = [p.stem for p in (RULES_DIR / "notices").glob("*.json")]
+    return sorted(ids, key=lambda i: (i.rstrip("0123456789"), int(i[len(i.rstrip("0123456789")):] or 0)))
 
 
 @lru_cache(maxsize=None)
