@@ -25,7 +25,10 @@ def _neutral(record):
     return re.sub(r"N\d+-", "X-", json.dumps(record, ensure_ascii=False))
 
 
-@pytest.mark.parametrize("nid,layer", [g for g in golden_cases.GROUPS if g[0] in TEMPLATE])
+BASE_LAYERS = ("대학생", "청년", "신혼부부", "한부모")   # 템플릿에서 복제한 계층(C3 새 계층은 test_c3_layers.py)
+
+
+@pytest.mark.parametrize("nid,layer", [g for g in golden_cases.GROUPS if g[0] in TEMPLATE and g[1] in BASE_LAYERS])
 def test_same_verdicts_as_template_for_date_shifted_inputs(nid, layer):
     group, template = GOLDEN[f"{nid}/{layer}"], GOLDEN[f"{TEMPLATE[nid]}/{layer}"]
     n = group["n"] - golden_cases.RANDOM_PER_GROUP       # 무작위 구간은 시드가 달라 비교 대상이 아니다

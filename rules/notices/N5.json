@@ -22,11 +22,6 @@
   ],
   "unsupported_layers": [
     {
-      "name": "지역전략산업종사자",
-      "page": 6,
-      "note": "선순위 계층. 종사자 자격은 부천시가 신청 후 확인·추천 — 새 계층 구현 후 지원 예정"
-    },
-    {
       "name": "주거약자(26A1/B1형)",
       "page": 11,
       "note": "지역전략산업종사자·청년·대학생 자격 + 주거약자 요건 — 주택형 축 구현 후 지원 예정"
@@ -467,6 +462,361 @@
           "100%"
         ]
       }
+    },
+    "regional_worker_terms": {
+      "label": "지역전략산업종사자 소득·자산 기준: 가구원수×맞벌이 (원문 표에 출생자녀 가산 없음)",
+      "columns": [
+        "size",
+        "child",
+        "dual"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        },
+        "dual": {
+          "var": "dual_income"
+        }
+      },
+      "outputs": [
+        "ratio",
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "child": "any",
+            "dual": true
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 1인인데 맞벌이로 입력했습니다(원문 표의 1인 맞벌이 칸은 '-'). 가구원수 또는 맞벌이 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": "any",
+            "dual": false
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "원문 그대로(이 계층은 출생자녀 가산 언급 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "any",
+            "dual": false
+          },
+          "out": [
+            110,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "원문 그대로(이 계층은 출생자녀 가산 언급 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            130,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "원문 그대로(이 계층은 출생자녀 가산 언급 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "any",
+            "dual": false
+          },
+          "out": [
+            100,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "원문 그대로(이 계층은 출생자녀 가산 언급 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "원문 그대로(이 계층은 출생자녀 가산 언급 없음)"
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": "1+",
+            "dual": false
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 1인인데 출생자녀 가산 대상 자녀가 있습니다(자녀도 가구원). 가구원수 또는 자녀 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            110,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            120,
+            379000000,
+            49960000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "2+",
+            "dual": false
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 2인인데 출생자녀 가산 대상 자녀가 2명 이상입니다. 가구원수 또는 자녀 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            100,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            110,
+            379000000,
+            49960000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            120,
+            413000000,
+            54510000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0,
+            "dual": true
+          },
+          "out": [
+            130,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "1+",
+            "dual": true
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "맞벌이 부부 2인 가구인데 출생자녀 가산 대상 자녀가 있습니다(부부+자녀면 3인 이상). 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": 0,
+            "dual": true
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": 1,
+            "dual": true
+          },
+          "out": [
+            130,
+            379000000,
+            49960000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": "2+",
+            "dual": true
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "맞벌이 부부 3인 가구인데 출생자녀 가산 대상 자녀가 2명 이상입니다(부부+자녀 2명이면 4인 이상). 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": 0,
+            "dual": true
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": 1,
+            "dual": true
+          },
+          "out": [
+            130,
+            379000000,
+            49960000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": "2+",
+            "dual": true
+          },
+          "out": [
+            140,
+            413000000,
+            54510000
+          ],
+          "readings": [
+            "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+          ]
+        }
+      ],
+      "source": {
+        "page": 7,
+        "quote": [
+          "34,500만원 이하",
+          "4,542만원 이하",
+          "7,626,151원 이하",
+          "9,802,115원 이하"
+        ],
+        "derivation": "'다른 계층과 같은 출생자녀 가산 적용' 해석의 가산 행(379,000,000원/413,000,000원, 맞벌이 130%·140% 등)은 이 공고에 없고, 같은 LH 행복주택 산업단지형 공고(N6 서울금천 p.6)의 산업단지근로자 가산표를 빌려 온 값이다. 두 해석의 결과가 갈릴 때만 MANUAL_REVIEW가 된다."
+      },
+      "readings": [
+        "원문 그대로(이 계층은 출생자녀 가산 언급 없음)",
+        "다른 계층과 같은 출생자녀 가산 적용(같은 공고 다른 계층·산업단지형 공고의 가산표)"
+      ]
     }
   },
   "layers": {
@@ -838,6 +1188,191 @@
             ]
           },
           "note": "[입주 전까지 이행] 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+          "check": true,
+          "timing": "BEFORE_MOVE_IN"
+        }
+      ]
+    },
+    "지역전략산업종사자": {
+      "conditions": [
+        {
+          "id": "N5-R-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택세대구성원(미혼일 경우 무주택자)"
+            ],
+            "page": 6
+          },
+          "note": "무주택인지(혼인 중이면 세대 전원, 미혼이면 본인 기준)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N5-R-age",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "19세 ～39세 이하인 청년"
+            ],
+            "page": 6
+          },
+          "note": "19세 이상 39세 이하인지",
+          "check": {
+            "between": [
+              {
+                "var": "age"
+              },
+              19,
+              39
+            ]
+          }
+        },
+        {
+          "id": "N5-R-type",
+          "field": "regional_industry_type",
+          "required": true,
+          "source": {
+            "quote": [
+              "문화산업종사자, 등록예술인 및 부천시가 추천하는 자 중 하나에 해당하는",
+              "문화산업종사자 중 콘텐츠산업 종사자는 LH에 청약신청을 하고 그 신청자를 대상으로 부천시가 확인하는 방식"
+            ],
+            "page": 6
+          },
+          "note": "문화산업종사자(콘텐츠산업·전문예술법인·단체)·등록 예술인·부천시 추천자 중 하나인지",
+          "check": {
+            "any": [
+              {
+                "in": [
+                  {
+                    "var": "regional_industry_type"
+                  },
+                  [
+                    "전문예술법인·단체 종사자",
+                    "등록 예술인"
+                  ]
+                ]
+              },
+              {
+                "in": [
+                  {
+                    "var": "regional_industry_type"
+                  },
+                  [
+                    "콘텐츠산업 종사자",
+                    "부천시 추천자"
+                  ]
+                ],
+                "review_if_true": {
+                  "code": "SELF_REPORT_UNVERIFIED",
+                  "detail": "콘텐츠산업 종사자·부천시 추천자 자격은 신청 후 부천시가 확인·추천한다(p.6~7) — 신청 시점에는 확정할 수 없음"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N5-R-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "해당 세대의 월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 100% 이하, 맞벌이 부부는 120% 이하일 것"
+            ],
+            "page": 7
+          },
+          "note": "해당 세대 월평균소득이 기준(1인 120%·2인 110%·3인 이상 100%, 맞벌이 2인 130%·3인 이상 120%) 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "lookup": [
+                  "income_standard",
+                  {
+                    "var": "household_size"
+                  },
+                  {
+                    "term": "ratio"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "regional_worker_terms",
+          "reading_detail": "지역전략산업종사자 출생자녀 가산 적용 여부 불일치"
+        },
+        {
+          "id": "N5-R-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "총 자산가액이 34,500만원 이하이고 총 자산 중 자동차가액이 4,542만원 이하일 것"
+            ],
+            "page": 7
+          },
+          "note": "해당 세대 총자산이 자산기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "regional_worker_terms",
+          "reading_detail": "지역전략산업종사자 출생자녀 가산 적용 여부 불일치"
+        },
+        {
+          "id": "N5-R-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "총 자산가액이 34,500만원 이하이고 총 자산 중 자동차가액이 4,542만원 이하일 것"
+            ],
+            "page": 7
+          },
+          "note": "자동차가액이 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "regional_worker_terms",
+          "reading_detail": "지역전략산업종사자 출생자녀 가산 적용 여부 불일치"
+        },
+        {
+          "id": "N5-R-sub",
+          "field": "has_subscription_account",
+          "required": true,
+          "source": {
+            "quote": [
+              "본인 또는 배우자 중 1인이 입주 전까지 주택청약종합저축(청약저축 포함) 가입사실을 증명할 수 있을 것"
+            ],
+            "page": 7
+          },
+          "note": "본인 또는 배우자가 입주 전까지 청약통장 가입을 증명할 수 있는지(현재 자격과 무관)",
           "check": true,
           "timing": "BEFORE_MOVE_IN"
         }

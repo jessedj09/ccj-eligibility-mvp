@@ -6,6 +6,7 @@
 3) 자녀 입력: '있음'을 고르면 판정 전에 바로 생년월일 칸이 나타나는지(폼 제거 회귀)
 4) 출생자녀 가산 경계: N1 신혼부부 4인·가산 자녀 2명 → 자산 413,000,000 충족 / 413,000,001 불충족
 5) 지역(C2): N10 대학생 — 거주지·대학 소재지에 따라 충족/불충족, 지역이 필요 없는 공고에는 지역 질문 없음
+6) 새 계층(C3): 산업단지근로자·주거급여수급자·지역전략산업종사자·고령자 — 계층 전용 질문과 판정
 """
 import os
 import sys
@@ -89,6 +90,37 @@ def main():
     assert not [w for w in at.selectbox if w.label.startswith("본인 거주지")], "지역이 필요 없는 공고에 지역 질문이 나옴"
     print("5) N10 대학생 지역: 서울 →", r_seoul[0][:2], "/ 수원·대학 없음 →", r_out[0][:2], "/ 수원·고양 대학 →", r_school[0][:2],
           "| N3에는 지역 질문 없음")
+
+    def c3(nid, layer, picks, regions=None, age=None):
+        at = fresh(nid, layer)
+        if age is not None:
+            find(at, "number_input", "나이").set_value(age).run()
+        find(at, "number_input", "월소득").set_value(1_000_000).run()
+        find(at, "number_input", "총자산").set_value(100_000_000).run()
+        for label, value in picks:
+            find(at, "selectbox", label).select(value).run()
+        for label, value in (regions or []):
+            find(at, "selectbox", label).select(value).run()
+        at.button[0].click().run()
+        assert not at.exception, at.exception
+        return results(at)[0][:2]
+
+    got = {
+        "산단 서울 소속": c3("N6", "산업단지근로자", [("근무처 유형", "산업단지 입주기업"), ("그 근무처", "소속")],
+                       [("근무처(산업단지", "서울특별시")]),
+        "산단 수원": c3("N6", "산업단지근로자", [("근무처 유형", "산업단지 입주기업"), ("그 근무처", "소속")],
+                     [("근무처(산업단지", "수원시")]),
+        "주거급여 수급자": c3("N10", "주거급여수급자", [("주거급여", "수급자")]),
+        "부천 등록예술인": c3("N5", "지역전략산업종사자", [("지역전략산업종사자 유형", "등록 예술인")], age=30),
+        "부천 콘텐츠": c3("N5", "지역전략산업종사자", [("지역전략산업종사자 유형", "콘텐츠산업 종사자")], age=30),
+        "가좌 고령자 70세": c3("N9", "고령자", [], age=70),
+    }
+    want = {"산단 서울 소속": "✅", "산단 수원": "❌", "주거급여 수급자": "✅", "부천 등록예술인": "✅",
+            "부천 콘텐츠": "🔍", "가좌 고령자 70세": "✅"}
+    assert all(got[k].startswith(want[k]) for k in want), got
+    at = fresh("N3", "청년")
+    assert not [w for w in at.selectbox if w.label.startswith("근무처 유형")], "새 계층 질문이 다른 계층에 나옴"
+    print("6) C3 새 계층:", got)
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)

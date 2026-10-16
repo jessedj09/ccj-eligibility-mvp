@@ -1382,5 +1382,273 @@
    "note": "본인의 거주지나 소득 근거지가 서울특별시 또는 연접 13개 시인지(한부모는 배우자가 없어 본인 기준; 이 공고는 1순위만 모집)",
    "timing": "NOW"
   }
+ ],
+ "N6/고령자": [
+  {
+   "id": "N6-E-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-E-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "공고일 현재 65세 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-E-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "해당 세대 월평균소득이 출생자녀 가산을 반영한 기준(1인 120%·2인 110%·3인 이상 100%) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-E-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "해당 세대 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-E-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  }
+ ],
+ "N9/고령자": [
+  {
+   "id": "N9-E-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N9-E-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "공고일 현재 65세 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N9-E-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "해당 세대 월평균소득이 출생자녀 가산을 반영한 기준(1인 120%·2인 110%·3인 이상 100%) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N9-E-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "해당 세대 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N9-E-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  }
+ ],
+ "N10/고령자": [
+  {
+   "id": "N10-E-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-E-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "공고일 현재 65세 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-E-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "해당 세대 월평균소득이 출생자녀 가산을 반영한 기준(1인 120%·2인 110%·3인 이상 100%) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-E-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "해당 세대 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-E-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  }
+ ],
+ "N6/산업단지근로자": [
+  {
+   "id": "N6-I-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "무주택인지(혼인 중이면 세대 전원, 혼인 중이 아니면 본인 기준)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-I-workplace",
+   "field": "industrial_workplace",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "산업단지 입주기업·교육·연구기관 또는 경제자유구역 입주 중소기업(입주예정 포함)에 근무 중인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-I-workarea",
+   "field": "workplace_area",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "그 근무처(산업단지·경제자유구역)가 서울특별시 또는 연접 13개 시에 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-I-affiliation",
+   "field": "industrial_affiliation",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "그 기업 소속이거나, 소속이 아니면 1년 이상 근무 중(또는 1년 이상 근무 예정)인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-I-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "해당 세대 월평균소득이 맞벌이·출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-I-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "해당 세대 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-I-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N6-I-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "본인 또는 배우자가 입주 전까지 청약통장 가입을 증명할 수 있는지(현재 자격과 무관)",
+   "timing": "BEFORE_MOVE_IN"
+  }
+ ],
+ "N10/주거급여수급자": [
+  {
+   "id": "N10-H-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.12",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N10-H-benefit",
+   "field": "housing_benefit_status",
+   "required": true,
+   "source_ref": "공고문 p.12",
+   "note": "「주거급여법」에 따른 주거급여 수급권자 또는 수급자인지(공고에 별도 소득·자산 기준 조항 없음)",
+   "timing": "NOW"
+  }
+ ],
+ "N5/지역전략산업종사자": [
+  {
+   "id": "N5-R-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "무주택인지(혼인 중이면 세대 전원, 미혼이면 본인 기준)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N5-R-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N5-R-type",
+   "field": "regional_industry_type",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "문화산업종사자(콘텐츠산업·전문예술법인·단체)·등록 예술인·부천시 추천자 중 하나인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N5-R-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "해당 세대 월평균소득이 기준(1인 120%·2인 110%·3인 이상 100%, 맞벌이 2인 130%·3인 이상 120%) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N5-R-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "해당 세대 총자산이 자산기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N5-R-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "자동차가액이 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N5-R-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "본인 또는 배우자가 입주 전까지 청약통장 가입을 증명할 수 있는지(현재 자격과 무관)",
+   "timing": "BEFORE_MOVE_IN"
+  }
  ]
 }

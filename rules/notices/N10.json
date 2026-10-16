@@ -23,14 +23,9 @@
   ],
   "unsupported_layers": [
     {
-      "name": "고령자",
-      "page": 11,
-      "note": "새 계층 구현 후 지원 예정"
-    },
-    {
-      "name": "주거급여수급자",
+      "name": "주거약자용 주택",
       "page": 12,
-      "note": "공고에 소득·자산 기준 조항이 없고 수급자 증명으로만 확인 — 새 계층 구현 후 지원 예정"
+      "note": "주거약자용 주택형(65세 이상·장애인·국가유공자 등) — 주택형 축 구현 후 지원 예정"
     }
   ],
   "tables": {
@@ -782,6 +777,127 @@
           "120%",
           "110%",
           "100%"
+        ]
+      }
+    },
+    "elderly_terms": {
+      "label": "고령자 계층 출생자녀 가산 소득·자산 기준: 가구원수×출생자녀수 (결합표)",
+      "columns": [
+        "size",
+        "child"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "ratio",
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "child": 0
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": "1+"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 1인인데 출생자녀 가산 대상 자녀가 있습니다(자녀도 가구원). 가구원수 또는 자녀 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0
+          },
+          "out": [
+            110,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 1
+          },
+          "out": [
+            120,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "2+"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 2인인데 출생자녀 가산 대상 자녀가 2명 이상입니다. 가구원수 또는 자녀 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 0
+          },
+          "out": [
+            100,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 1
+          },
+          "out": [
+            110,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "2+"
+          },
+          "out": [
+            120,
+            413000000,
+            54510000
+          ]
+        }
+      ],
+      "source": {
+        "page": 11,
+        "quote": [
+          "345,000,000원",
+          "379,000,000원",
+          "413,000,000원",
+          "45,420,000원",
+          "49,960,000원",
+          "54,510,000원"
         ]
       }
     }
@@ -1861,6 +1977,177 @@
                   ]
                 ]
               }
+            ]
+          }
+        }
+      ]
+    },
+    "고령자": {
+      "conditions": [
+        {
+          "id": "N10-E-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택세대구성원으로서 아래의 요건을 모두 갖춘 65세 이상인 자"
+            ],
+            "page": 11
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N10-E-age",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택세대구성원으로서 아래의 요건을 모두 갖춘 65세 이상인 자"
+            ],
+            "page": 11
+          },
+          "note": "공고일 현재 65세 이상인지",
+          "check": {
+            "gte": [
+              {
+                "var": "age"
+              },
+              65
+            ]
+          }
+        },
+        {
+          "id": "N10-E-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "해당 세대의 월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하"
+            ],
+            "page": 11
+          },
+          "note": "해당 세대 월평균소득이 출생자녀 가산을 반영한 기준(1인 120%·2인 110%·3인 이상 100%) 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "lookup": [
+                  "income_standard",
+                  {
+                    "var": "household_size"
+                  },
+                  {
+                    "term": "ratio"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "elderly_terms"
+        },
+        {
+          "id": "N10-E-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "해당 세대가 보유하고 있는 총 자산가액이 34,500만원 이하"
+            ],
+            "page": 11
+          },
+          "note": "해당 세대 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "elderly_terms"
+        },
+        {
+          "id": "N10-E-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "총 자산 중 자동차가액이 4,542만원 이하"
+            ],
+            "page": 11
+          },
+          "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "elderly_terms"
+        }
+      ]
+    },
+    "주거급여수급자": {
+      "conditions": [
+        {
+          "id": "N10-H-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재 무주택세대구성원인 주거급여수급자"
+            ],
+            "page": 12
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N10-H-benefit",
+          "field": "housing_benefit_status",
+          "required": true,
+          "source": {
+            "quote": [
+              "'주거급여수급자'란 「주거급여법」 제2조 제2호 및 제3호에 따른 수급권자 또는 수급자를 말함"
+            ],
+            "page": 12
+          },
+          "note": "「주거급여법」에 따른 주거급여 수급권자 또는 수급자인지(공고에 별도 소득·자산 기준 조항 없음)",
+          "check": {
+            "in": [
+              {
+                "var": "housing_benefit_status"
+              },
+              [
+                "수급자",
+                "수급권자"
+              ]
             ]
           }
         }

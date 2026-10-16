@@ -50,6 +50,8 @@ REGION_FIELDS_BY_LAYER = {
             "신혼부부": ["residence_area", "income_base_area", "spouse_residence_area", "spouse_income_base_area"],
             "한부모": ["residence_area", "income_base_area"]},
 }
+# 산업단지근로자의 근무지(산업단지 소재지)는 지역 표준 이름이다 — 지역 풀을 같이 쓴다(기본값 서울)
+REGION_FIELDS_BY_LAYER.setdefault("N6", {})["산업단지근로자"] = ["workplace_area"]
 # 서울·연접(통과) / 경기 비연접·지방(불충족) / 해당없음 / 모름. 손으로 고른 고정 값.
 REGIONS = [None, "서울특별시", "고양시", "인천광역시", "수원시", "의왕시", "부산광역시", "해당없음"]
 GROUPS: List[Tuple[str, str]] = [
@@ -61,6 +63,9 @@ GROUPS: List[Tuple[str, str]] = [
     ("N7", "신혼부부"), ("N7", "한부모"), ("N8", "신혼부부"), ("N8", "한부모"),
     # C2
     ("N9", "대학생"), ("N10", "대학생"), ("N10", "청년"), ("N10", "신혼부부"), ("N10", "한부모"),
+    # C3 — 새 계층
+    ("N6", "고령자"), ("N9", "고령자"), ("N10", "고령자"), ("N6", "산업단지근로자"),
+    ("N10", "주거급여수급자"), ("N5", "지역전략산업종사자"),
 ]
 
 INCOMES = [
@@ -145,6 +150,11 @@ def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, objec
 
 
 def _layer_attributes(layer: str, pools) -> Dict[str, Tuple[list, object]]:
+    if layer == "주거급여수급자":   # 원문에 소득·자산 조항 없음 — 다른 항목도 함께 흔들어 영향이 없는지 기록
+        return {"home": (["무주택", "주택보유"], "무주택"), "size": (SIZES, 3),
+                "income": (INCOMES, 1), "assets": ([None, 0, 1_000_000_000], 1), "car": (CARS, 0),
+                "kids": (pools["kids"], None), "count": (COUNTS, 0), "marital": (MARITALS, "미혼"),
+                "benefit": ([None, "수급자", "수급권자", "해당없음"], "수급자")}
     common = {
         "home": (["무주택", "주택보유"], "무주택"),
         "size": (SIZES, 3), "kids": (pools["kids"], None), "count": (COUNTS, 0),
@@ -156,6 +166,18 @@ def _layer_attributes(layer: str, pools) -> Dict[str, Tuple[list, object]]:
     if layer == "청년":
         return {**common, "marital": (["미혼", "혼인중"], "미혼"), "age": (AGES, 30),
                 "head": (HEADS, "세대주"), "rookie": (ROOKIES, None)}
+    if layer == "고령자":
+        return {**common, "marital": (MARITALS, "혼인중"), "age": ([64, 65, 66, 80], 70),
+                "dual": ([True, False], False)}
+    if layer == "산업단지근로자":
+        return {**common, "marital": (MARITALS, "미혼"), "dual": ([True, False], False),
+                "workplace": ([None, "산업단지 입주기업", "산업단지 교육·연구기관", "경제자유구역 입주 중소기업", "해당없음"],
+                              "산업단지 입주기업"),
+                "affiliation": ([None, "소속", "비소속 1년 이상 근무(예정)", "비소속 1년 미만"], "소속")}
+    if layer == "지역전략산업종사자":
+        return {**common, "marital": (MARITALS, "미혼"), "age": (AGES, 30), "dual": ([True, False], False),
+                "rtype": ([None, "콘텐츠산업 종사자", "전문예술법인·단체 종사자", "등록 예술인", "부천시 추천자", "해당없음"],
+                          "등록 예술인")}
     default_marital = "혼인중" if layer == "신혼부부" else "한부모"
     return {**common, "marital": (MARITALS, default_marital), "dual": ([True, False], False),
             "has_children": (HAS_CHILDREN, None), "youngest": (pools["youngest"], None),
@@ -172,7 +194,11 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
         has_children=v.get("has_children"), youngest_child_birth_date=v.get("youngest"),
         children_birth_dates=v["kids"], young_child_count=v["count"],
         **{f: v[f] for f in ("residence_area", "school_area", "income_base_area", "spouse_residence_area",
-                             "spouse_income_base_area") if f in v})
+                             "spouse_income_base_area", "workplace_area") if f in v},
+        **{field: v[key] for key, field in (("workplace", "industrial_workplace"),
+                                            ("affiliation", "industrial_affiliation"),
+                                            ("benefit", "housing_benefit_status"),
+                                            ("rtype", "regional_industry_type")) if key in v})
 
 
 # 통과 값에 가중해서 '모든 조건이 통과 근처'인 영역(경계가 실제로 판정을 가르는 영역)을 충분히 뽑는다

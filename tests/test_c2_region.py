@@ -99,8 +99,9 @@ def test_same_verdicts_as_geumcheon_when_in_seoul():
     나머지 판정이 같아야 한다. N6 골든의 체계적 입력을 그대로 써서 비교한다."""
     n6, n10 = load_notice("N6"), load_notice("N10")
     compared = 0
+    region_layers = gc.REGION_FIELDS_BY_LAYER["N10"]       # 지역 조건이 있는 계층만(고령자 등은 지역 요건 없음)
     for nid, layer, p in gc.cases():
-        if nid != "N6":
+        if nid != "N6" or layer not in region_layers:
             continue
         q = dataclasses.replace(p, residence_area="서울특별시")
         a, b = evaluate(p, n6, layer), evaluate(q, n10, layer)

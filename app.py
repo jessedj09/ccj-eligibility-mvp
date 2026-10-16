@@ -215,6 +215,7 @@ REGION_LABELS = {
     "income_base_area": "본인 소득 근거지(사업자등록증 소재지, 실제 근무지 증빙 시 근무지)",
     "spouse_residence_area": "배우자(예비신혼은 예비배우자) 거주지",
     "spouse_income_base_area": "배우자(예비신혼은 예비배우자) 소득 근거지",
+    "workplace_area": "근무처(산업단지·경제자유구역) 소재지",
 }
 region_fields = [f for f in REGION_LABELS if f in notice.layers[layer].inputs]
 regions = {}
@@ -230,6 +231,27 @@ if region_fields:
             format_func=lambda n: f"경기 {n}" if group_of.get(n) == "경기도" else n,
         )
         regions[f] = None if choice == "모름" else choice
+
+# 계층 전용 선택 항목 — 선택한 계층의 조건이 읽을 때만 묻는다(C3: 산업단지근로자·주거급여수급자·지역전략산업종사자)
+CHOICE_FIELDS = {
+    "industrial_workplace": ("근무처 유형(입주예정 포함)",
+                             ["산업단지 입주기업", "산업단지 교육·연구기관", "경제자유구역 입주 중소기업", "해당없음"]),
+    "industrial_affiliation": ("그 근무처 소속 여부",
+                               ["소속", "비소속 1년 이상 근무(예정)", "비소속 1년 미만"]),
+    "housing_benefit_status": ("주거급여(「주거급여법」) 수급 여부", ["수급자", "수급권자", "해당없음"]),
+    "regional_industry_type": ("지역전략산업종사자 유형(부천)",
+                               ["콘텐츠산업 종사자", "전문예술법인·단체 종사자", "등록 예술인", "부천시 추천자", "해당없음"]),
+}
+choice_fields = [f for f in CHOICE_FIELDS if f in notice.layers[layer].inputs]
+choices = {}
+if choice_fields:
+    st.subheader(f"{layer} 요건")
+    for f in choice_fields:
+        label, opts = CHOICE_FIELDS[f]
+        picked = st.selectbox(label, options=["모름"] + opts, key=f"choice_{f}")
+        choices[f] = None if picked == "모름" else picked
+    if "regional_industry_type" in choice_fields:
+        st.caption("콘텐츠산업 종사자·부천시 추천자는 신청 후 부천시가 자격을 확인하므로 '수동 확인'으로 표시됩니다.")
 
 if st.button("판정하기", type="primary"):
     st.session_state["judged"] = True
@@ -253,6 +275,7 @@ if st.session_state.get("judged"):
         marriage_date=marriage_date,
         children_birth_dates=children_birth_dates,
         **regions,
+        **choices,
     )
 
     errors = validate_profile(profile)

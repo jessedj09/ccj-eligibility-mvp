@@ -48,7 +48,7 @@ def resolve_interpretations(results: Dict[str, Any], detail: str):
         return values[0]
     shown = ", ".join(f"{name}={'충족' if v else '불충족'}" for name, v in results.items())
     return ReviewNeeded(REVIEW_AMBIGUOUS_SOURCE, f"{detail} [{shown}]")
-Layer = Literal["대학생", "청년", "신혼부부", "한부모"]
+Layer = Literal["대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자"]
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +173,16 @@ class HouseholdProfile:
     income_base_area: Optional[str] = None        # 본인 소득 근거지(사업자등록증 소재지, 실제 근무지 증빙 시 근무지)
     spouse_residence_area: Optional[str] = None   # 배우자(예비신혼은 예비배우자) 거주지
     spouse_income_base_area: Optional[str] = None # 배우자(예비신혼은 예비배우자) 소득 근거지
+
+    # --- C3: 행복주택 새 계층. None = 모름, "해당없음" = 해당하지 않음.
+    industrial_workplace: Optional[str] = None
+    # 산업단지근로자: "산업단지 입주기업" / "산업단지 교육·연구기관" / "경제자유구역 입주 중소기업"(입주예정 포함) / "해당없음"
+    workplace_area: Optional[str] = None          # 그 근무처(산업단지·경제자유구역)의 소재지 — 지역 표준 이름
+    industrial_affiliation: Optional[str] = None
+    # "소속" / "비소속 1년 이상 근무(예정)" / "비소속 1년 미만" — 해당 기업에 소속되지 않고 근무하는 경우 1년 요건
+    housing_benefit_status: Optional[str] = None  # 주거급여수급자: "수급자" / "수급권자" / "해당없음"
+    regional_industry_type: Optional[str] = None
+    # 지역전략산업종사자(부천): "콘텐츠산업 종사자" / "전문예술법인·단체 종사자" / "등록 예술인" / "부천시 추천자" / "해당없음"
 
     def __post_init__(self):
         if self.children_birth_dates is not None:

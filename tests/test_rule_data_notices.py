@@ -41,7 +41,9 @@ def test_only_the_subscription_account_condition_is_deferred_to_move_in():
     for nid, notice in ALL_NOTICES.items():
         for layer, ruleset in notice.layers.items():
             deferred = [c.rule_id for c in ruleset.conditions if c.timing == "BEFORE_MOVE_IN"]
-            assert len(deferred) == (0 if layer == "대학생" else 1), (nid, layer, deferred)
+            # 청약통장 요건이 없는 계층: 대학생(N2·N3 p.5), 고령자(금천 p.13 등), 주거급여수급자(오류 p.12)
+            no_subscription = layer in ("대학생", "고령자", "주거급여수급자")
+            assert len(deferred) == (0 if no_subscription else 1), (nid, layer, deferred)
             assert all(c.rule_id.endswith(("-sub", "R10")) for c in ruleset.conditions
                        if c.timing == "BEFORE_MOVE_IN")
 

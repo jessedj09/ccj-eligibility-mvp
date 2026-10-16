@@ -23,14 +23,9 @@
   ],
   "unsupported_layers": [
     {
-      "name": "산업단지근로자",
-      "page": 5,
-      "note": "새 계층 구현 후 지원 예정"
-    },
-    {
-      "name": "고령자",
-      "page": 13,
-      "note": "새 계층 구현 후 지원 예정"
+      "name": "주거약자용 주택",
+      "page": 8,
+      "note": "주거약자용 주택형(65세 이상·장애인·국가유공자 등) — 주택형 축 구현 후 지원 예정"
     }
   ],
   "tables": {
@@ -782,6 +777,368 @@
           "120%",
           "110%",
           "100%"
+        ]
+      }
+    },
+    "elderly_terms": {
+      "label": "고령자 계층 출생자녀 가산 소득·자산 기준: 가구원수×출생자녀수 (결합표)",
+      "columns": [
+        "size",
+        "child"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "ratio",
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "child": 0
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": "1+"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 1인인데 출생자녀 가산 대상 자녀가 있습니다(자녀도 가구원). 가구원수 또는 자녀 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0
+          },
+          "out": [
+            110,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 1
+          },
+          "out": [
+            120,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "2+"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 2인인데 출생자녀 가산 대상 자녀가 2명 이상입니다. 가구원수 또는 자녀 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 0
+          },
+          "out": [
+            100,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 1
+          },
+          "out": [
+            110,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "2+"
+          },
+          "out": [
+            120,
+            413000000,
+            54510000
+          ]
+        }
+      ],
+      "source": {
+        "page": 13,
+        "quote": [
+          "345,000,000원",
+          "379,000,000원",
+          "413,000,000원",
+          "45,420,000원",
+          "49,960,000원",
+          "54,510,000원"
+        ]
+      }
+    },
+    "industrial_worker_terms": {
+      "label": "산업단지근로자 출생자녀 가산 소득·자산 기준: 맞벌이×가구원수×출생자녀수 (결합표)",
+      "columns": [
+        "size",
+        "child",
+        "dual"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        },
+        "dual": {
+          "var": "dual_income"
+        }
+      },
+      "outputs": [
+        "ratio",
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": "1+",
+            "dual": false
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 1인인데 출생자녀 가산 대상 자녀가 있습니다(자녀도 가구원). 가구원수 또는 자녀 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            110,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            120,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "2+",
+            "dual": false
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 2인인데 출생자녀 가산 대상 자녀가 2명 이상입니다. 가구원수 또는 자녀 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            100,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            110,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            120,
+            413000000,
+            54510000
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": "any",
+            "dual": true
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 1인인데 맞벌이로 입력했습니다(원문 표의 1인 맞벌이 칸은 '-'). 가구원수 또는 맞벌이 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0,
+            "dual": true
+          },
+          "out": [
+            130,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "1+",
+            "dual": true
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "맞벌이 부부 2인 가구인데 출생자녀 가산 대상 자녀가 있습니다(부부+자녀면 3인 이상). 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": 0,
+            "dual": true
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": 1,
+            "dual": true
+          },
+          "out": [
+            130,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": "2+",
+            "dual": true
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "맞벌이 부부 3인 가구인데 출생자녀 가산 대상 자녀가 2명 이상입니다(부부+자녀 2명이면 4인 이상). 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": 0,
+            "dual": true
+          },
+          "out": [
+            120,
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": 1,
+            "dual": true
+          },
+          "out": [
+            130,
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "4+",
+            "child": "2+",
+            "dual": true
+          },
+          "out": [
+            140,
+            413000000,
+            54510000
+          ]
+        }
+      ],
+      "source": {
+        "page": 6,
+        "quote": [
+          "345,000,000원",
+          "379,000,000원",
+          "413,000,000원",
+          "45,420,000원",
+          "49,960,000원",
+          "54,510,000원"
         ]
       }
     }
@@ -1561,6 +1918,330 @@
               }
             ]
           }
+        }
+      ]
+    },
+    "고령자": {
+      "conditions": [
+        {
+          "id": "N6-E-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택세대구성원으로서 아래의 요건을 모두 갖춘 65세 이상인 자"
+            ],
+            "page": 13
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N6-E-age",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택세대구성원으로서 아래의 요건을 모두 갖춘 65세 이상인 자"
+            ],
+            "page": 13
+          },
+          "note": "공고일 현재 65세 이상인지",
+          "check": {
+            "gte": [
+              {
+                "var": "age"
+              },
+              65
+            ]
+          }
+        },
+        {
+          "id": "N6-E-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "해당 세대의 월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하"
+            ],
+            "page": 13
+          },
+          "note": "해당 세대 월평균소득이 출생자녀 가산을 반영한 기준(1인 120%·2인 110%·3인 이상 100%) 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "lookup": [
+                  "income_standard",
+                  {
+                    "var": "household_size"
+                  },
+                  {
+                    "term": "ratio"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "elderly_terms"
+        },
+        {
+          "id": "N6-E-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "해당 세대가 보유하고 있는 총 자산가액이 34,500만원 이하"
+            ],
+            "page": 13
+          },
+          "note": "해당 세대 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "elderly_terms"
+        },
+        {
+          "id": "N6-E-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "총 자산 중 자동차가액이 4,542만원 이하"
+            ],
+            "page": 13
+          },
+          "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "elderly_terms"
+        }
+      ]
+    },
+    "산업단지근로자": {
+      "conditions": [
+        {
+          "id": "N6-I-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택세대구성원(혼인 중이 아닌 경우 무주택자)"
+            ],
+            "page": 5
+          },
+          "note": "무주택인지(혼인 중이면 세대 전원, 혼인 중이 아니면 본인 기준)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N6-I-workplace",
+          "field": "industrial_workplace",
+          "required": true,
+          "source": {
+            "quote": [
+              "소재한 산업단지의 입주기업 및 교육·연구기관(입주 예정인 기업 및 교육·연구기관을 포함한다) 또는 경제자유구역에 입주한 중소기업(입주예정* 중소기업을 포함한다)에 근무 중일 것"
+            ],
+            "page": 5
+          },
+          "note": "산업단지 입주기업·교육·연구기관 또는 경제자유구역 입주 중소기업(입주예정 포함)에 근무 중인지",
+          "check": {
+            "in": [
+              {
+                "var": "industrial_workplace"
+              },
+              [
+                "산업단지 입주기업",
+                "산업단지 교육·연구기관",
+                "경제자유구역 입주 중소기업"
+              ]
+            ]
+          }
+        },
+        {
+          "id": "N6-I-workarea",
+          "field": "workplace_area",
+          "required": true,
+          "source": {
+            "quote": [
+              "해당 주택건설지역(서울시) 또는 연접지역(의정부시, 남양주시, 구리시, 하남시, 성남시, 과천시, 안양시, 광명시, 부천시, 인천광역시, 김포시, 고양시, 양주시)에 소재한 산업단지"
+            ],
+            "page": 5
+          },
+          "note": "그 근무처(산업단지·경제자유구역)가 서울특별시 또는 연접 13개 시에 있는지",
+          "check": {
+            "in": [
+              {
+                "var": "workplace_area"
+              },
+              [
+                "서울특별시",
+                "의정부시",
+                "남양주시",
+                "하남시",
+                "구리시",
+                "성남시",
+                "과천시",
+                "안양시",
+                "광명시",
+                "부천시",
+                "인천광역시",
+                "김포시",
+                "고양시",
+                "양주시"
+              ]
+            ]
+          }
+        },
+        {
+          "id": "N6-I-affiliation",
+          "field": "industrial_affiliation",
+          "required": true,
+          "source": {
+            "quote": [
+              "해당 기업에 소속되지 않고 근무 중인 경우에는 1년 이상 근무 중이거나 1년 미만 근무 중이더라도 1년 이상 근무 예정인 사람만 해당"
+            ],
+            "page": 5
+          },
+          "note": "그 기업 소속이거나, 소속이 아니면 1년 이상 근무 중(또는 1년 이상 근무 예정)인지",
+          "check": {
+            "in": [
+              {
+                "var": "industrial_affiliation"
+              },
+              [
+                "소속",
+                "비소속 1년 이상 근무(예정)"
+              ]
+            ]
+          }
+        },
+        {
+          "id": "N6-I-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "해당 세대의 월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하(맞벌이 부부 120퍼센트 이하)일 것"
+            ],
+            "page": 6
+          },
+          "note": "해당 세대 월평균소득이 맞벌이·출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "lookup": [
+                  "income_standard",
+                  {
+                    "var": "household_size"
+                  },
+                  {
+                    "term": "ratio"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "industrial_worker_terms"
+        },
+        {
+          "id": "N6-I-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "해당 세대가 보유하고 있는 총 자산가액 합산기준 34,500만원 이하"
+            ],
+            "page": 6
+          },
+          "note": "해당 세대 총자산이 출생자녀 가산을 반영한 자산기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "industrial_worker_terms"
+        },
+        {
+          "id": "N6-I-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "총 자산 중 자동차가액이 4,542만원 이하"
+            ],
+            "page": 6
+          },
+          "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "industrial_worker_terms"
+        },
+        {
+          "id": "N6-I-sub",
+          "field": "has_subscription_account",
+          "required": true,
+          "source": {
+            "quote": [
+              "본인 또는 배우자중 1인이 입주 전까지 주택청약종합저축(청약저축 포함) 가입사실을 증명할 수 있을 것"
+            ],
+            "page": 6
+          },
+          "note": "본인 또는 배우자가 입주 전까지 청약통장 가입을 증명할 수 있는지(현재 자격과 무관)",
+          "check": true,
+          "timing": "BEFORE_MOVE_IN"
         }
       ]
     }

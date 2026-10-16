@@ -25,7 +25,7 @@ from rule_engine import (
 )
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
-LAYERS = ("대학생", "청년", "신혼부부", "한부모")
+LAYERS = ("대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자")
 REVIEW_STATUSES = ("DRAFT", "REVIEWED", "PUBLISHED", "RETIRED")
 CTX_KEYS = ("announcement_date",)
 TIMINGS = ("NOW", "BEFORE_MOVE_IN")
@@ -250,7 +250,8 @@ FUNCTIONS = {
 
 
 # 지역 필드: `in`의 목록은 rules/reference/regions.json의 표준 이름이어야 한다(오타면 영원히 불충족이 되므로 로드 시 거부)
-REGION_FIELDS = ("residence_area", "school_area", "income_base_area", "spouse_residence_area", "spouse_income_base_area")
+REGION_FIELDS = ("residence_area", "school_area", "income_base_area", "spouse_residence_area", "spouse_income_base_area",
+                 "workplace_area")
 REGION_NONE = "해당없음"
 
 

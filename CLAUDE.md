@@ -51,8 +51,13 @@ Engine**이다.
   `rules/reference/regions.json` 표준 이름(서울·인천 광역, 경기 시·군, 그 밖 시도) 또는 "해당없음", 모름은 None.
   지역 `in` 목록의 오타는 로드 시 거부. 조건이 읽는 필드는 `RuleCondition.inputs`/`LayerRuleSet.inputs`에 기록되고,
   화면은 그 계층이 쓰는 지역 질문만 묻는다. 검증 `tests/test_c2_region.py`(같은 날 같은 템플릿인 N6과 판정 동등).
-- pytest: 총 **302개 전부 통과**(약 1분 — 원문 대조가 PDF 10건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(2~4분).
-- **다음 과제: C3 — 행복주택 새 계층**(고령자·산업단지근로자·주거급여수급자·지역전략산업종사자). 상세와 이후 순서는
+- **C3**: 행복주택 새 계층 4개 — 고령자(N6·N9·N10), 산업단지근로자(N6), 주거급여수급자(N10), 지역전략산업종사자(N5).
+  `tools/gen_c3_layers.py`가 원문 결합표를 행 단위로 옮겨 추가한다. 프로필 필드 `industrial_workplace`·`workplace_area`·
+  `industrial_affiliation`·`housing_benefit_status`·`regional_industry_type`. 부천시가 신청 후 확인하는 자격(콘텐츠산업·
+  부천시 추천자)은 `SELF_REPORT_UNVERIFIED`, 부천 지역전략 계층의 출생자녀 가산은 원문에 없어 두 해석(readings)으로 계산.
+  주거급여수급자는 원문에 소득·자산 조항이 없으므로 만들지 않았다. 검증 `tests/test_c3_layers.py`.
+- pytest: 총 **366개 전부 통과**(약 1분 — 원문 대조가 PDF 10건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(2~4분).
+- **다음 과제: C4 — 순위·유형 트랙**(매입임대·청년매입·든든전세·SH 장기미임대·미리내집). 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 
 ## 반드시 지켜야 할 원칙 (요약 — 근거는 docs/01-decisions-log.md)
@@ -103,15 +108,15 @@ Engine**이다.
 - `src/rule_data.py` — JSON 규칙 로더·조건식 컴파일러(닫힌 연산자 집합, 로드 시 구조·참조 검증)
 - `rules/` — **규칙의 원본**: `notices/N1~N10.json`(조건·결정표·출처·검수 상태·미지원 계층), `reference/income_standard.json`·`regions.json`
 - `sample_lh/`·`sample_sh/` — 공고문 PDF 원본(원문 대조 도구가 `source.document` 파일명으로 찾는다)
-- `tests/golden/` + `tools/regen_golden.py` — 골든 스냅샷(고정 입력 123,270건의 결과 기록)과 재생성 도구
-- `tools/verify_sources.py`(원문 대조), `tools/ui_smoke.py`(화면 헤드리스 점검), `tools/gen_c1_notices.py`(템플릿 기반 공고 생성)
+- `tests/golden/` + `tools/regen_golden.py` — 골든 스냅샷(고정 입력 152,747건의 결과 기록)과 재생성 도구
+- `tools/verify_sources.py`(원문 대조), `tools/ui_smoke.py`(화면 헤드리스 점검), `tools/gen_c1_notices.py`(템플릿 기반 공고 생성), `tools/gen_c3_layers.py`(새 계층 추가)
 - `src/priority_scoring.py` — 우선공급 배점(verdict와 분리된 별도 점수)
 - `src/profiles_data.py` — 테스트용 프로필 12개 + 수기 정답지
 - `src/explainability.py` — EvaluationResult → 사용자용 근거 문구(Explanation) 변환
 - `app.py` — Streamlit 데모 UI (판정 로직 없음, src/ 함수만 호출)
 - `mvp0/` — **실행 대상 아님.** 초기 스냅샷(옛 버전), `mvp0/README.md` 참조
-- `tests/` — pytest 스위트, **총 302개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
-  explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22 + 규칙 데이터화·골든·가구원수 모순 MVP0.6·원문 대조 P4·C1 공고 추가·C2 지역)
+- `tests/` — pytest 스위트, **총 366개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
+  explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22 + 규칙 데이터화·골든·가구원수 모순 MVP0.6·원문 대조 P4·C1 공고 추가·C2 지역·C3 새 계층)
 - `data/*.xlsx` — MVP0 설계 워크북 원본 (programs/notices/rules/reference_values/
   income_basis/profiles/match_matrix 시트 — 코드보다 사람이 보기 편한 원본)
 
