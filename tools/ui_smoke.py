@@ -7,6 +7,7 @@
 4) 출생자녀 가산 경계: N1 신혼부부 4인·가산 자녀 2명 → 자산 413,000,000 충족 / 413,000,001 불충족
 5) 지역(C2): N10 대학생 — 거주지·대학 소재지에 따라 충족/불충족, 지역이 필요 없는 공고에는 지역 질문 없음
 6) 새 계층(C3): 산업단지근로자·주거급여수급자·지역전략산업종사자·고령자 — 계층 전용 질문과 판정
+7) 계층별 입력 안내(주택 소유·소득·자산·나이의 뜻)와 생년월일 → 공고일 기준 만 나이 경계(원문 출생일 범위와 대조)
 """
 import os
 import sys
@@ -94,6 +95,7 @@ def main():
     def c3(nid, layer, picks, regions=None, age=None):
         at = fresh(nid, layer)
         if age is not None:
+            at.radio[0].set_value("만 나이").run()
             find(at, "number_input", "나이").set_value(age).run()
         find(at, "number_input", "월소득").set_value(1_000_000).run()
         find(at, "number_input", "총자산").set_value(100_000_000).run()
@@ -121,6 +123,20 @@ def main():
     at = fresh("N3", "청년")
     assert not [w for w in at.selectbox if w.label.startswith("근무처 유형")], "새 계층 질문이 다른 계층에 나옴"
     print("6) C3 새 계층:", got)
+
+    # 7) 입력 범위 안내(같은 질문의 계층별 뜻)와 생년월일 → 공고일 기준 만 나이
+    def captions(nid, layer):
+        return [c.value for c in fresh(nid, layer).caption if c.value.startswith("이 계층 기준")]
+    stu, mar = captions("N3", "대학생"), captions("N3", "신혼부부")
+    assert any("본인" in c for c in stu) and any("세대" in c for c in mar), (stu, mar)
+    at = fresh("N5", "청년")                         # 공고일 2026-08-18, 원문 출생일 범위 1986.8.19 ~ 2007.8.18
+    ages = {}
+    for born in (date(2007, 8, 18), date(2007, 8, 19), date(1986, 8, 19), date(1986, 8, 18)):
+        at.date_input(key="birth_date").set_value(born).run()
+        ages[str(born)] = [c.value for c in at.caption if c.value.startswith("공고일(")][0]
+    assert "만 19세" in ages["2007-08-18"] and "만 18세" in ages["2007-08-19"], ages
+    assert "만 39세" in ages["1986-08-19"] and "만 40세" in ages["1986-08-18"], ages
+    print("7) 계층별 입력 안내 — 대학생:", stu[0][:40], "… / 신혼부부:", mar[0][:40], "… | 생년월일→만 나이 경계 OK")
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)

@@ -108,9 +108,31 @@ def _amount_input(label, field, key):
 for note in notice.meta.get("notes", []):
     st.caption(f"📌 {note}")
 
+def scope_caption(field):
+    """같은 입력이라도 계층마다 뜻이 다르다(예: 주택 소유 — 대학생은 본인, 신혼부부는 세대 전원). 선택한 계층에서
+    이 입력을 읽는 조건의 설명(규칙 데이터의 note)을 입력란 아래에 그대로 보여 준다."""
+    notes = []
+    for c in notice.layers[layer].conditions:
+        if field in c.inputs and c.note not in notes:
+            notes.append(c.note)
+    if notes:
+        st.caption("이 계층 기준: " + " / ".join(notes))
+
+
 col1, col2 = st.columns(2)
 with col1:
-    age = st.number_input("나이", min_value=0, max_value=120, value=_default("age", 30))
+    # 나이는 공고일 기준 만 나이다. 생년월일로 받으면 생일 경계(하루 차이)를 엔진 쪽에서 정확히 계산한다.
+    age_mode = st.radio("나이 입력 방식", ["생년월일", "만 나이"], horizontal=True,
+                        index=0 if preset_profile is None else 1)
+    if age_mode == "생년월일":
+        birth_date = st.date_input("생년월일", value=date(1996, 1, 1), min_value=date(1900, 1, 1),
+                                   max_value=date.today(), key="birth_date")
+        ann = notice.announcement_date
+        age = ann.year - birth_date.year - ((ann.month, ann.day) < (birth_date.month, birth_date.day))
+        st.caption(f"공고일({ann}) 기준 만 {age}세로 판정합니다.")
+    else:
+        age = st.number_input("나이(공고일 기준 만 나이)", min_value=0, max_value=120, value=_default("age", 30))
+    scope_caption("age")
     marital_status = st.selectbox(
         "혼인 상태", options=["미혼", "혼인중", "예비신혼", "한부모"],
         index=["미혼", "혼인중", "예비신혼", "한부모"].index(_default("marital_status", "미혼")),
@@ -119,6 +141,7 @@ with col1:
         "주택 소유", options=["무주택", "주택보유"],
         index=["무주택", "주택보유"].index(_default("home_ownership", "무주택")),
     )
+    scope_caption("home_ownership")
     household_size = st.number_input(
         "가구원수(판정 대상)", min_value=1, max_value=10, value=_default("household_size", 1),
         help="신혼부부는 부부 2인 이상입니다. 예비신혼부부는 신청자 본인과 예비배우자, 공고일 기준 동일 세대에 "
@@ -195,7 +218,9 @@ with col1:
 
 with col2:
     monthly_income = _amount_input("월소득(원)", "monthly_income", "income_input")
+    scope_caption("monthly_income")
     total_assets = _amount_input("총자산(원)", "total_assets", "assets_input")
+    scope_caption("total_assets")
     car_default = _default("car_value", 0)
     car_unknown = st.checkbox("자동차가액 확인불가", value=(car_default == "확인불가"))
     car_value = st.number_input(

@@ -13,7 +13,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.4 (무주택세대구성원)",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 예비신혼부부는 혼인으로 구성될 세대 전원)",
    "timing": "NOW"
   },
   {
@@ -71,7 +71,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.4 (무주택세대구성원)",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
    "timing": "NOW"
   },
   {
@@ -221,7 +221,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.7 (무주택자로서)",
-   "note": "무주택자인지",
+   "note": "무주택자인지(본인 기준 — 세대 내 다른 구성원의 주택 소유는 무관)",
    "timing": "NOW"
   },
   {
@@ -245,7 +245,7 @@
    "field": "household_income",
    "required": true,
    "source_ref": "공고문 p.7 ③, p.8 소득기준표",
-   "note": "소득이 자녀수·세대주 여부에 따른 소득기준 이내인지",
+   "note": "해당 세대 소득(세대원이 있는 세대주는 세대 전체, 세대원·단독세대주는 본인)이 자녀수·세대주 여부에 따른 소득기준 이내인지",
    "timing": "NOW"
   },
   {
@@ -253,7 +253,7 @@
    "field": "total_assets",
    "required": true,
    "source_ref": "공고문 p.7 ④",
-   "note": "총자산이 자녀수에 따른 자산기준 이내인지",
+   "note": "해당 세대 총자산이 자녀수에 따른 자산기준 이내인지",
    "timing": "NOW"
   },
   {
@@ -287,7 +287,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.9 (무주택세대구성원)",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 예비신혼부부는 혼인으로 구성될 세대 전원)",
    "timing": "NOW"
   },
   {
@@ -345,7 +345,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.9 (무주택세대구성원)",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
    "timing": "NOW"
   },
   {
@@ -403,7 +403,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.4 무주택세대구성원",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 예비신혼부부는 혼인으로 구성될 세대 전원)",
    "timing": "NOW"
   },
   {
@@ -461,7 +461,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.4 무주택세대구성원",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
    "timing": "NOW"
   },
   {
@@ -561,7 +561,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.8 무주택자로서",
-   "note": "무주택자인지",
+   "note": "무주택자인지(본인 기준 — 세대 내 다른 구성원의 주택 소유는 무관)",
    "timing": "NOW"
   },
   {
@@ -585,7 +585,7 @@
    "field": "household_income",
    "required": true,
    "source_ref": "공고문 p.9 ③",
-   "note": "소득이 자녀수·세대주 여부에 따른 소득기준 이내인지",
+   "note": "해당 세대 소득(세대원이 있는 세대주는 세대 전체, 세대원·단독세대주는 본인)이 자녀수·세대주 여부에 따른 소득기준 이내인지",
    "timing": "NOW"
   },
   {
@@ -593,7 +593,7 @@
    "field": "total_assets",
    "required": true,
    "source_ref": "공고문 p.9 ④",
-   "note": "총자산이 자녀수에 따른 자산기준 이내인지",
+   "note": "해당 세대 총자산이 자녀수에 따른 자산기준 이내인지",
    "timing": "NOW"
   },
   {
@@ -669,7 +669,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.9 무주택자로서",
-   "note": "무주택자인지",
+   "note": "무주택자인지(본인 기준 — 세대 내 다른 구성원의 주택 소유는 무관)",
    "timing": "NOW"
   },
   {
@@ -693,7 +693,7 @@
    "field": "household_income",
    "required": true,
    "source_ref": "공고문 p.9 ③",
-   "note": "소득이 자녀수·세대주 여부에 따른 소득기준 이내인지",
+   "note": "해당 세대 소득(세대원이 있는 세대주는 세대 전체, 세대원·단독세대주는 본인)이 자녀수·세대주 여부에 따른 소득기준 이내인지",
    "timing": "NOW"
   },
   {
@@ -701,7 +701,7 @@
    "field": "total_assets",
    "required": true,
    "source_ref": "공고문 p.9 ④",
-   "note": "총자산이 자녀수에 따른 자산기준 이내인지",
+   "note": "해당 세대 총자산이 자녀수에 따른 자산기준 이내인지",
    "timing": "NOW"
   },
   {
@@ -735,7 +735,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.11 무주택세대구성원",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 예비신혼부부는 혼인으로 구성될 세대 전원)",
    "timing": "NOW"
   },
   {
@@ -793,7 +793,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.11 무주택세대구성원",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
    "timing": "NOW"
   },
   {
@@ -851,7 +851,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.4 무주택세대구성원",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 예비신혼부부는 혼인으로 구성될 세대 전원)",
    "timing": "NOW"
   },
   {
@@ -909,7 +909,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.4 무주택세대구성원",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
    "timing": "NOW"
   },
   {
@@ -967,7 +967,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.5 무주택세대구성원",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 예비신혼부부는 혼인으로 구성될 세대 전원)",
    "timing": "NOW"
   },
   {
@@ -1025,7 +1025,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.5 무주택세대구성원",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
    "timing": "NOW"
   },
   {
@@ -1191,7 +1191,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.7 무주택자로서",
-   "note": "무주택자인지",
+   "note": "무주택자인지(본인 기준 — 세대 내 다른 구성원의 주택 소유는 무관)",
    "timing": "NOW"
   },
   {
@@ -1215,7 +1215,7 @@
    "field": "household_income",
    "required": true,
    "source_ref": "공고문 p.7 ③",
-   "note": "소득이 자녀수·세대주 여부에 따른 소득기준 이내인지",
+   "note": "해당 세대 소득(세대원이 있는 세대주는 세대 전체, 세대원·단독세대주는 본인)이 자녀수·세대주 여부에 따른 소득기준 이내인지",
    "timing": "NOW"
   },
   {
@@ -1223,7 +1223,7 @@
    "field": "total_assets",
    "required": true,
    "source_ref": "공고문 p.7 ④",
-   "note": "총자산이 자녀수에 따른 자산기준 이내인지",
+   "note": "해당 세대 총자산이 자녀수에 따른 자산기준 이내인지",
    "timing": "NOW"
   },
   {
@@ -1265,7 +1265,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.9 무주택세대구성원",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 예비신혼부부는 혼인으로 구성될 세대 전원)",
    "timing": "NOW"
   },
   {
@@ -1331,7 +1331,7 @@
    "field": "home_ownership",
    "required": true,
    "source_ref": "공고문 p.9 무주택세대구성원",
-   "note": "무주택 세대구성원인지",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
    "timing": "NOW"
   },
   {

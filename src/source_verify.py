@@ -110,16 +110,31 @@ def verify_notice(nid: str) -> Report:
 
 
 def verify_income_reference() -> Report:
-    """공고문마다 필요한 비율 행만 싣기 때문에, 각 수치는 `cited_pages`의 어느 공고·쪽에든 있으면 된다."""
+    """소득 기준표(income_standard.json) 대조 — 두 겹.
+    1) 공고별: 이 기준표를 쓰는 공고마다 `required_in_every_notice` 값이 그 공고의 `cited_pages` 쪽에 모두 있어야 한다.
+       기준표를 쓰는 공고가 `cited_pages`에 없으면 그것도 불일치다(새 공고를 추가하고 대조를 빠뜨리는 것을 막는다).
+    2) 전체: 표의 모든 값(7인 이상 가산액 포함)이 어느 공고의 cited_pages에든 있어야 한다."""
+    from rule_data import notice_ids
     ref = json.loads((RULES / "reference" / "income_standard.json").read_text(encoding="utf-8"))
     report = Report()
+    cited = ref["cited_pages"]
+    for nid in notice_ids():
+        if '"income_standard"' not in json.dumps(notice_doc(nid), ensure_ascii=False):
+            continue
+        if nid not in cited:
+            report.problems.append(f"income_standard: {nid}가 소득 기준표를 쓰지만 cited_pages에 없음")
+            continue
+        for size, ratio in ref["required_in_every_notice"]:
+            report.checked += 1
+            text = f"{ref['table'][str(size)][str(ratio)]:,}"
+            if not any(page_has(nid, pg, text) for pg in cited[nid]):
+                report.problems.append(f"income_standard: {nid} p.{cited[nid]}에 {size}인 {ratio}% {text}원 없음")
     numbers = [v for row in ref["table"].values() for v in row.values()] + [ref["per_person_adder_7plus"]]
     for n in numbers:
         report.checked += 1
         text = f"{n:,}"
-        where = [(nid, pg) for nid, pages in ref["cited_pages"].items() for pg in pages if page_has(nid, pg, text)]
-        if not where:
-            report.problems.append(f"income_standard: {text} 이(가) cited_pages({ref['cited_pages']}) 어디에도 없음")
+        if not any(page_has(nid, pg, text) for nid, pages in cited.items() for pg in pages):
+            report.problems.append(f"income_standard: {text} 이(가) 어느 공고의 cited_pages에도 없음")
     return report
 
 

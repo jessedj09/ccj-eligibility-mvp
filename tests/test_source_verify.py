@@ -74,7 +74,32 @@ def test_income_reference_number_not_in_cited_pages_is_detected(monkeypatch, tmp
     ref = json.loads((sv.RULES / "reference" / "income_standard.json").read_text(encoding="utf-8"))
     ref["table"]["3"]["100"] += 1                               # 소득기준 1원 오타
     (tmp_path / "reference").mkdir()
+    (tmp_path / "notices").mkdir()
+    for f in (sv.RULES / "notices").glob("*.json"):              # 공고별 검사가 공고 파일을 읽는다
+        (tmp_path / "notices" / f.name).write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
     (tmp_path / "reference" / "income_standard.json").write_text(json.dumps(ref), encoding="utf-8")
     monkeypatch.setattr(sv, "RULES", tmp_path)
     report = sv.verify_income_reference()
-    assert not report.ok and "8,168,430" in report.problems[0]
+    assert not report.ok and any("8,168,430" in p for p in report.problems)
+
+
+def test_income_reference_is_checked_per_notice(monkeypatch, tmp_path):
+    """공고별 검사: 기준표를 쓰는 공고를 cited_pages에서 빼거나 엉뚱한 쪽을 가리키면 잡아야 한다."""
+    ref = json.loads((sv.RULES / "reference" / "income_standard.json").read_text(encoding="utf-8"))
+    (tmp_path / "reference").mkdir()
+    (tmp_path / "notices").mkdir()
+    for f in (sv.RULES / "notices").glob("*.json"):
+        (tmp_path / "notices" / f.name).write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr(sv, "RULES", tmp_path)
+    import rule_data
+    monkeypatch.setattr(rule_data, "RULES_DIR", tmp_path)
+
+    def run(mutated):
+        (tmp_path / "reference" / "income_standard.json").write_text(json.dumps(mutated), encoding="utf-8")
+        return sv.verify_income_reference()
+
+    assert run(ref).ok
+    missing = json.loads(json.dumps(ref)); del missing["cited_pages"]["N7"]
+    assert any("N7" in p and "cited_pages에 없음" in p for p in run(missing).problems)
+    wrong = json.loads(json.dumps(ref)); wrong["cited_pages"]["N5"] = [1]
+    assert any("N5" in p for p in run(wrong).problems)

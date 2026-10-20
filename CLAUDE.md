@@ -56,7 +56,12 @@ Engine**이다.
   `industrial_affiliation`·`housing_benefit_status`·`regional_industry_type`. 부천시가 신청 후 확인하는 자격(콘텐츠산업·
   부천시 추천자)은 `SELF_REPORT_UNVERIFIED`, 부천 지역전략 계층의 출생자녀 가산은 원문에 없어 두 해석(readings)으로 계산.
   주거급여수급자는 원문에 소득·자산 조항이 없으므로 만들지 않았다. 검증 `tests/test_c3_layers.py`.
-- pytest: 총 **366개 전부 통과**(약 1분 — 원문 대조가 PDF 10건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(2~4분).
+- **C3.1 점검·보강(2026-10-20)**: ① `tools/gen_c1_notices.py` 재실행 시 다른 단계가 추가한 계층이 지워지던 문제 수정
+  (`preserve_later_additions`, `tests/test_generators.py`가 재실행 = 커밋 파일 동일을 확인) ② `requirements.txt`에 pypdf
+  ③ 화면: 입력란 아래 "이 계층 기준"(규칙 note에서 자동 — 주택 소유·소득·자산·나이의 계층별 뜻), 나이는 생년월일 입력 →
+  공고일 기준 만 나이 ④ GitHub Actions(`.github/workflows/tests.yml`: 원문 대조 + pytest + 화면 점검) ⑤ 소득 기준표 공고별 대조.
+- pytest: 총 **374개 전부 통과**(약 2분 — 원문 대조가 PDF 10건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(2~4분).
+  **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제: C4 — 순위·유형 트랙**(매입임대·청년매입·든든전세·SH 장기미임대·미리내집). 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 
@@ -115,7 +120,7 @@ Engine**이다.
 - `src/explainability.py` — EvaluationResult → 사용자용 근거 문구(Explanation) 변환
 - `app.py` — Streamlit 데모 UI (판정 로직 없음, src/ 함수만 호출)
 - `mvp0/` — **실행 대상 아님.** 초기 스냅샷(옛 버전), `mvp0/README.md` 참조
-- `tests/` — pytest 스위트, **총 366개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
+- `tests/` — pytest 스위트, **총 374개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
   explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22 + 규칙 데이터화·골든·가구원수 모순 MVP0.6·원문 대조 P4·C1 공고 추가·C2 지역·C3 새 계층)
 - `data/*.xlsx` — MVP0 설계 워크북 원본 (programs/notices/rules/reference_values/
   income_basis/profiles/match_matrix 시트 — 코드보다 사람이 보기 편한 원본)

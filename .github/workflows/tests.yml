@@ -1,0 +1,39 @@
+# push·PR마다 전체 테스트를 돌린다. master에 push하면 Streamlit Cloud가 바로 배포하므로,
+# 실패 표시(빨간 X)를 보고 배포본을 되돌리거나 고칠 수 있게 하는 안전망이다.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: pip install -r requirements.txt
+      - name: Source verification (rules vs notice PDFs)
+        run: python tools/verify_sources.py
+      - name: pytest
+        run: python -m pytest -q
+
+  ui-smoke:
+    # 화면 헤드리스 점검(2~4분). 테스트가 통과한 뒤에만 돈다.
+    needs: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: UI smoke
+        run: python tools/ui_smoke.py

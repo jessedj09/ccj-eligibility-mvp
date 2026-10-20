@@ -268,6 +268,22 @@ def cutoffs(c, t, pages, anchor, missing):
     return c
 
 
+def preserve_later_additions(new, old):
+    """이 스크립트는 템플릿 계층(대학생·청년·신혼부부·한부모)과 그 결정표만 소유한다. 기존 파일에 다른 단계가 추가한
+    계층·결정표·미지원 항목(예: C3의 고령자·산업단지근로자, 주거약자용 주택)은 그대로 보존한다 — 이 스크립트를
+    다시 돌려도 다른 단계의 작업이 지워지지 않게 한다."""
+    for layer, ldoc in old.get("layers", {}).items():
+        if layer not in new["layers"]:
+            new["layers"][layer] = ldoc
+    for name, tdoc in old.get("tables", {}).items():
+        new["tables"].setdefault(name, tdoc)
+    names = {u["name"] for u in new.get("unsupported_layers", [])}
+    new["unsupported_layers"] = [u for u in new.get("unsupported_layers", []) if u["name"] not in new["layers"]]
+    new["unsupported_layers"] += [u for u in old.get("unsupported_layers", [])
+                                  if u["name"] not in names and u["name"] not in new["layers"]]
+    return new
+
+
 if __name__ == "__main__":
     only = sys.argv[1:]
     for t in TARGETS:
@@ -275,6 +291,8 @@ if __name__ == "__main__":
             continue
         doc, missing = build(t)
         out = ROOT / "rules" / "notices" / f"{t['nid']}.json"
+        if out.exists():
+            doc = preserve_later_additions(doc, json.loads(out.read_text(encoding="utf-8")))
         out.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(t["nid"], t["title"], "layers", list(doc["layers"]), "MISSING", len(missing))
         for m in missing:
