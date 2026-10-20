@@ -15,9 +15,13 @@ CONDITIONS = GOLDEN_DIR / "conditions.json"
 
 
 def record(result) -> List[Any]:
-    return [result.verdict, result.score, list(result.matched), list(result.failed),
-            list(result.unknown), list(result.review), list(result.notes),
-            {k: [v.code, v.detail] for k, v in result.review_reasons.items()}]
+    rec = [result.verdict, result.score, list(result.matched), list(result.failed),
+           list(result.unknown), list(result.review), list(result.notes),
+           {k: [v.code, v.detail] for k, v in result.review_reasons.items()}]
+    if result.tracks:   # 순위·유형 트랙이 있는 계층만(C4) — 트랙이 없는 기존 기록은 형식이 그대로다
+        rec.append({tid: [r.verdict, list(r.failed), list(r.unknown), list(r.review)]
+                    for tid, r in result.tracks.items()})
+    return rec
 
 
 def build_outcomes(notices: Dict[str, Any]) -> Dict[str, Any]:

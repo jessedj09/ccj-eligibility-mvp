@@ -41,6 +41,22 @@ DATES = {
                grad=date(2024, 5, 7), adult=date(2007, 5, 7)),
     "N10": dict(ann=date(2026, 5, 15), marriage=date(2019, 5, 15), child=date(2019, 5, 16),
                 grad=date(2024, 5, 15), adult=date(2007, 5, 15)),
+    # C4a(LH 매입임대·든든전세). 원문 날짜: N13 p.3 "2019.6.25.~"·"’19.6.26 이후"·"’24.6.25이후", N14 p.3 "2019.9.17~"·
+    # "‘19.9.18이후"·"‘24.9.17이후". newborn = 신생아 가구 기준일(공고일−2년, LH 원문).
+    "N11": dict(ann=date(2026, 6, 25), marriage=date(2019, 6, 25), child=date(2019, 6, 26),
+                grad=date(2024, 6, 25), adult=date(2007, 6, 25)),
+    "N12": dict(ann=date(2026, 9, 17), marriage=date(2019, 9, 17), child=date(2019, 9, 18),
+                grad=date(2024, 9, 17), adult=date(2007, 9, 17)),
+    "N13": dict(ann=date(2026, 6, 25), marriage=date(2019, 6, 25), child=date(2019, 6, 26),
+                grad=date(2024, 6, 25), adult=date(2007, 6, 25), newborn=date(2024, 6, 25)),
+    "N14": dict(ann=date(2026, 9, 17), marriage=date(2019, 9, 17), child=date(2019, 9, 18),
+                grad=date(2024, 9, 17), adult=date(2007, 9, 17), newborn=date(2024, 9, 17)),
+    "N15": dict(ann=date(2026, 6, 25), marriage=date(2019, 6, 25), child=date(2019, 6, 26),
+                grad=date(2024, 6, 25), adult=date(2007, 6, 25), newborn=date(2024, 6, 25)),
+    "N16": dict(ann=date(2026, 5, 22), marriage=date(2019, 5, 22), child=date(2019, 5, 23),
+                grad=date(2024, 5, 22), adult=date(2007, 5, 22)),
+    "N17": dict(ann=date(2026, 10, 1), marriage=date(2019, 10, 1), child=date(2019, 10, 2),
+                grad=date(2024, 10, 1), adult=date(2007, 10, 1)),
 }
 # 지역 조건이 있는 공고와 계층별 지역 입력(원문 PDF의 순위 문구에서 손으로 옮김). 다른 공고에는 지역 입력을 넣지 않는다
 # — 넣으면 기존 그룹의 입력·난수 소비가 바뀌어 골든 기록 전체가 달라진다.
@@ -52,6 +68,57 @@ REGION_FIELDS_BY_LAYER = {
 }
 # 산업단지근로자의 근무지(산업단지 소재지)는 지역 표준 이름이다 — 지역 풀을 같이 쓴다(기본값 서울)
 REGION_FIELDS_BY_LAYER.setdefault("N6", {})["산업단지근로자"] = ["workplace_area"]
+REGION_FIELDS_BY_LAYER["N16"] = {"일반": ["residence_area"]}     # 든든전세: 수도권 거주
+REGION_FIELDS_BY_LAYER["N17"] = {"일반": ["residence_area"]}
+
+# --- C4a 사업별 입력 풀(원문 금액의 경계 ±1원을 손으로 적은 고정 값) --------------------------------------
+PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_rental", "N14": "newlywed_rental",
+              "N15": "newlywed_rental", "N16": "jeonse", "N17": "jeonse"}
+WELFARE = [None, "해당없음", "생계·의료·주거급여 수급자", "교육급여만 수급", "차상위계층"]
+YR_OWN_INCOME = [None, 0, 1, 1_000_000, 4_576_035, 4_576_036, 4_576_037, 9_000_000]
+YR_PARENT_INCOME = [None, 0, 1_000_000, 3_576_036, 3_576_037, 5_452_897, 5_452_898, 7_168_429, 7_168_430, 20_000_000]
+YR_OWN_ASSETS = [None, 0, 1, 251_000_000, 251_000_001, 260_000_000, 345_000_001]
+YR_PARENT_ASSETS = [None, 0, 85_000_000, 85_000_001, 300_000_000]
+YR_PARENT_CAR = [None, 0, 45_420_000, 45_420_001]
+NR_INCOME = [None, 0, 1] + [v + d for v in (3_432_027, 4_693_016, 5_717_900, 7_351_586, 10_618_958, 16_336_858)
+                            for d in (-1, 0, 1)] + [50_000_000]
+NR_ASSETS = [None, 0, 1] + [v + d for v in (345_000_000, 362_000_000, 379_000_000, 413_000_000, 431_000_000)
+                            for d in (0, 1)]
+
+
+def _program_attributes(program: str, layer: str, pools) -> Dict[str, Tuple[list, object]]:
+    if program == "youth_rental":
+        attrs = {
+            "home": (["무주택", "주택보유"], "무주택"), "marital": (["미혼", "혼인중", "한부모"], "미혼"),
+            "size": ([1], 1), "kids": ([[]], []), "count": ([0], 0),
+            "income": (YR_OWN_INCOME, 1), "assets": (YR_OWN_ASSETS, 1), "car": (CARS, 0),
+            "welfare": (WELFARE, "해당없음"), "parent_welfare": (WELFARE, "해당없음"),
+            "registered": ([None, True, False], True), "supported": ([None, False, True], False),
+            "parents_count": ([None, 0, 1, 2], 2), "parents_income": (YR_PARENT_INCOME, 1_000_000),
+            "parents_assets": (YR_PARENT_ASSETS, 0), "parents_car": (YR_PARENT_CAR, 0),
+        }
+        if layer == "청년":
+            attrs["age"] = ([18, 19, 29, 30, 39, 40], 25)
+        elif layer == "대학생":
+            attrs.update(age=([17, 18, 19, 25, 40, 45], 18), status=(STATUSES, "재학중"))
+        else:
+            attrs.update(age=([18, 19, 39, 40, 45], 40), grad=(pools["grad"], pools["grad"][2]),
+                         employed=([None, False, True], False))
+        return attrs
+    if program == "newlywed_rental":
+        return {
+            "home": (["무주택", "주택보유"], "무주택"), "marital": (MARITALS, "혼인중"), "size": (SIZES + [6], 3),
+            "kids": (pools["kids"], []), "count": (COUNTS, 0), "dual": ([True, False], False),
+            "income": (NR_INCOME, 1), "assets": (NR_ASSETS, 1), "car": (CARS, 0),
+            "marriage": (pools["marriage"], date(2025, 1, 1)), "has_children": (HAS_CHILDREN, None),
+            "youngest": (pools["youngest"], None), "welfare": (WELFARE, "해당없음"),
+            "supported": ([None, False, True], False),
+        }
+    return {   # jeonse — 소득·자산 요건이 없으므로 아무 값이나 넣어도 판정이 바뀌지 않는지 기록
+        "home": (["무주택", "주택보유"], "무주택"), "marital": (MARITALS, "미혼"), "age": ([17, 18, 19, 40], 40),
+        "size": (SIZES, 3), "kids": (pools["kids"], None), "count": (COUNTS, 0),
+        "income": ([None, 0, 90_000_000], 1), "assets": ([None, 0, 900_000_000], 1), "car": (CARS, 0),
+    }
 # 서울·연접(통과) / 경기 비연접·지방(불충족) / 해당없음 / 모름. 손으로 고른 고정 값.
 REGIONS = [None, "서울특별시", "고양시", "인천광역시", "수원시", "의왕시", "부산광역시", "해당없음"]
 GROUPS: List[Tuple[str, str]] = [
@@ -66,6 +133,9 @@ GROUPS: List[Tuple[str, str]] = [
     # C3 — 새 계층
     ("N6", "고령자"), ("N9", "고령자"), ("N10", "고령자"), ("N6", "산업단지근로자"),
     ("N10", "주거급여수급자"), ("N5", "지역전략산업종사자"),
+    # C4a — 순위·유형 트랙
+    ("N11", "청년"), ("N11", "대학생"), ("N11", "취업준비생"), ("N12", "청년"), ("N12", "대학생"), ("N12", "취업준비생"),
+    ("N13", "신혼·신생아"), ("N14", "신혼·신생아"), ("N15", "신혼·신생아"), ("N16", "일반"), ("N17", "일반"),
 ]
 
 INCOMES = [
@@ -136,14 +206,16 @@ def _pools(nid: str) -> Dict[str, list]:
                  [AFTER, d["adult"]], [AFTER, d["adult"] + timedelta(days=1)],
                  [date(2023, 3, 28)], [date(2023, 3, 27)]],
         "grad": [None] + _around(d["grad"]) + [date(2000, 1, 1), d["ann"]],
-        "youngest": [None] + _around(d["child"]) + [date(2000, 1, 1), date(2030, 1, 1)],
+        "youngest": [None] + _around(d["child"]) + [date(2000, 1, 1), date(2030, 1, 1)]
+                    + (_around(d["newborn"]) if "newborn" in d else []),
         "marriage": [None] + _around(d["marriage"]) + [date(2000, 1, 1), date(2025, 6, 1)],
     }
 
 
 def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, object]]:
     """계층별 (값 풀, 기준 프로필의 기본값). 기본값은 '모든 조건이 통과'하는 쪽."""
-    attrs = _layer_attributes(layer, pools)
+    attrs = (_program_attributes(PROGRAM_OF[nid], layer, pools) if nid in PROGRAM_OF
+             else _layer_attributes(layer, pools))
     for i, f in enumerate(REGION_FIELDS_BY_LAYER.get(nid, {}).get(layer, [])):
         attrs[f] = (REGIONS, "서울특별시" if i == 0 else None)   # 기본: 본인 거주지만 서울, 나머지 모름
     return attrs
@@ -198,7 +270,14 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
         **{field: v[key] for key, field in (("workplace", "industrial_workplace"),
                                             ("affiliation", "industrial_affiliation"),
                                             ("benefit", "housing_benefit_status"),
-                                            ("rtype", "regional_industry_type")) if key in v})
+                                            ("rtype", "regional_industry_type"),
+                                            ("welfare", "welfare_status"), ("parent_welfare", "parent_welfare_status"),
+                                            ("registered", "registered_with_parents"),
+                                            ("supported", "is_supported_single_parent"),
+                                            ("employed", "is_employed"), ("parents_count", "parents_count"),
+                                            ("parents_income", "parents_monthly_income"),
+                                            ("parents_assets", "parents_total_assets"),
+                                            ("parents_car", "parents_car_value")) if key in v})
 
 
 # 통과 값에 가중해서 '모든 조건이 통과 근처'인 영역(경계가 실제로 판정을 가르는 영역)을 충분히 뽑는다

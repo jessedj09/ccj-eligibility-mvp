@@ -1650,5 +1650,427 @@
    "note": "본인 또는 배우자가 입주 전까지 청약통장 가입을 증명할 수 있는지(현재 자격과 무관)",
    "timing": "BEFORE_MOVE_IN"
   }
+ ],
+ "N11/청년": [
+  {
+   "id": "N11-Y-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택자인지(본인 기준 — 부모가 주택을 소유해도 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-Y-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-Y-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "공고일 현재 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-Y-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N11/대학생": [
+  {
+   "id": "N11-U-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택자인지(본인 기준 — 부모가 주택을 소유해도 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-U-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-U-notyouth",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "19~39세가 아닌지(19~39세는 반드시 청년 유형으로 신청)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-U-student",
+   "field": "student_status",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "대학에 재학 중이거나 입학·복학 예정인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-U-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N11/취업준비생": [
+  {
+   "id": "N11-J-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택자인지(본인 기준 — 부모가 주택을 소유해도 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-J-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-J-notyouth",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "19~39세가 아닌지(19~39세는 반드시 청년 유형으로 신청)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-J-grad",
+   "field": "grad_or_dropout_date",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "고등학교·대학교 등을 졸업·중퇴한 지 2년 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-J-unemployed",
+   "field": "is_employed",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "현재 취업하지 않았는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N11-J-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N12/청년": [
+  {
+   "id": "N12-Y-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택자인지(본인 기준 — 부모가 주택을 소유해도 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-Y-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-Y-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "공고일 현재 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-Y-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N12/대학생": [
+  {
+   "id": "N12-U-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택자인지(본인 기준 — 부모가 주택을 소유해도 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-U-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-U-notyouth",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "19~39세가 아닌지(19~39세는 반드시 청년 유형으로 신청)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-U-student",
+   "field": "student_status",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "대학에 재학 중이거나 입학·복학 예정인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-U-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N12/취업준비생": [
+  {
+   "id": "N12-J-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택자인지(본인 기준 — 부모가 주택을 소유해도 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-J-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "미혼인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-J-notyouth",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "19~39세가 아닌지(19~39세는 반드시 청년 유형으로 신청)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-J-grad",
+   "field": "grad_or_dropout_date",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "고등학교·대학교 등을 졸업·중퇴한 지 2년 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-J-unemployed",
+   "field": "is_employed",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "현재 취업하지 않았는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N12-J-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N13/신혼·신생아": [
+  {
+   "id": "N13-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N13-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "신혼부부·예비신혼부부·한부모가족·지원대상 한부모·유자녀 혼인가구·신생아 가구 중 하나에 해당하는지(순위는 유형으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N13-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "가구 월평균소득이 70%(1인 90%·2인 80%), 맞벌이 90%(1인 110%·2인 100%) 이하인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N13-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "총자산이 출생자녀 가산(1명 +10%p, 2명 이상 +20%p)을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N13-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
+ ],
+ "N14/신혼·신생아": [
+  {
+   "id": "N14-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N14-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "신혼부부·예비신혼부부·한부모가족·지원대상 한부모·유자녀 혼인가구·신생아 가구 중 하나에 해당하는지(순위는 유형으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N14-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "가구 월평균소득이 70%(1인 90%·2인 80%), 맞벌이 90%(1인 110%·2인 100%) 이하인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N14-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "총자산이 출생자녀 가산(1명 +10%p, 2명 이상 +20%p)을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N14-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
+ ],
+ "N15/신혼·신생아": [
+  {
+   "id": "N15-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N15-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "신혼부부·예비신혼부부·한부모가족·지원대상 한부모·유자녀 혼인가구·신생아 가구·혼인가구 중 하나에 해당하는지(순위는 유형으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N15-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "가구 월평균소득이 130%(1인 150%·2인 140%), 맞벌이 200%(1인 220%·2인 210%) 이하인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N15-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "총자산이 출생자녀 가산(1명 +10%p, 2명 이상 +20%p)을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
+ ],
+ "N16/일반": [
+  {
+   "id": "N16-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N16-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "주민등록상 거주지가 수도권(서울·인천·경기)인지 — 신청은 거주하는 모집권역(시·도)에만 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N16-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  }
+ ],
+ "N17/일반": [
+  {
+   "id": "N17-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N17-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "주민등록상 거주지가 수도권(서울·인천·경기)인지 — 신청은 거주하는 모집권역(시·도)에만 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N17-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  }
  ]
 }

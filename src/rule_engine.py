@@ -48,7 +48,8 @@ def resolve_interpretations(results: Dict[str, Any], detail: str):
         return values[0]
     shown = ", ".join(f"{name}={'충족' if v else '불충족'}" for name, v in results.items())
     return ReviewNeeded(REVIEW_AMBIGUOUS_SOURCE, f"{detail} [{shown}]")
-Layer = Literal["대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자"]
+Layer = Literal["대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자",
+                "취업준비생", "신혼·신생아", "일반"]
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +185,19 @@ class HouseholdProfile:
     regional_industry_type: Optional[str] = None
     # 지역전략산업종사자(부천): "콘텐츠산업 종사자" / "전문예술법인·단체 종사자" / "등록 예술인" / "부천시 추천자" / "해당없음"
 
+    # --- C4: 매입임대·든든전세(순위·유형 트랙). None = 모름.
+    welfare_status: Optional[str] = None
+    # 신청자(가구) 복지 자격: "생계·의료·주거급여 수급자" / "교육급여만 수급" / "차상위계층" / "해당없음"
+    parent_welfare_status: Optional[str] = None   # 부모의 복지 자격(같은 선택지) — 청년매입임대 1순위
+    registered_with_parents: Optional[bool] = None  # 부모와 같은 주민등록표에 등재돼 있는지
+    is_supported_single_parent: Optional[bool] = None
+    # 「한부모가족 지원법 시행규칙」 제3조의 지원대상 한부모가족(본인 이름으로 한부모가족 증명서 발급 가능)인지
+    is_employed: Optional[bool] = None            # 현재 취업 중인지(청년매입임대 취업준비생 = 미취업)
+    parents_count: Optional[int] = None           # 소득·자산 검증대상 부모 수(0~2) — 청년매입임대 2순위 가구원수 = 본인+부모
+    parents_monthly_income: Optional[int] = None  # 부모 월평균소득 합계
+    parents_total_assets: Optional[int] = None    # 부모 총자산 합계
+    parents_car_value: Optional[int] = None       # 부모가 보유한 자동차 중 가장 높은 차량가액(없으면 0)
+
     def __post_init__(self):
         if self.children_birth_dates is not None:
             self.has_children = len(self.children_birth_dates) > 0
@@ -204,6 +218,17 @@ class RuleCondition:
     note: str = ""
     timing: str = "NOW"   # "NOW": 지금 충족해야 함 / "BEFORE_MOVE_IN": 입주 전까지 이행(현재 자격과 구분)
     inputs: frozenset = frozenset()   # 이 조건이 읽는 프로필 필드(화면이 필요한 질문만 묻는 데 쓴다)
+    tracks: Optional[List["Track"]] = None
+    # C4: 순위·유형 묶음. 값이 있으면 이 조건은 "트랙 중 하나 이상 충족"이다 — 트랙마다 조건 목록을 따로 판정하고
+    # any와 같은 우선순위(충족 > 수동 확인 > 정보 부족 > 불충족)로 합친다. 트랙별 결과는 EvaluationResult.tracks.
+
+
+@dataclass
+class Track:
+    """순위·유형 하나(예: 청년매입임대 2순위 = 본인+부모 소득·자산). 조건이 모두 충족되면 그 트랙 충족."""
+    track_id: str
+    label: str
+    conditions: List[RuleCondition]
 
 
 @dataclass
@@ -242,6 +267,11 @@ class EvaluationResult:
     notes: List[str]
     review: List[str] = field(default_factory=list)              # 정책 해석 미확정 조건 rule_id
     review_reasons: Dict[str, ReviewNeeded] = field(default_factory=dict)
+    tracks: Dict[str, "EvaluationResult"] = field(default_factory=dict)   # 트랙 id -> 그 트랙만의 판정(C4)
+
+    @property
+    def eligible_tracks(self) -> List[str]:
+        return [tid for tid, r in self.tracks.items() if r.verdict == "ELIGIBLE"]
 
 
 def evaluate(profile: HouseholdProfile, notice: NoticeRuleSet, layer: Layer) -> EvaluationResult:
@@ -254,13 +284,39 @@ def evaluate(profile: HouseholdProfile, notice: NoticeRuleSet, layer: Layer) -> 
         )
 
     ruleset = notice.layers[layer]
+    track_results: Dict[str, EvaluationResult] = {}
+    result = _judge(profile, notice, layer, ruleset.conditions, track_results)
+    result.tracks = track_results
+    return result
+
+
+def combine_tracks(subs):
+    """트랙 결과를 하나의 조건 값으로: 하나라도 충족이면 True, 아니면 수동 확인 > 정보 부족 > 불충족."""
+    verdicts = [r.verdict for r in subs.values()]
+    if "ELIGIBLE" in verdicts:
+        return True
+    for tid, r in subs.items():
+        if r.verdict == "MANUAL_REVIEW":
+            first = next(iter(r.review_reasons.values()))
+            return ReviewNeeded(first.code, f"[{tid}] {first.detail}")
+    if "NEEDS_INFO" in verdicts:
+        return None
+    return False
+
+
+def _judge(profile, notice, layer, conditions, track_results) -> "EvaluationResult":
     matched, failed, unknown, review = [], [], [], []
     review_reasons: Dict[str, ReviewNeeded] = {}
 
-    for cond in ruleset.conditions:
+    for cond in conditions:
         if not cond.required:
             continue  # 가점/배점 항목은 verdict에 영향 없음 (score도 별도 관리)
-        result = cond.check(profile)
+        if cond.tracks:
+            subs = {t.track_id: _judge(profile, notice, layer, t.conditions, {}) for t in cond.tracks}
+            track_results.update(subs)
+            result = combine_tracks(subs)
+        else:
+            result = cond.check(profile)
         if isinstance(result, ReviewNeeded):
             review.append(cond.rule_id)
             review_reasons[cond.rule_id] = result

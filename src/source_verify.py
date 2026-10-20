@@ -91,6 +91,14 @@ def _check_source(report: Report, nid: str, where: str, source: dict) -> None:
             _check(report, nid, where, source["page"], q)
 
 
+def all_conditions(conditions):
+    """계층 조건 전부 — 순위·유형 묶음(tracks) 안의 조건까지 내려간다(C4)."""
+    for c in conditions:
+        yield c
+        for t in c.get("tracks", []):
+            yield from all_conditions(t["conditions"])
+
+
 def verify_notice(nid: str) -> Report:
     doc = notice_doc(nid)
     report = Report()
@@ -98,9 +106,9 @@ def verify_notice(nid: str) -> Report:
     if hashlib.sha256(pdf_path(nid).read_bytes()).hexdigest() != doc["source"]["sha256"]:
         report.problems.append(f"{nid}: PDF sha256이 데이터에 기록된 값과 다름 — 공고문이 바뀌었거나 데이터가 오래됨")
     for layer, ls in doc["layers"].items():
-        for c in ls["conditions"]:
+        for c in all_conditions(ls["conditions"]):
             if "quote" not in c["source"]:
-                if c["check"] is not True:      # 입주 전 확인(check: true) 외에는 인용문이 있어야 한다
+                if c.get("check") is not True:  # 입주 전 확인(check: true) 외에는 인용문이 있어야 한다
                     report.problems.append(f"{nid} {layer}/{c['id']}: source.quote 없음")
                 continue
             _check_source(report, nid, f"{layer}/{c['id']}", c["source"])
@@ -109,37 +117,40 @@ def verify_notice(nid: str) -> Report:
     return report
 
 
-def verify_income_reference() -> Report:
-    """소득 기준표(income_standard.json) 대조 — 두 겹.
+def verify_income_reference(ref_id: str = "income_standard") -> Report:
+    """소득 기준표(rules/reference/<ref_id>.json) 대조 — 두 겹.
     1) 공고별: 이 기준표를 쓰는 공고마다 `required_in_every_notice` 값이 그 공고의 `cited_pages` 쪽에 모두 있어야 한다.
        기준표를 쓰는 공고가 `cited_pages`에 없으면 그것도 불일치다(새 공고를 추가하고 대조를 빠뜨리는 것을 막는다).
     2) 전체: 표의 모든 값(7인 이상 가산액 포함)이 어느 공고의 cited_pages에든 있어야 한다."""
     from rule_data import notice_ids
-    ref = json.loads((RULES / "reference" / "income_standard.json").read_text(encoding="utf-8"))
+    ref = json.loads((RULES / "reference" / f"{ref_id}.json").read_text(encoding="utf-8"))
     report = Report()
     cited = ref["cited_pages"]
     for nid in notice_ids():
-        if '"income_standard"' not in json.dumps(notice_doc(nid), ensure_ascii=False):
+        if f'"{ref_id}"' not in json.dumps(notice_doc(nid), ensure_ascii=False):
             continue
         if nid not in cited:
-            report.problems.append(f"income_standard: {nid}가 소득 기준표를 쓰지만 cited_pages에 없음")
+            report.problems.append(f"{ref_id}: {nid}가 이 소득 기준표를 쓰지만 cited_pages에 없음")
             continue
-        for size, ratio in ref["required_in_every_notice"]:
+        for size, ratio in ref.get("required_by_notice", {}).get(nid, ref["required_in_every_notice"]):
             report.checked += 1
             text = f"{ref['table'][str(size)][str(ratio)]:,}"
             if not any(page_has(nid, pg, text) for pg in cited[nid]):
-                report.problems.append(f"income_standard: {nid} p.{cited[nid]}에 {size}인 {ratio}% {text}원 없음")
-    numbers = [v for row in ref["table"].values() for v in row.values()] + [ref["per_person_adder_7plus"]]
+                report.problems.append(f"{ref_id}: {nid} p.{cited[nid]}에 {size}인 {ratio}% {text}원 없음")
+    numbers = [v for row in ref["table"].values() for v in row.values()]
+    if ref.get("per_person_adder_7plus"):
+        numbers.append(ref["per_person_adder_7plus"])
     for n in numbers:
         report.checked += 1
         text = f"{n:,}"
         if not any(page_has(nid, pg, text) for nid, pages in cited.items() for pg in pages):
-            report.problems.append(f"income_standard: {text} 이(가) 어느 공고의 cited_pages에도 없음")
+            report.problems.append(f"{ref_id}: {text} 이(가) 어느 공고의 cited_pages에도 없음")
     return report
 
 
 def verify_all() -> Dict[str, Report]:
     from rule_data import notice_ids
     result = {nid: verify_notice(nid) for nid in notice_ids()}
-    result["income_standard"] = verify_income_reference()
+    for path in sorted((RULES / "reference").glob("income_standard*.json")):
+        result[path.stem] = verify_income_reference(path.stem)
     return result

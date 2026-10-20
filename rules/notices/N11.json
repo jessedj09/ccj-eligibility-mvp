@@ -1,0 +1,1254 @@
+{
+  "notice_id": "N11",
+  "title": "서울지역본부 청년매입임대주택(2차)",
+  "announcement_date": "2026-06-25",
+  "issuer": "LH",
+  "program": "청년매입임대",
+  "version": 1,
+  "valid_from": "2026-06-25",
+  "supersedes": null,
+  "source": {
+    "document": "26년_2차_청년매입임대_예비입주자_모집공고문_서울지역본부.pdf",
+    "sha256": "82cac20cf625684297915a169f187c40f120f5a0a86e96baa7ed2ffdf4461e16",
+    "pages": 26
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "C4a 생성(tools/gen_c4_lh.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+    "log": []
+  },
+  "notes": [
+    "공고일(2026.6.25)이 같은 청년 매입임대 공고(타지역 포함)에는 중복 신청할 수 없다(p.1).",
+    "성별 전용 주택(남성·여성 전용)은 공급주택목록에서 확인 — 이 판정은 주택별 조건을 보지 않는다(p.1)."
+  ],
+  "unsupported_layers": [],
+  "tables": {
+    "youth_rental_rank2": {
+      "label": "청년매입임대 2순위 소득 비율: 가구원수(본인+부모) → 비율(1인 +20%p, 2인 +10%p 가산)",
+      "columns": [
+        "size"
+      ],
+      "inputs": {
+        "size": {
+          "fn": "add",
+          "args": [
+            1,
+            {
+              "var": "parents_count"
+            }
+          ]
+        }
+      },
+      "outputs": [
+        "ratio"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1
+          },
+          "out": [
+            120
+          ]
+        },
+        {
+          "when": {
+            "size": 2
+          },
+          "out": [
+            110
+          ]
+        },
+        {
+          "when": {
+            "size": "3+"
+          },
+          "out": [
+            100
+          ]
+        }
+      ],
+      "source": {
+        "quote": [
+          "4,576,036원",
+          "6,452,897원",
+          "8,168,429원"
+        ],
+        "page": 3
+      }
+    }
+  },
+  "layers": {
+    "청년": {
+      "conditions": [
+        {
+          "id": "N11-Y-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택자인 미혼 청년으로서 소득 및 자산 기준을 충족하는",
+              "부모가 주택을 소유한 경우에도 신청 가능"
+            ],
+            "page": 3
+          },
+          "note": "무주택자인지(본인 기준 — 부모가 주택을 소유해도 신청 가능)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N11-Y-marital",
+          "field": "marital_status",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택자인 미혼 청년으로서"
+            ],
+            "page": 3
+          },
+          "note": "미혼인지",
+          "check": {
+            "any": [
+              {
+                "eq": [
+                  {
+                    "var": "marital_status"
+                  },
+                  "미혼"
+                ]
+              },
+              {
+                "eq": [
+                  {
+                    "var": "marital_status"
+                  },
+                  "한부모"
+                ],
+                "review_if_true": {
+                  "code": "AMBIGUOUS_SOURCE",
+                  "detail": "공고는 '미혼 청년'만 대상이지만 1순위에 '지원대상 한부모가족(신청자 본인)'이 있어 혼인 이력이 있는 한부모의 신청 가능 여부가 원문에서 불명확(LH 확인 필요)"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N11-Y-age",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "(1986.06.26. ~ 2007.06.25. 출생자)"
+            ],
+            "page": 3
+          },
+          "note": "공고일 현재 19세 이상 39세 이하인지",
+          "check": {
+            "between": [
+              {
+                "var": "age"
+              },
+              19,
+              39
+            ]
+          }
+        },
+        {
+          "id": "N11-Y-rank",
+          "field": "순위",
+          "required": true,
+          "source": {
+            "quote": [
+              "입주순위",
+              "신청 후 순위 변경은 불가하므로 신청 시 유의하시기 바랍니다"
+            ],
+            "page": 3
+          },
+          "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+          "tracks": [
+            {
+              "id": "1순위",
+              "label": "수급자·차상위계층 가구 또는 지원대상 한부모가족(소득·자산 검증 없음)",
+              "conditions": [
+                {
+                  "id": "N11-T1-welfare",
+                  "field": "welfare_status/parent_welfare_status/is_supported_single_parent",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "생계·의료·주거급여 중 어느 하나에 해당",
+                      "30세 미만(1996.06.26.이후 출생)인 경우에 한하여"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인이 생계·의료·주거급여 수급자·차상위계층이거나 지원대상 한부모가족인지, 또는 부모가 수급자·차상위계층이고 부모와 같은 주민등록표에 등재(30세 미만은 분리 거주도 가능)돼 있는지",
+                  "check": {
+                    "any": [
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "차상위계층"
+                          ]
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "in": [
+                              {
+                                "var": "parent_welfare_status"
+                              },
+                              [
+                                "생계·의료·주거급여 수급자",
+                                "차상위계층"
+                              ]
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "eq": [
+                                  {
+                                    "var": "registered_with_parents"
+                                  },
+                                  true
+                                ]
+                              },
+                              {
+                                "lte": [
+                                  {
+                                    "var": "age"
+                                  },
+                                  29
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "2순위",
+              "label": "본인+부모 소득 100%(1인 120%·2인 110%) 이하, 본인+부모 자산 국민임대 기준",
+              "conditions": [
+                {
+                  "id": "N11-T2-income",
+                  "field": "monthly_income/parents_monthly_income/parents_count",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "본인과 부모의 월평균소득이 전년도 도시근로자 가구원수별"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인과 부모의 월평균소득 합계가 가구원수(본인+부모) 기준 이내인지(1인 4,576,036 / 2인 6,452,897 / 3인 8,168,429원)",
+                  "check": {
+                    "lte": [
+                      {
+                        "fn": "add",
+                        "args": [
+                          {
+                            "var": "monthly_income"
+                          },
+                          {
+                            "var": "parents_monthly_income"
+                          }
+                        ]
+                      },
+                      {
+                        "lookup": [
+                          "income_standard",
+                          {
+                            "fn": "add",
+                            "args": [
+                              1,
+                              {
+                                "var": "parents_count"
+                              }
+                            ]
+                          },
+                          {
+                            "term": "ratio"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "youth_rental_rank2"
+                },
+                {
+                  "id": "N11-T2-assets",
+                  "field": "total_assets/parents_total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "총자산 34,500만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인과 부모의 총자산 합계가 3억4,500만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "fn": "add",
+                        "args": [
+                          {
+                            "var": "total_assets"
+                          },
+                          {
+                            "var": "parents_total_assets"
+                          }
+                        ]
+                      },
+                      345000000
+                    ]
+                  }
+                },
+                {
+                  "id": "N11-T2-car",
+                  "field": "car_value/parents_car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "자동차 4,542만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인과 부모가 보유한 자동차 중 가장 높은 차량가액이 4,542만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "fn": "max",
+                        "args": [
+                          {
+                            "var": "car_value",
+                            "unknown_values": [
+                              "확인불가"
+                            ]
+                          },
+                          {
+                            "var": "parents_car_value"
+                          }
+                        ]
+                      },
+                      45420000
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "3순위",
+              "label": "본인 소득 1인 가구 기준 이하, 본인 자산 행복주택(청년) 기준",
+              "conditions": [
+                {
+                  "id": "N11-T3-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "본인의 월평균소득이 전년도 도시근로자 1인 가구"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인 월평균소득이 4,576,036원(1인 가구 100%+20%p) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard",
+                          1,
+                          120
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "N11-T3-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "총자산 25,100만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인 총자산이 2억5,100만원 이하인지(원문은 '행복주택(청년) 자산기준'이라고만 적어 본인 기준으로 판정)",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      251000000
+                    ]
+                  }
+                },
+                {
+                  "id": "N11-T3-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "자동차 4,542만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인 자동차가액이 4,542만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      45420000
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "대학생": {
+      "conditions": [
+        {
+          "id": "N11-U-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택자인 미혼 청년으로서 소득 및 자산 기준을 충족하는",
+              "부모가 주택을 소유한 경우에도 신청 가능"
+            ],
+            "page": 3
+          },
+          "note": "무주택자인지(본인 기준 — 부모가 주택을 소유해도 신청 가능)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N11-U-marital",
+          "field": "marital_status",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택자인 미혼 청년으로서"
+            ],
+            "page": 3
+          },
+          "note": "미혼인지",
+          "check": {
+            "any": [
+              {
+                "eq": [
+                  {
+                    "var": "marital_status"
+                  },
+                  "미혼"
+                ]
+              },
+              {
+                "eq": [
+                  {
+                    "var": "marital_status"
+                  },
+                  "한부모"
+                ],
+                "review_if_true": {
+                  "code": "AMBIGUOUS_SOURCE",
+                  "detail": "공고는 '미혼 청년'만 대상이지만 1순위에 '지원대상 한부모가족(신청자 본인)'이 있어 혼인 이력이 있는 한부모의 신청 가능 여부가 원문에서 불명확(LH 확인 필요)"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N11-U-notyouth",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "①에 해당되지 않는 사람만 ② 또는 ③으로 신청"
+            ],
+            "page": 3
+          },
+          "note": "19~39세가 아닌지(19~39세는 반드시 청년 유형으로 신청)",
+          "check": {
+            "any": [
+              {
+                "lte": [
+                  {
+                    "var": "age"
+                  },
+                  18
+                ]
+              },
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  40
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "N11-U-student",
+          "field": "student_status",
+          "required": true,
+          "source": {
+            "quote": [
+              "대학생(입학·복학 예정자 포함)"
+            ],
+            "page": 3
+          },
+          "note": "대학에 재학 중이거나 입학·복학 예정인지",
+          "check": {
+            "in": [
+              {
+                "var": "student_status"
+              },
+              [
+                "재학중",
+                "입학예정",
+                "복학예정"
+              ]
+            ]
+          }
+        },
+        {
+          "id": "N11-U-rank",
+          "field": "순위",
+          "required": true,
+          "source": {
+            "quote": [
+              "입주순위",
+              "신청 후 순위 변경은 불가하므로 신청 시 유의하시기 바랍니다"
+            ],
+            "page": 3
+          },
+          "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+          "tracks": [
+            {
+              "id": "1순위",
+              "label": "수급자·차상위계층 가구 또는 지원대상 한부모가족(소득·자산 검증 없음)",
+              "conditions": [
+                {
+                  "id": "N11-T1-welfare",
+                  "field": "welfare_status/parent_welfare_status/is_supported_single_parent",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "생계·의료·주거급여 중 어느 하나에 해당",
+                      "30세 미만(1996.06.26.이후 출생)인 경우에 한하여"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인이 생계·의료·주거급여 수급자·차상위계층이거나 지원대상 한부모가족인지, 또는 부모가 수급자·차상위계층이고 부모와 같은 주민등록표에 등재(30세 미만은 분리 거주도 가능)돼 있는지",
+                  "check": {
+                    "any": [
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "차상위계층"
+                          ]
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "in": [
+                              {
+                                "var": "parent_welfare_status"
+                              },
+                              [
+                                "생계·의료·주거급여 수급자",
+                                "차상위계층"
+                              ]
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "eq": [
+                                  {
+                                    "var": "registered_with_parents"
+                                  },
+                                  true
+                                ]
+                              },
+                              {
+                                "lte": [
+                                  {
+                                    "var": "age"
+                                  },
+                                  29
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "2순위",
+              "label": "본인+부모 소득 100%(1인 120%·2인 110%) 이하, 본인+부모 자산 국민임대 기준",
+              "conditions": [
+                {
+                  "id": "N11-T2-income",
+                  "field": "monthly_income/parents_monthly_income/parents_count",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "본인과 부모의 월평균소득이 전년도 도시근로자 가구원수별"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인과 부모의 월평균소득 합계가 가구원수(본인+부모) 기준 이내인지(1인 4,576,036 / 2인 6,452,897 / 3인 8,168,429원)",
+                  "check": {
+                    "lte": [
+                      {
+                        "fn": "add",
+                        "args": [
+                          {
+                            "var": "monthly_income"
+                          },
+                          {
+                            "var": "parents_monthly_income"
+                          }
+                        ]
+                      },
+                      {
+                        "lookup": [
+                          "income_standard",
+                          {
+                            "fn": "add",
+                            "args": [
+                              1,
+                              {
+                                "var": "parents_count"
+                              }
+                            ]
+                          },
+                          {
+                            "term": "ratio"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "youth_rental_rank2"
+                },
+                {
+                  "id": "N11-T2-assets",
+                  "field": "total_assets/parents_total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "총자산 34,500만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인과 부모의 총자산 합계가 3억4,500만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "fn": "add",
+                        "args": [
+                          {
+                            "var": "total_assets"
+                          },
+                          {
+                            "var": "parents_total_assets"
+                          }
+                        ]
+                      },
+                      345000000
+                    ]
+                  }
+                },
+                {
+                  "id": "N11-T2-car",
+                  "field": "car_value/parents_car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "자동차 4,542만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인과 부모가 보유한 자동차 중 가장 높은 차량가액이 4,542만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "fn": "max",
+                        "args": [
+                          {
+                            "var": "car_value",
+                            "unknown_values": [
+                              "확인불가"
+                            ]
+                          },
+                          {
+                            "var": "parents_car_value"
+                          }
+                        ]
+                      },
+                      45420000
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "3순위",
+              "label": "본인 소득 1인 가구 기준 이하, 본인 자산 행복주택(청년) 기준",
+              "conditions": [
+                {
+                  "id": "N11-T3-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "본인의 월평균소득이 전년도 도시근로자 1인 가구"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인 월평균소득이 4,576,036원(1인 가구 100%+20%p) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard",
+                          1,
+                          120
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "N11-T3-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "총자산 25,100만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인 총자산이 2억5,100만원 이하인지(원문은 '행복주택(청년) 자산기준'이라고만 적어 본인 기준으로 판정)",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      251000000
+                    ]
+                  }
+                },
+                {
+                  "id": "N11-T3-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "자동차 4,542만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인 자동차가액이 4,542만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      45420000
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "취업준비생": {
+      "conditions": [
+        {
+          "id": "N11-J-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택자인 미혼 청년으로서 소득 및 자산 기준을 충족하는",
+              "부모가 주택을 소유한 경우에도 신청 가능"
+            ],
+            "page": 3
+          },
+          "note": "무주택자인지(본인 기준 — 부모가 주택을 소유해도 신청 가능)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N11-J-marital",
+          "field": "marital_status",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택자인 미혼 청년으로서"
+            ],
+            "page": 3
+          },
+          "note": "미혼인지",
+          "check": {
+            "any": [
+              {
+                "eq": [
+                  {
+                    "var": "marital_status"
+                  },
+                  "미혼"
+                ]
+              },
+              {
+                "eq": [
+                  {
+                    "var": "marital_status"
+                  },
+                  "한부모"
+                ],
+                "review_if_true": {
+                  "code": "AMBIGUOUS_SOURCE",
+                  "detail": "공고는 '미혼 청년'만 대상이지만 1순위에 '지원대상 한부모가족(신청자 본인)'이 있어 혼인 이력이 있는 한부모의 신청 가능 여부가 원문에서 불명확(LH 확인 필요)"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N11-J-notyouth",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "①에 해당되지 않는 사람만 ② 또는 ③으로 신청"
+            ],
+            "page": 3
+          },
+          "note": "19~39세가 아닌지(19~39세는 반드시 청년 유형으로 신청)",
+          "check": {
+            "any": [
+              {
+                "lte": [
+                  {
+                    "var": "age"
+                  },
+                  18
+                ]
+              },
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  40
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "N11-J-grad",
+          "field": "grad_or_dropout_date",
+          "required": true,
+          "source": {
+            "quote": [
+              "졸업·중퇴 후 2년 이내인 사람으로서 미취업자"
+            ],
+            "page": 3
+          },
+          "note": "고등학교·대학교 등을 졸업·중퇴한 지 2년 이내인지",
+          "check": {
+            "gte": [
+              {
+                "var": "grad_or_dropout_date"
+              },
+              {
+                "fn": "years_before",
+                "args": [
+                  {
+                    "ctx": "announcement_date"
+                  },
+                  2
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "N11-J-unemployed",
+          "field": "is_employed",
+          "required": true,
+          "source": {
+            "quote": [
+              "졸업·중퇴 후 2년 이내인 사람으로서 미취업자"
+            ],
+            "page": 3
+          },
+          "note": "현재 취업하지 않았는지",
+          "check": {
+            "eq": [
+              {
+                "var": "is_employed"
+              },
+              false
+            ]
+          }
+        },
+        {
+          "id": "N11-J-rank",
+          "field": "순위",
+          "required": true,
+          "source": {
+            "quote": [
+              "입주순위",
+              "신청 후 순위 변경은 불가하므로 신청 시 유의하시기 바랍니다"
+            ],
+            "page": 3
+          },
+          "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+          "tracks": [
+            {
+              "id": "1순위",
+              "label": "수급자·차상위계층 가구 또는 지원대상 한부모가족(소득·자산 검증 없음)",
+              "conditions": [
+                {
+                  "id": "N11-T1-welfare",
+                  "field": "welfare_status/parent_welfare_status/is_supported_single_parent",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "생계·의료·주거급여 중 어느 하나에 해당",
+                      "30세 미만(1996.06.26.이후 출생)인 경우에 한하여"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인이 생계·의료·주거급여 수급자·차상위계층이거나 지원대상 한부모가족인지, 또는 부모가 수급자·차상위계층이고 부모와 같은 주민등록표에 등재(30세 미만은 분리 거주도 가능)돼 있는지",
+                  "check": {
+                    "any": [
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "차상위계층"
+                          ]
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      },
+                      {
+                        "all": [
+                          {
+                            "in": [
+                              {
+                                "var": "parent_welfare_status"
+                              },
+                              [
+                                "생계·의료·주거급여 수급자",
+                                "차상위계층"
+                              ]
+                            ]
+                          },
+                          {
+                            "any": [
+                              {
+                                "eq": [
+                                  {
+                                    "var": "registered_with_parents"
+                                  },
+                                  true
+                                ]
+                              },
+                              {
+                                "lte": [
+                                  {
+                                    "var": "age"
+                                  },
+                                  29
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "2순위",
+              "label": "본인+부모 소득 100%(1인 120%·2인 110%) 이하, 본인+부모 자산 국민임대 기준",
+              "conditions": [
+                {
+                  "id": "N11-T2-income",
+                  "field": "monthly_income/parents_monthly_income/parents_count",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "본인과 부모의 월평균소득이 전년도 도시근로자 가구원수별"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인과 부모의 월평균소득 합계가 가구원수(본인+부모) 기준 이내인지(1인 4,576,036 / 2인 6,452,897 / 3인 8,168,429원)",
+                  "check": {
+                    "lte": [
+                      {
+                        "fn": "add",
+                        "args": [
+                          {
+                            "var": "monthly_income"
+                          },
+                          {
+                            "var": "parents_monthly_income"
+                          }
+                        ]
+                      },
+                      {
+                        "lookup": [
+                          "income_standard",
+                          {
+                            "fn": "add",
+                            "args": [
+                              1,
+                              {
+                                "var": "parents_count"
+                              }
+                            ]
+                          },
+                          {
+                            "term": "ratio"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "youth_rental_rank2"
+                },
+                {
+                  "id": "N11-T2-assets",
+                  "field": "total_assets/parents_total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "총자산 34,500만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인과 부모의 총자산 합계가 3억4,500만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "fn": "add",
+                        "args": [
+                          {
+                            "var": "total_assets"
+                          },
+                          {
+                            "var": "parents_total_assets"
+                          }
+                        ]
+                      },
+                      345000000
+                    ]
+                  }
+                },
+                {
+                  "id": "N11-T2-car",
+                  "field": "car_value/parents_car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "자동차 4,542만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인과 부모가 보유한 자동차 중 가장 높은 차량가액이 4,542만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "fn": "max",
+                        "args": [
+                          {
+                            "var": "car_value",
+                            "unknown_values": [
+                              "확인불가"
+                            ]
+                          },
+                          {
+                            "var": "parents_car_value"
+                          }
+                        ]
+                      },
+                      45420000
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "3순위",
+              "label": "본인 소득 1인 가구 기준 이하, 본인 자산 행복주택(청년) 기준",
+              "conditions": [
+                {
+                  "id": "N11-T3-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "본인의 월평균소득이 전년도 도시근로자 1인 가구"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인 월평균소득이 4,576,036원(1인 가구 100%+20%p) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard",
+                          1,
+                          120
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "N11-T3-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "총자산 25,100만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인 총자산이 2억5,100만원 이하인지(원문은 '행복주택(청년) 자산기준'이라고만 적어 본인 기준으로 판정)",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      251000000
+                    ]
+                  }
+                },
+                {
+                  "id": "N11-T3-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "자동차 4,542만원 이하"
+                    ],
+                    "page": 3
+                  },
+                  "note": "본인 자동차가액이 4,542만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      45420000
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

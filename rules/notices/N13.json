@@ -1,0 +1,673 @@
+{
+  "notice_id": "N13",
+  "title": "서울지역본부 신혼·신생아 매입임대주택Ⅰ(2차)",
+  "announcement_date": "2026-06-25",
+  "issuer": "LH",
+  "program": "신혼·신생아 매입임대Ⅰ",
+  "version": 1,
+  "valid_from": "2026-06-25",
+  "supersedes": null,
+  "source": {
+    "document": "26년2차신혼·신생아매입임대Ⅰ입주자모집공고문(서울지역본부).pdf",
+    "sha256": "f1830b5fba5e3312c6d4330bcc9fce1dfe86a797d21f133909598dd7722405c4",
+    "pages": 25
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "C4a 생성(tools/gen_c4_lh.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+    "log": []
+  },
+  "notes": [
+    "배우자가 국내에 거주하지 않는 재외국민이거나 외국인 등록을 하지 않은 외국인이면 신청할 수 없다(p.3).",
+    "같은 지자체(시·군·구)의 기계약자는 신청할 수 없다(p.1)."
+  ],
+  "unsupported_layers": [],
+  "tables": {
+    "newlywed_rental_income": {
+      "label": "신혼·신생아 매입임대 소득 비율: 가구원수×맞벌이 (1인 +20%p·2인 +10%p 가산 반영)",
+      "columns": [
+        "size",
+        "dual"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "dual": {
+          "var": "dual_income"
+        }
+      },
+      "outputs": [
+        "ratio"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "dual": false
+          },
+          "out": [
+            90
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "dual": true
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수 1인인데 맞벌이(본인·배우자 모두 소득)로 입력했습니다. 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "dual": false
+          },
+          "out": [
+            80
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "dual": true
+          },
+          "out": [
+            100
+          ]
+        },
+        {
+          "when": {
+            "size": "3-6",
+            "dual": false
+          },
+          "out": [
+            70
+          ]
+        },
+        {
+          "when": {
+            "size": "3-6",
+            "dual": true
+          },
+          "out": [
+            90
+          ]
+        },
+        {
+          "when": {
+            "size": "7+",
+            "dual": "any"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "AMBIGUOUS_SOURCE",
+            "detail": "원문 소득표에 7인 이상 가구 금액이 없습니다(행복주택과 달리 7인 이상 가산 규칙도 적혀 있지 않음)."
+          }
+        }
+      ],
+      "source": {
+        "quote": [
+          "3,432,027원",
+          "4,693,016원",
+          "5,717,900원",
+          "6,161,541원",
+          "6,528,890원",
+          "6,934,384원",
+          "4,194,699원",
+          "5,866,270원",
+          "7,351,586원",
+          "7,921,982원",
+          "8,394,287원",
+          "8,915,637원"
+        ],
+        "page": 4
+      }
+    },
+    "newlywed_rental_assets": {
+      "label": "신혼·신생아 매입임대 자산 기준: 출생자녀 수(태아 포함, 최대 2자녀)",
+      "columns": [
+        "child"
+      ],
+      "inputs": {
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "child": 0
+          },
+          "out": [
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "child": 1
+          },
+          "out": [
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "child": "2+"
+          },
+          "out": [
+            413000000,
+            54510000
+          ]
+        }
+      ],
+      "source": {
+        "quote": [
+          "345,000,000원 이하",
+          "379,000,000원 이하",
+          "413,000,000원 이하",
+          "45,420,000원 이하",
+          "49,960,000원 이하",
+          "54,510,000원 이하"
+        ],
+        "page": 4
+      }
+    }
+  },
+  "layers": {
+    "신혼·신생아": {
+      "conditions": [
+        {
+          "id": "N13-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택세대구성원으로서 신혼·신생아 매입임대주택"
+            ],
+            "page": 3
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N13-type",
+          "field": "유형",
+          "required": true,
+          "source": {
+            "quote": [
+              "입주자격",
+              {
+                "page": 4,
+                "text": "순위를 잘못 입력하여 신청하는 경우 변경이 불가하므로"
+              }
+            ],
+            "page": 3
+          },
+          "note": "신혼부부·예비신혼부부·한부모가족·지원대상 한부모·유자녀 혼인가구·신생아 가구 중 하나에 해당하는지(순위는 유형으로 정해짐)",
+          "tracks": [
+            {
+              "id": "①신혼부부",
+              "label": "혼인 7년 이내 신혼부부",
+              "conditions": [
+                {
+                  "id": "N13-T-newlywed",
+                  "field": "marital_status/marriage_date",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "혼인신고일이 2019.6.25. ~ 2026.6.25"
+                    ],
+                    "page": 3
+                  },
+                  "note": "혼인 중이고 혼인신고일이 2019-06-25 이후인지(혼인 7년 이내)",
+                  "check": {
+                    "all": [
+                      {
+                        "eq": [
+                          {
+                            "var": "marital_status"
+                          },
+                          "혼인중"
+                        ]
+                      },
+                      {
+                        "gte": [
+                          {
+                            "var": "marriage_date"
+                          },
+                          {
+                            "date": "2019-06-25"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "②예비신혼부부",
+              "label": "입주일 전일까지 혼인신고할 예비신혼부부",
+              "conditions": [
+                {
+                  "id": "N13-T-prospective",
+                  "field": "marital_status",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "입주일 전일까지 혼인신고를 하는 사람"
+                    ],
+                    "page": 3
+                  },
+                  "note": "혼인 예정(예비신혼)인지 — 입주일 전일까지 혼인신고해야 함",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "marital_status"
+                      },
+                      "예비신혼"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "③-1한부모가족",
+              "label": "6세 이하 자녀(태아 포함)를 둔 한부모가족",
+              "conditions": [
+                {
+                  "id": "N13-T-singleparent",
+                  "field": "marital_status/youngest_child_birth_date",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "’19.6.26 이후 출생한 자녀 및 태아"
+                    ],
+                    "page": 3
+                  },
+                  "note": "한부모이고 6세 이하 자녀(2019-06-26 이후 출생, 태아 포함)가 있는지",
+                  "check": {
+                    "all": [
+                      {
+                        "eq": [
+                          {
+                            "var": "marital_status"
+                          },
+                          "한부모"
+                        ]
+                      },
+                      {
+                        "if": [
+                          {
+                            "is": [
+                              {
+                                "var": "has_children"
+                              },
+                              false
+                            ]
+                          },
+                          false,
+                          {
+                            "gte": [
+                              {
+                                "var": "youngest_child_birth_date"
+                              },
+                              {
+                                "date": "2019-06-26"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "③-2지원대상한부모",
+              "label": "「한부모가족 지원법」 지원대상 한부모가족",
+              "conditions": [
+                {
+                  "id": "N13-T-supported",
+                  "field": "is_supported_single_parent",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "지원대상 한부모가족 : 「한부모가족 지원법 시행규칙」 제3조에 따라 여성가족부장관이 정하여 고시"
+                    ],
+                    "page": 3
+                  },
+                  "note": "지원대상 한부모가족(한부모가족 증명서 발급 대상)인지",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "is_supported_single_parent"
+                      },
+                      true
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "④유자녀혼인가구",
+              "label": "6세 이하 자녀가 있는 혼인가구",
+              "conditions": [
+                {
+                  "id": "N13-T-married-child",
+                  "field": "marital_status/youngest_child_birth_date",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "유자녀 혼인가구 : 6세 이하 자녀가 있는 혼인가구"
+                    ],
+                    "page": 3
+                  },
+                  "note": "혼인 중이고 6세 이하 자녀(2019-06-26 이후 출생, 태아 포함)가 있는지(혼인기간 제한 없음)",
+                  "check": {
+                    "all": [
+                      {
+                        "eq": [
+                          {
+                            "var": "marital_status"
+                          },
+                          "혼인중"
+                        ]
+                      },
+                      {
+                        "if": [
+                          {
+                            "is": [
+                              {
+                                "var": "has_children"
+                              },
+                              false
+                            ]
+                          },
+                          false,
+                          {
+                            "gte": [
+                              {
+                                "var": "youngest_child_birth_date"
+                              },
+                              {
+                                "date": "2019-06-26"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "⑤신생아가구",
+              "label": "2년 이내 출산(입양·태아 포함) 자녀가 있는 가구",
+              "conditions": [
+                {
+                  "id": "N13-T-newborn",
+                  "field": "youngest_child_birth_date",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "’24.6.25이후 출생‧입양한 자녀 및 태아"
+                    ],
+                    "page": 3
+                  },
+                  "note": "2024-06-25 이후 출생(태아는 출산예정일) 자녀가 있는지 — 혼인 여부와 무관. 입양 자녀는 입양일 기준(원문)이나 이 화면은 생년월일만 받는다",
+                  "check": {
+                    "if": [
+                      {
+                        "is": [
+                          {
+                            "var": "has_children"
+                          },
+                          false
+                        ]
+                      },
+                      false,
+                      {
+                        "gte": [
+                          {
+                            "var": "youngest_child_birth_date"
+                          },
+                          {
+                            "date": "2024-06-25"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "N13-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "전년도 도시근로자 가구원수별 월평균소득의 70% 이하",
+              "(본인 및 배우자 모두 소득이 있는 경우 90% 이하)",
+              "수급자, 지원대상 한부모가족, 차상위계층은 소득·자산 검증 불필요 (예비신혼부부 제외)"
+            ],
+            "page": 4
+          },
+          "note": "가구 월평균소득이 70%(1인 90%·2인 80%), 맞벌이 90%(1인 110%·2인 100%) 이하인지 — 수급자 등은 검증 면제",
+          "check": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "ne": [
+                      {
+                        "var": "marital_status"
+                      },
+                      "예비신혼"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "교육급여만 수급",
+                            "차상위계층"
+                          ]
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "monthly_income"
+                  },
+                  {
+                    "lookup": [
+                      "income_standard_rental",
+                      {
+                        "var": "household_size"
+                      },
+                      {
+                        "term": "ratio"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "newlywed_rental_income"
+        },
+        {
+          "id": "N13-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "345,000,000원 이하",
+              "수급자, 지원대상 한부모가족, 차상위계층은 소득·자산 검증 불필요 (예비신혼부부 제외)"
+            ],
+            "page": 4
+          },
+          "note": "총자산이 출생자녀 가산(1명 +10%p, 2명 이상 +20%p)을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+          "check": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "ne": [
+                      {
+                        "var": "marital_status"
+                      },
+                      "예비신혼"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "교육급여만 수급",
+                            "차상위계층"
+                          ]
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "total_assets"
+                  },
+                  {
+                    "term": "asset_limit"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "newlywed_rental_assets"
+        },
+        {
+          "id": "N13-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "자동차 4,542만원 이하",
+              "수급자, 지원대상 한부모가족, 차상위계층은 소득·자산 검증 불필요 (예비신혼부부 제외)"
+            ],
+            "page": 4
+          },
+          "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+          "check": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "ne": [
+                      {
+                        "var": "marital_status"
+                      },
+                      "예비신혼"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "교육급여만 수급",
+                            "차상위계층"
+                          ]
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "car_value",
+                    "unknown_values": [
+                      "확인불가"
+                    ]
+                  },
+                  {
+                    "term": "car_limit"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "newlywed_rental_assets"
+        }
+      ]
+    }
+  }
+}

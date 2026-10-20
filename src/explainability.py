@@ -33,6 +33,17 @@ class ReviewItem:
 
 
 @dataclass
+class TrackItem:
+    """순위·유형 하나의 결과(C4). 계층 결과는 트랙 중 하나 이상 충족이면 충족."""
+    track_id: str
+    label: str
+    verdict: str
+    failed: List[ReasonItem]
+    unknown: List[ReasonItem]
+    review: List[ReviewItem]
+
+
+@dataclass
 class Explanation:
     profile_id: str
     notice_id: str
@@ -45,6 +56,11 @@ class Explanation:
     unknown: List[ReasonItem]
     notes: List[str]
     review: List[ReviewItem] = field(default_factory=list)
+    tracks: List[TrackItem] = field(default_factory=list)       # 순위·유형별 결과(트랙이 있는 계층만)
+
+    @property
+    def eligible_tracks(self) -> List[str]:
+        return [t.track_id for t in self.tracks if t.verdict == "ELIGIBLE"]
 
 
 _HEADLINES = {
@@ -82,6 +98,10 @@ def explain(result: EvaluationResult, notice: NoticeRuleSet) -> Explanation:
         )
 
     conditions_by_id = {c.rule_id: c for c in notice.layers[result.layer].conditions}
+    track_defs = {}
+    for c in notice.layers[result.layer].conditions:
+        for t in c.tracks or []:
+            track_defs[t.track_id] = t
 
     headline = _HEADLINES[result.verdict]
     notes = list(result.notes)
@@ -94,11 +114,21 @@ def explain(result: EvaluationResult, notice: NoticeRuleSet) -> Explanation:
     if result.verdict == "ELIGIBLE":
         notes.append(SCOPE_CAVEAT)
 
+    track_items = []
+    for tid, sub in result.tracks.items():
+        t = track_defs[tid]
+        by_id = {c.rule_id: c for c in t.conditions}
+        track_items.append(TrackItem(
+            track_id=tid, label=t.label, verdict=sub.verdict,
+            failed=_reason_items(sub.failed, by_id), unknown=_reason_items(sub.unknown, by_id),
+            review=[ReviewItem(rule_id=rid, description=by_id[rid].note, source_ref=by_id[rid].source_ref,
+                               code=reason.code, detail=reason.detail) for rid, reason in sub.review_reasons.items()]))
+
     return Explanation(
         profile_id=result.profile_id, notice_id=result.notice_id, layer=result.layer,
         verdict=result.verdict, headline=headline, score=result.score,
         matched=_reason_items(result.matched, conditions_by_id),
         failed=_reason_items(result.failed, conditions_by_id),
         unknown=_reason_items(result.unknown, conditions_by_id),
-        notes=notes, review=review_items,
+        notes=notes, review=review_items, tracks=track_items,
     )

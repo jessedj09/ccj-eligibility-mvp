@@ -13,7 +13,7 @@ from rule_data import notice_ids
 from source_verify import Report, normalize, page_has
 
 
-@pytest.mark.parametrize("name", notice_ids() + ["income_standard"])
+@pytest.mark.parametrize("name", notice_ids() + ["income_standard", "income_standard_rental"])
 def test_all_sources_match_the_pdfs(name):
     report = sv.verify_all()[name]
     assert report.ok, "\n".join(report.problems)
@@ -24,7 +24,8 @@ def test_every_condition_and_table_was_checked():
     # 조건·표마다 최소 1건 이상 대조했는지(인용문이 비어 통과하는 일이 없게)
     for nid in notice_ids():
         doc = sv.notice_doc(nid)
-        quotes = sum(len(c["source"].get("quote", [])) for ls in doc["layers"].values() for c in ls["conditions"])
+        quotes = sum(len(c["source"].get("quote", [])) for ls in doc["layers"].values()
+                     for c in sv.all_conditions(ls["conditions"]))       # 순위·유형 묶음 안의 조건 포함
         quotes += sum(len(t["source"]["quote"]) for t in doc["tables"].values())
         assert sv.verify_notice(nid).checked == quotes + 1       # +1 = sha256
 

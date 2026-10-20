@@ -19,13 +19,14 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from rule_engine import (
-    HouseholdProfile, LayerRuleSet, NoticeRuleSet, RuleCondition, ReviewNeeded,
+    HouseholdProfile, LayerRuleSet, NoticeRuleSet, RuleCondition, ReviewNeeded, Track,
     REVIEW_AMBIGUOUS_SOURCE, REVIEW_CODES, resolve_interpretations, years_before, bonus_child_count,
     marriage_cutoff, young_child_cutoff,
 )
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
-LAYERS = ("대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자")
+LAYERS = ("대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자",
+          "취업준비생", "신혼·신생아", "일반")
 REVIEW_STATUSES = ("DRAFT", "REVIEWED", "PUBLISHED", "RETIRED")
 CTX_KEYS = ("announcement_date",)
 TIMINGS = ("NOW", "BEFORE_MOVE_IN")
@@ -45,11 +46,16 @@ class ReferenceTable:
         self._table = {int(size): {int(r): v for r, v in row.items()}
                        for size, row in doc["table"].items()}
         self._adder = doc.get("per_person_adder_7plus", 0)
+        self._adder_ratios = set(doc.get("adder_ratios", []))
 
     def lookup(self, household_size: int, ratio_pct: int) -> Optional[int]:
-        """rule_engine.income_threshold와 같은 규칙: 7인 이상은 6인 기준 + 1인당 가산액."""
+        """rule_engine.income_threshold와 같은 규칙: 7인 이상은 6인 기준 + 1인당 가산액.
+        단, 가산 규칙을 원문이 적은 비율(adder_ratios = 행복주택 100~140%)에만 적용한다. 그 밖의 비율(매입임대 70% 등)의
+        7인 이상은 원문에 금액이 없으므로 None(표에 없음)."""
         base = self._table.get(min(household_size, 6), {}).get(ratio_pct)
         if base is None:
+            return None
+        if household_size > 6 and ratio_pct not in self._adder_ratios:
             return None
         return base + self._adder * (household_size - 6) if household_size > 6 else base
 
@@ -241,7 +247,23 @@ def _fn_young_child_cutoff(env: _Env):
     return young_child_cutoff(env.ctx["announcement_date"])
 
 
+def _fn_add(env: _Env, a, b):
+    """두 금액·인원의 합. 하나라도 모르면(None) 합도 모름 — 0으로 치지 않는다."""
+    if isinstance(a, ReviewNeeded) or isinstance(b, ReviewNeeded):
+        return a if isinstance(a, ReviewNeeded) else b
+    return None if a is None or b is None else a + b
+
+
+def _fn_max(env: _Env, a, b):
+    """둘 중 큰 값(예: 검증대상 가구원 자동차 중 가장 높은 차량가액). 하나라도 모르면 모름."""
+    if isinstance(a, ReviewNeeded) or isinstance(b, ReviewNeeded):
+        return a if isinstance(a, ReviewNeeded) else b
+    return None if a is None or b is None else max(a, b)
+
+
 FUNCTIONS = {
+    "add": (_fn_add, 2),
+    "max": (_fn_max, 2),
     "child_bonus_count": (_fn_child_bonus_count, 0),
     "years_before": (_fn_years_before, 2),
     "marriage_cutoff": (_fn_marriage_cutoff, 0),          # 공고일 7년 전(혼인기간 7년 이내)
@@ -431,8 +453,44 @@ def _source_ref(source: Dict[str, Any]) -> str:
     return f"{ref} {source['clause']}" if source.get("clause") else ref
 
 
+def _build_track_group(doc: Dict[str, Any], tables: Dict[str, DecisionTable], ann: date,
+                       where: str) -> RuleCondition:
+    """C4: {"id", "field", "required", "source", "note", "tracks": [{"id", "label", "conditions": [...]}]}.
+    트랙 중 하나 이상 충족하면 이 조건 충족(rule_engine.combine_tracks). check 대신 evaluate()가 트랙을 판정한다."""
+    cid = doc.get("id")
+    for key in ("id", "field", "required", "source", "note", "tracks"):
+        if key not in doc:
+            raise RuleDataError(f"{where}: 트랙 묶음에 '{key}'가 없습니다 (id={cid})")
+    if "check" in doc:
+        raise RuleDataError(f"{where}/{cid}: 트랙 묶음은 check를 가질 수 없습니다(트랙 조건이 판정한다)")
+    if not doc["tracks"]:
+        raise RuleDataError(f"{where}/{cid}: 트랙이 비어 있습니다")
+    tracks, seen = [], set()
+    for t in doc["tracks"]:
+        if set(t) - {"id", "label", "conditions"} or not {"id", "label", "conditions"} <= set(t):
+            raise RuleDataError(f"{where}/{cid}: 트랙은 id·label·conditions만 가집니다: {sorted(t)}")
+        if t["id"] in seen:
+            raise RuleDataError(f"{where}/{cid}: 트랙 id 중복 {t['id']}")
+        seen.add(t["id"])
+        conds = [_build_condition(c, tables, ann, f"{where}/{cid}/{t['id']}") for c in t["conditions"]]
+        if len({c.rule_id for c in conds}) != len(conds):
+            raise RuleDataError(f"{where}/{cid}/{t['id']}: 조건 ID 중복")
+        if any(c.tracks for c in conds):
+            raise RuleDataError(f"{where}/{cid}/{t['id']}: 트랙 안에 트랙을 둘 수 없습니다")
+        tracks.append(Track(t["id"], t["label"], conds))
+    inputs = frozenset().union(*(c.inputs for t in tracks for c in t.conditions))
+
+    def check(profile):
+        raise RuleDataError(f"{cid}: 트랙 묶음은 evaluate()가 판정한다(단독 호출 불가)")
+
+    return RuleCondition(cid, doc["field"], doc["required"], _source_ref(doc["source"]), check,
+                         note=doc["note"], timing=doc.get("timing", "NOW"), inputs=inputs, tracks=tracks)
+
+
 def _build_condition(doc: Dict[str, Any], tables: Dict[str, DecisionTable], ann: date,
                      where: str) -> RuleCondition:
+    if "tracks" in doc:
+        return _build_track_group(doc, tables, ann, where)
     cid = doc.get("id")
     for key in ("id", "field", "required", "source", "note", "check"):
         if key not in doc:

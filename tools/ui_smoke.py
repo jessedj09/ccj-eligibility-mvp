@@ -8,6 +8,7 @@
 5) 지역(C2): N10 대학생 — 거주지·대학 소재지에 따라 충족/불충족, 지역이 필요 없는 공고에는 지역 질문 없음
 6) 새 계층(C3): 산업단지근로자·주거급여수급자·지역전략산업종사자·고령자 — 계층 전용 질문과 판정
 7) 계층별 입력 안내(주택 소유·소득·자산·나이의 뜻)와 생년월일 → 공고일 기준 만 나이 경계(원문 출생일 범위와 대조)
+8) 순위·유형 트랙(C4): 순위별 결과 표시, 사업 전용 질문은 그 계층에서만
 """
 import os
 import sys
@@ -151,6 +152,30 @@ def main():
     assert "만 19세" in ages["2007-08-18"] and "만 18세" in ages["2007-08-19"], ages
     assert "만 39세" in ages["1986-08-19"] and "만 40세" in ages["1986-08-18"], ages
     print("7) 계층별 입력 안내 — 대학생:", stu[0][:40], "… / 신혼부부:", mar[0][:40], "… | 생년월일→만 나이 경계 OK")
+
+    # 8) 순위·유형 트랙(C4): 청년매입 2순위 탈락·3순위 충족, 신혼·신생아 유형, 든든전세 지역
+    at = fresh("N11", "청년")
+    at.radio[0].set_value("만 나이").run()
+    find(at, "number_input", "나이").set_value(25).run()
+    find(at, "number_input", "월소득").set_value(4_000_000).run()
+    find(at, "number_input", "총자산").set_value(100_000_000).run()
+    find(at, "selectbox", "본인(가구) 복지").select("해당없음").run()
+    find(at, "selectbox", "부모의 복지").select("해당없음").run()
+    find(at, "selectbox", "지원대상 한부모").select("아니오").run()
+    find(at, "selectbox", "소득·자산 검증대상 부모 수").select(2).run()
+    find(at, "number_input", "부모 월평균소득").set_value(9_000_000).run()
+    find(at, "number_input", "부모 총자산").set_value(100_000_000).run()
+    find(at, "number_input", "부모 보유 자동차").set_value(0).run()
+    at.button[0].click().run()
+    assert not at.exception, at.exception
+    youth = results(at)[0][:2]
+    tracks = [c.value for c in at.caption if c.value.startswith("충족한 순위")]
+    assert youth.startswith("✅") and tracks and "3순위" in tracks[0] and "2순위" not in tracks[0], (youth, tracks)
+    at = fresh("N3", "청년")
+    assert not [w for w in at.selectbox if w.label.startswith("부모의 복지")], "C4 질문이 행복주택 청년에 나옴"
+    at = fresh("N11", "취업준비생")
+    assert [w for w in at.date_input if w.label.startswith("대학·고등학교 졸업")], "취업준비생에 졸업일 질문이 없음"
+    print("8) C4 트랙 — 청년매입:", youth, tracks[0][:30], "| 행복주택 청년엔 부모 질문 없음 | 취업준비생 졸업일 질문 있음")
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)

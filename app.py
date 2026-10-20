@@ -150,8 +150,9 @@ with col1:
     )
     dual_income = st.checkbox("맞벌이 여부", value=_default("dual_income", False))
 
+    layer_inputs = notice.layers[layer].inputs
     house_head_status = None
-    if layer == "청년":
+    if "house_head_status" in layer_inputs:
         hh = st.selectbox(
             "세대주/세대원 (등본 기준)", options=["모름(미확인)", "세대주", "세대원"],
             index=["모름(미확인)", "세대주", "세대원"].index(
@@ -160,7 +161,7 @@ with col1:
         house_head_status = None if hh == "모름(미확인)" else hh
 
     is_social_rookie = None
-    if layer == "청년":
+    if "is_social_rookie" in layer_inputs:
         rookie = st.selectbox(
             "사회초년생 해당 여부(19~39세가 아닐 때만 의미 있음)",
             options=["모름", "예", "아니오"],
@@ -170,22 +171,23 @@ with col1:
         is_social_rookie = {"모름": None, "예": True, "아니오": False}[rookie]
 
     student_status, grad_or_dropout_date = None, None
-    if layer == "대학생":
+    if "student_status" in layer_inputs:
         options = ["모름", "재학중", "입학예정", "복학예정", "취업준비생"]
         student_status_label = st.selectbox(
             "재학 상태", options=options,
             index=options.index(_default("student_status", None) or "모름"),
         )
         student_status = None if student_status_label == "모름" else student_status_label
-        if student_status == "취업준비생":
-            grad_or_dropout_date = st.date_input(
-                "대학·고등학교 졸업(또는 중퇴)일",
-                value=_default("grad_or_dropout_date", None) or date.today(),
-                min_value=date(1990, 1, 1), max_value=date.today(),
-            )
+    if "grad_or_dropout_date" in layer_inputs and (
+            student_status == "취업준비생" or "student_status" not in layer_inputs):
+        grad_or_dropout_date = st.date_input(
+            "대학·고등학교 졸업(또는 중퇴)일",
+            value=_default("grad_or_dropout_date", None) or date.today(),
+            min_value=date(1990, 1, 1), max_value=date.today(),
+        )
 
     marriage_date = None
-    if layer == "신혼부부" and marital_status == "혼인중":
+    if "marriage_date" in layer_inputs and marital_status == "혼인중":
         marriage_known = st.checkbox(
             "혼인일을 알고 있음", value=_default("marriage_date", None) is not None)
         if marriage_known:
@@ -278,6 +280,41 @@ if choice_fields:
     if "regional_industry_type" in choice_fields:
         st.caption("콘텐츠산업 종사자·부천시 추천자는 신청 후 부천시가 자격을 확인하므로 '수동 확인'으로 표시됩니다.")
 
+# C4(매입임대 등): 복지 자격·부모 정보·취업 여부 — 순위·유형 판정에 쓰는 항목
+WELFARE_OPTIONS = ["생계·의료·주거급여 수급자", "교육급여만 수급", "차상위계층", "해당없음"]
+C4_CHOICES = {
+    "welfare_status": ("본인(가구) 복지 자격", WELFARE_OPTIONS),
+    "parent_welfare_status": ("부모의 복지 자격", WELFARE_OPTIONS),
+}
+C4_BOOLS = {
+    "is_supported_single_parent": "지원대상 한부모가족(본인 이름으로 한부모가족 증명서 발급 가능)",
+    "registered_with_parents": "부모와 같은 주민등록표에 등재돼 있음",
+    "is_employed": "현재 취업 중",
+}
+C4_AMOUNTS = {
+    "parents_monthly_income": "부모 월평균소득 합계(원)",
+    "parents_total_assets": "부모 총자산 합계(원)",
+    "parents_car_value": "부모 보유 자동차 중 가장 높은 차량가액(원, 없으면 0)",
+}
+c4_fields = [f for f in list(C4_CHOICES) + list(C4_BOOLS) + ["parents_count"] + list(C4_AMOUNTS)
+             if f in notice.layers[layer].inputs]
+if c4_fields:
+    st.subheader("복지 자격·부모 정보")
+    st.caption("순위·유형마다 필요한 정보가 다릅니다. 모르는 항목은 '모름'으로 두면 그 순위는 '추가 정보 필요'로 표시됩니다.")
+    for f in c4_fields:
+        if f in C4_CHOICES:
+            label, opts = C4_CHOICES[f]
+            picked = st.selectbox(label, options=["모름"] + opts, key=f"c4_{f}")
+            choices[f] = None if picked == "모름" else picked
+        elif f in C4_BOOLS:
+            picked = st.selectbox(C4_BOOLS[f], options=["모름", "예", "아니오"], key=f"c4_{f}")
+            choices[f] = {"모름": None, "예": True, "아니오": False}[picked]
+        elif f == "parents_count":
+            picked = st.selectbox("소득·자산 검증대상 부모 수", options=["모름", 0, 1, 2], key="c4_parents_count")
+            choices[f] = None if picked == "모름" else int(picked)
+        else:
+            choices[f] = _amount_input(C4_AMOUNTS[f], f, f"c4_{f}")
+
 if st.button("판정하기", type="primary"):
     st.session_state["judged"] = True
 
@@ -337,6 +374,21 @@ if st.session_state.get("judged"):
             for item in exp.review:
                 st.markdown(f"- {item.description} _(근거: {item.source_ref})_")
                 st.caption(f"사유 `{item.code}`: {item.detail}")
+
+        if exp.tracks:
+            st.subheader("순위·유형별 결과")
+            ok = exp.eligible_tracks
+            st.caption("충족한 순위·유형: " + (", ".join(ok) if ok else "없음")
+                       + " — 하나 이상 충족하면 이 조건은 충족입니다(순위는 경쟁 시 선정 순서이며 신청 시 직접 고릅니다).")
+            for t in exp.tracks:
+                t_icon = VERDICT_STYLE[t.verdict][0]
+                st.markdown(f"- {t_icon} **{t.track_id}** — {t.label}")
+                for item in t.failed:
+                    st.caption(f"　불충족: {item.description} (근거: {item.source_ref})")
+                for item in t.unknown:
+                    st.caption(f"　정보 필요: {item.description}")
+                for item in t.review:
+                    st.caption(f"　수동 확인: {item.description} — {item.detail}")
 
         if exp.unknown:
             st.subheader("추가로 입력하면 판정할 수 있는 조건")
