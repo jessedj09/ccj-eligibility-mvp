@@ -23,7 +23,7 @@ from notices_data import ALL_NOTICES  # noqa: E402
 
 
 def fresh(nid, layer):
-    at = AppTest.from_file("app.py", default_timeout=60).run()
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
     at.sidebar.selectbox[0].select(nid).run()
     at.sidebar.selectbox[1].select(layer).run()
     return at
@@ -33,8 +33,22 @@ def find(at, kind, label):
     return [w for w in getattr(at, kind) if w.label.startswith(label)][0]
 
 
+def _marked(kind, text):
+    """판정 박스를 '아이콘 + 문구'로 정규화한다. Streamlit 버전에 따라 문구 앞 이모지가 값에 남거나(1.45)
+    아이콘으로 분리돼 빠진다(1.66) — 아이콘 글자 대신 박스 종류와 문구로 판정을 구분한다."""
+    text = text.lstrip("✅❌🔍⚠️ ️")
+    if kind == "success":
+        mark = "✅"
+    elif kind == "error":
+        mark = "❌"
+    else:
+        mark = "🔍" if "수동 확인" in text else "⚠️"
+    return f"{mark} {text}"
+
+
 def results(at):
-    return [e.value for e in at.success] + [e.value for e in at.error] + [e.value for e in at.warning]
+    return ([_marked("success", e.value) for e in at.success] + [_marked("error", e.value) for e in at.error]
+            + [_marked("warning", e.value) for e in at.warning])
 
 
 def main():
