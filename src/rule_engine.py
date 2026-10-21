@@ -198,6 +198,11 @@ class HouseholdProfile:
     parents_total_assets: Optional[int] = None    # 부모 총자산 합계
     parents_car_value: Optional[int] = None       # 부모가 보유한 자동차 중 가장 높은 차량가액(없으면 0)
 
+    # --- C5: 주거약자용 주택. 65세 이상(고령자)은 age로 판정하므로 여기에는 넣지 않는다.
+    housing_weak_type: Optional[str] = None
+    # 신청자 본인: "장애인" / "국가유공자(상이 1~7급)" / "보훈보상대상자(상이 1~7급)" / "5·18민주화운동부상자(장해 1~14급)" /
+    # "고엽제후유의증환자(경도 이상)" / "국가유공자에 준하는 군경(상이 1~7급)" / "해당없음"
+
     def __post_init__(self):
         if self.children_birth_dates is not None:
             self.has_children = len(self.children_birth_dates) > 0

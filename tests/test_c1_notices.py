@@ -74,6 +74,7 @@ def test_n8_has_no_literal_and_uses_the_formula_with_derivation():
 def test_meta_issuer_program_unsupported_layers_and_notes(nid):
     meta = load_notice(nid).meta
     assert meta["issuer"] == "LH" and meta["program"].startswith("행복주택")
-    assert meta["unsupported_layers"] and all(u["note"] for u in meta["unsupported_layers"])
+    # C1 당시 미지원이던 계층은 C3(새 계층)·C5(주거약자용)에서 대부분 지원됐다 — 남은 미지원 항목은 설명이 있어야 한다
+    assert all(u["note"] for u in meta.get("unsupported_layers", []))
     assert meta["notes"]
     assert not set(u["name"] for u in meta["unsupported_layers"]) & set(load_notice(nid).layers)

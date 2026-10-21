@@ -154,7 +154,11 @@ GROUPS: List[Tuple[str, str]] = [
     ("N13", "신혼·신생아"), ("N14", "신혼·신생아"), ("N15", "신혼·신생아"), ("N16", "일반"), ("N17", "일반"),
     # C4b — SH
     ("N18", "신혼·신생아"), ("N19", "신혼·신생아"), ("N20", "신혼·신생아"), ("N21", "신혼·신생아"), ("N22", "일반"),
+    # C5a — 주거약자용 주택형(기본 계층 + 주거약자 조건)
+    ("N4", "신혼부부(주거약자용)"), ("N4", "한부모(주거약자용)"), ("N7", "신혼부부(주거약자용)"), ("N7", "한부모(주거약자용)"),
+    ("N8", "신혼부부(주거약자용)"), ("N8", "한부모(주거약자용)"), ("N5", "주거약자(26A1/B1형)"),
 ]
+WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
 INCOMES = [
     0, 1, 1_000_000, 3_000_000, 4_576_035, 4_576_036,
@@ -232,8 +236,18 @@ def _pools(nid: str) -> Dict[str, list]:
 
 def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, object]]:
     """계층별 (값 풀, 기준 프로필의 기본값). 기본값은 '모든 조건이 통과'하는 쪽."""
-    attrs = (_program_attributes(PROGRAM_OF[nid], layer, pools) if nid in PROGRAM_OF
-             else _layer_attributes(layer, pools))
+    if "(" in layer:                  # 주택형 변형 계층(C5): 기본 계층 입력 + 주거약자 유형·나이
+        base = layer.split("(")[0]
+        bases = ["지역전략산업종사자", "청년", "대학생"] if base == "주거약자" else [base]
+        attrs = {}
+        for b in bases:
+            for k, val in _layer_attributes(b, pools).items():
+                attrs.setdefault(k, val)
+        attrs["weak"] = (WEAK, "장애인")
+        attrs.setdefault("age", ([30, 64, 65, 70], 33))
+    else:
+        attrs = (_program_attributes(PROGRAM_OF[nid], layer, pools) if nid in PROGRAM_OF
+                 else _layer_attributes(layer, pools))
     for i, f in enumerate(REGION_FIELDS_BY_LAYER.get(nid, {}).get(layer, [])):
         attrs[f] = (REGIONS, "서울특별시" if i == 0 else None)   # 기본: 본인 거주지만 서울, 나머지 모름
     return attrs
@@ -295,7 +309,8 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
                                             ("employed", "is_employed"), ("parents_count", "parents_count"),
                                             ("parents_income", "parents_monthly_income"),
                                             ("parents_assets", "parents_total_assets"),
-                                            ("parents_car", "parents_car_value")) if key in v})
+                                            ("parents_car", "parents_car_value"),
+                                            ("weak", "housing_weak_type")) if key in v})
 
 
 # 통과 값에 가중해서 '모든 조건이 통과 근처'인 영역(경계가 실제로 판정을 가르는 영역)을 충분히 뽑는다

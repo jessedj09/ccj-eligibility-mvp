@@ -26,7 +26,7 @@ from rule_engine import (
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
 LAYERS = ("대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자",
-          "취업준비생", "신혼·신생아", "일반")
+          "취업준비생", "신혼·신생아", "일반", "주거약자")
 REVIEW_STATUSES = ("DRAFT", "REVIEWED", "PUBLISHED", "RETIRED")
 CTX_KEYS = ("announcement_date",)
 TIMINGS = ("NOW", "BEFORE_MOVE_IN")
@@ -555,8 +555,9 @@ def build_notice(doc: Dict[str, Any]) -> NoticeRuleSet:
 
     layers: Dict[str, LayerRuleSet] = {}
     for layer, ldoc in doc["layers"].items():
-        if layer not in LAYERS:
-            raise RuleDataError(f"알 수 없는 계층 '{layer}' (허용: {LAYERS})")
+        # 주택형 변형 계층(C5): "기본계층(설명)" — 예: "신혼부부(주거약자용)", "주거약자(26A1/B1형)". 괄호 앞이 허용 계층이어야 한다.
+        if layer.split("(")[0] not in LAYERS:
+            raise RuleDataError(f"알 수 없는 계층 '{layer}' (허용: {LAYERS}, 또는 '허용계층(주택형)')")
         seen_ids = set()   # 조건 ID는 계층 안에서만 유일하면 된다(설명 계층이 계층 단위로 조회)
         conditions = []
         for cdoc in ldoc["conditions"]:

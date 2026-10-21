@@ -2242,5 +2242,419 @@
    "note": "만 19세 이상인지(미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
    "timing": "NOW"
   }
+ ],
+ "N4/신혼부부(주거약자용)": [
+  {
+   "id": "N4-M-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.4 ①-㉮/㉯",
+   "note": "혼인 중이거나 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-M-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.4 무주택세대구성원",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-M-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.4 ③",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-M-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-M-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-M-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.5 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N4-M-duration",
+   "field": "marriage_duration_or_child",
+   "required": true,
+   "source_ref": "공고문 p.4 ②",
+   "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아포함)를 두었는지 (예비신혼부부는 이 요건이 적용되지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-W-weak",
+   "field": "housing_weak_type/age",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+   "timing": "NOW"
+  }
+ ],
+ "N4/한부모(주거약자용)": [
+  {
+   "id": "N4-S-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.4 ①-㉰",
+   "note": "한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-S-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.4 무주택세대구성원",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-S-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.4 ③",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-S-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-S-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-S-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.5 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N4-S-child6",
+   "field": "youngest_child_birth_date",
+   "required": true,
+   "source_ref": "공고문 p.4 ①-㉰",
+   "note": "6세 이하 자녀(태아포함)를 둔 한부모인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N4-W-weak",
+   "field": "housing_weak_type/age",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+   "timing": "NOW"
+  }
+ ],
+ "N7/신혼부부(주거약자용)": [
+  {
+   "id": "N7-M-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉮/㉯",
+   "note": "혼인 중이거나 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-M-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.4 무주택세대구성원",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-M-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.5 ③",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-M-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-M-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-M-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.5 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N7-M-duration",
+   "field": "marriage_duration_or_child",
+   "required": true,
+   "source_ref": "공고문 p.5 ②",
+   "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아포함)를 두었는지 (예비신혼부부는 이 요건이 적용되지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-W-weak",
+   "field": "housing_weak_type/age",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+   "timing": "NOW"
+  }
+ ],
+ "N7/한부모(주거약자용)": [
+  {
+   "id": "N7-S-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉰",
+   "note": "한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-S-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.4 무주택세대구성원",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-S-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.5 ③",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-S-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-S-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5 ④",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-S-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.5 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N7-S-child6",
+   "field": "youngest_child_birth_date",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉰",
+   "note": "6세 이하 자녀(태아포함)를 둔 한부모인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N7-W-weak",
+   "field": "housing_weak_type/age",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+   "timing": "NOW"
+  }
+ ],
+ "N8/신혼부부(주거약자용)": [
+  {
+   "id": "N8-M-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉮/㉯",
+   "note": "혼인 중이거나 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-M-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.5 무주택세대구성원",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-M-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.5 ③",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-M-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.6 ④",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-M-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.6 ④",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-M-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.6 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N8-M-duration",
+   "field": "marriage_duration_or_child",
+   "required": true,
+   "source_ref": "공고문 p.5 ②",
+   "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아포함)를 두었는지 (예비신혼부부는 이 요건이 적용되지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-W-weak",
+   "field": "housing_weak_type/age",
+   "required": true,
+   "source_ref": "공고문 p.8",
+   "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+   "timing": "NOW"
+  }
+ ],
+ "N8/한부모(주거약자용)": [
+  {
+   "id": "N8-S-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉰",
+   "note": "한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-S-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.5 무주택세대구성원",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-S-income",
+   "field": "household_income",
+   "required": true,
+   "source_ref": "공고문 p.5 ③",
+   "note": "가구 소득이 자녀수·맞벌이 여부에 따른 소득기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-S-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.6 ④",
+   "note": "총자산이 자녀수에 따른 자산기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-S-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.6 ④",
+   "note": "자동차가액이 자녀수에 따른 자동차기준(가산표) 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-S-sub",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.6 ⑤",
+   "note": "[입주 전까지 이행] 본인 또는 배우자 명의 청약통장 가입사실을 증명할 수 있는지(신청 시점 미가입은 현재 자격에 영향 없음)",
+   "timing": "BEFORE_MOVE_IN"
+  },
+  {
+   "id": "N8-S-child6",
+   "field": "youngest_child_birth_date",
+   "required": true,
+   "source_ref": "공고문 p.5 ①-㉰",
+   "note": "6세 이하 자녀(태아포함)를 둔 한부모인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N8-W-weak",
+   "field": "housing_weak_type/age",
+   "required": true,
+   "source_ref": "공고문 p.8",
+   "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+   "timing": "NOW"
+  }
+ ],
+ "N5/주거약자(26A1/B1형)": [
+  {
+   "id": "N5-W-base",
+   "field": "계층",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "지역전략산업종사자·청년·대학생 중 하나의 자격요건을 충족하는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N5-W-weak",
+   "field": "housing_weak_type",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "신청자 본인이 주거약자인지 — 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+   "timing": "NOW"
+  }
  ]
 }

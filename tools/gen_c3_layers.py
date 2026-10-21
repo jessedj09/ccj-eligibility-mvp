@@ -279,9 +279,8 @@ def main():
                 place_quotes(t["source"], pages, anchor, f"table:{name}", missing)
                 doc["tables"][name] = t
             doc["unsupported_layers"] = [u for u in doc.get("unsupported_layers", []) if u["name"] != layer]
-        if nid in HOUSING_WEAK and not any("주거약자" in u["name"] for u in doc["unsupported_layers"]):
-            doc["unsupported_layers"].append({"name": "주거약자용 주택", "page": HOUSING_WEAK[nid],
-                                              "note": "주거약자용 주택형(65세 이상·장애인·국가유공자 등) — 주택형 축 구현 후 지원 예정"})
+        # 금천·오류의 주거약자용 주택은 고령자 배정 주택형이라 고령자 판정과 같다(C5에서 확인) — 미지원 목록에 넣지 않는다
+        doc["unsupported_layers"] = [u for u in doc["unsupported_layers"] if u["name"] != "주거약자용 주택"]
         path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(nid, "계층", list(doc["layers"]), "미지원", [u["name"] for u in doc["unsupported_layers"]],
               "MISSING", len(missing))

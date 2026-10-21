@@ -24,6 +24,22 @@ def _load(name):
 GEN_C1 = _load("gen_c1_notices")
 
 
+def test_rerunning_c5_generator_keeps_committed_files(tmp_path, monkeypatch):
+    """C5(주거약자용 변형 계층)는 기존 파일을 읽어 변형 계층만 다시 만든다 — 결과가 커밋 파일과 같아야 한다."""
+    import shutil
+    gen = _load("gen_c5_housing_weak")
+    src = ROOT / "rules" / "notices"
+    work = tmp_path / "rules" / "notices"
+    work.mkdir(parents=True)
+    for nid in gen.PLAN:
+        shutil.copy(src / f"{nid}.json", work / f"{nid}.json")
+    monkeypatch.setattr(gen, "ROOT", tmp_path)
+    gen.main()
+    for nid in gen.PLAN:
+        assert json.loads((work / f"{nid}.json").read_text(encoding="utf-8")) == \
+            json.loads((src / f"{nid}.json").read_text(encoding="utf-8")), nid
+
+
 @pytest.mark.parametrize("target", GEN_C1.TARGETS, ids=[t["nid"] for t in GEN_C1.TARGETS])
 def test_rerunning_c1_generator_reproduces_committed_file(target):
     path = ROOT / "rules" / "notices" / f"{target['nid']}.json"

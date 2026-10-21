@@ -185,8 +185,10 @@ def test_new_layers_left_the_unsupported_list_and_housing_weak_units_are_listed(
         notice = load_notice(nid)
         names = {u["name"] for u in notice.meta.get("unsupported_layers", [])}
         assert set(layers) <= set(notice.layers) and not set(layers) & names, nid
-    for nid in ("N6", "N10"):
-        assert any("주거약자" in u["name"] for u in load_notice(nid).meta["unsupported_layers"])
+    for nid in ("N6", "N10"):   # 주거약자용 주택 = 고령자 배정 주택형(C5) — 미지원이 아니라 유의사항으로 안내
+        meta = load_notice(nid).meta
+        assert not any("주거약자" in u["name"] for u in meta["unsupported_layers"])
+        assert any("주거약자용 주택" in n and "고령자" in n for n in meta["notes"])
 
 
 def test_elderly_same_verdicts_across_three_notices():

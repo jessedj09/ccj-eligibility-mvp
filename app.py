@@ -268,6 +268,9 @@ CHOICE_FIELDS = {
     "housing_benefit_status": ("주거급여(「주거급여법」) 수급 여부", ["수급자", "수급권자", "해당없음"]),
     "regional_industry_type": ("지역전략산업종사자 유형(부천)",
                                ["콘텐츠산업 종사자", "전문예술법인·단체 종사자", "등록 예술인", "부천시 추천자", "해당없음"]),
+    "housing_weak_type": ("주거약자 유형(신청자 본인) — 65세 이상은 나이로 판단",
+                          ["장애인", "국가유공자(상이 1~7급)", "보훈보상대상자(상이 1~7급)", "5·18민주화운동부상자(장해 1~14급)",
+                           "고엽제후유의증환자(경도 이상)", "국가유공자에 준하는 군경(상이 1~7급)", "해당없음"]),
 }
 choice_fields = [f for f in CHOICE_FIELDS if f in notice.layers[layer].inputs]
 choices = {}

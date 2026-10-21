@@ -10,6 +10,7 @@
 7) 계층별 입력 안내(주택 소유·소득·자산·나이의 뜻)와 생년월일 → 공고일 기준 만 나이 경계(원문 출생일 범위와 대조)
 8) 순위·유형 트랙(C4): 순위별 결과 표시, 사업 전용 질문은 그 계층에서만
 9) SH 장기미임대(C4b): 소득이 자격요건이 아니므로 소득을 몰라도 서울 거주면 충족
+10) 주거약자용 주택형(C5a): 변형 계층에만 주거약자 유형 질문
 """
 import os
 import sys
@@ -187,6 +188,9 @@ def main():
     vacant = results(at)[0][:2]
     assert vacant.startswith("✅"), vacant
     print("9) SH 장기미임대 — 서울 거주·소득 모름:", vacant)
+    weak_q = lambda at: [w for w in at.selectbox if w.label.startswith("주거약자 유형")]
+    assert weak_q(fresh("N4", "신혼부부(주거약자용)")) and not weak_q(fresh("N4", "신혼부부")), "주거약자 질문 노출 오류"
+    print("10) 주거약자용(C5a): 변형 계층에만 주거약자 유형 질문")
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)
