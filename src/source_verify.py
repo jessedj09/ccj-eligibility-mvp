@@ -31,6 +31,8 @@ _DINGBAT.update({"“": '"', "”": '"', "‘": "'", "’": "'"})
 
 
 def normalize(text: str) -> str:
+    # 일부 PDF(예: SH 공공한옥 공고)는 단어 사이 공백 자리에 NUL 같은 제어문자를 넣는다 - 공백처럼 지운다
+    text = "".join(ch for ch in text if ch >= " " or ch in "\t\n\r")
     text = "".join(_DINGBAT.get(ch, ch) for ch in text)
     text = unicodedata.normalize("NFKC", text)
     return re.sub(r"\s+", "", text)

@@ -2072,5 +2072,175 @@
    "note": "만 19세 이상인지(미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
    "timing": "NOW"
   }
+ ],
+ "N18/신혼·신생아": [
+  {
+   "id": "N18-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.12",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N18-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.12",
+   "note": "세부 신청자격(신생아가구·지원대상 한부모·신혼부부·예비신혼부부·6세 이하 자녀 한부모·6세 이하 자녀 혼인가구) 중 하나에 해당하는지(순위는 자격으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N18-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "해당 세대 월평균소득이 70%(배우자 소득이 있으면 90%) 이하인지 — 2인은 +10%p, 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N18-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N18-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
+ ],
+ "N19/신혼·신생아": [
+  {
+   "id": "N19-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N19-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "세부 신청자격(신생아가구·지원대상 한부모·신혼부부·예비신혼부부·6세 이하 자녀 한부모·6세 이하 자녀 혼인가구·혼인가구) 중 하나에 해당하는지(순위는 자격으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N19-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "해당 세대 월평균소득이 130%(배우자 소득이 있으면 200%) 이하인지 — 2인은 +10%p, 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N19-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
+ ],
+ "N20/신혼·신생아": [
+  {
+   "id": "N20-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N20-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "세부 신청자격(신생아가구·지원대상 한부모·신혼부부·예비신혼부부·6세 이하 자녀 한부모·6세 이하 자녀 혼인가구·혼인가구) 중 하나에 해당하는지(순위는 자격으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N20-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "해당 세대 월평균소득이 130%(배우자 소득이 있으면 200%) 이하인지 — 2인은 +10%p, 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N20-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
+ ],
+ "N21/신혼·신생아": [
+  {
+   "id": "N21-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N21-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "세부 신청자격(신생아가구·지원대상 한부모·신혼부부·예비신혼부부·6세 이하 자녀 한부모·6세 이하 자녀 혼인가구·혼인가구) 중 하나에 해당하는지(순위는 자격으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N21-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.12",
+   "note": "해당 세대 월평균소득이 130%(배우자 소득이 있으면 200%) 이하인지 — 2인은 +10%p, 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N21-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.12",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
+ ],
+ "N22/일반": [
+  {
+   "id": "N22-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N22-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "공고일 현재 서울특별시에 주민등록이 돼 있는지(계약 후에도 계속 서울 거주)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N22-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  }
  ]
 }

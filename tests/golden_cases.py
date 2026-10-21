@@ -57,6 +57,18 @@ DATES = {
                 grad=date(2024, 5, 22), adult=date(2007, 5, 22)),
     "N17": dict(ann=date(2026, 10, 1), marriage=date(2019, 10, 1), child=date(2019, 10, 2),
                 grad=date(2024, 10, 1), adult=date(2007, 10, 1)),
+    # C4b(SH) — SH 원문 날짜(공고일−N년의 다음 날): SH21·SH22 p.12/p.6 "‘19. 10. 1.~"·"‘24. 10. 1. 이후"·"’07. 10. 1. 이후",
+    # SH18 p.10 "’19. 08. 15.~"·"’24. 08. 15. 이후", SH19 p.9 "’19. 8. 25.~"·"’24. 8. 25. 이후". adult는 엔진의 미성년 경계(공고일 −19년).
+    "N18": dict(ann=date(2026, 9, 30), marriage=date(2019, 10, 1), child=date(2019, 10, 1), grad=date(2024, 9, 30),
+                adult=date(2007, 9, 30), newborn=date(2024, 10, 1), minor=date(2007, 10, 1)),
+    "N19": dict(ann=date(2026, 9, 30), marriage=date(2019, 10, 1), child=date(2019, 10, 1), grad=date(2024, 9, 30),
+                adult=date(2007, 9, 30), newborn=date(2024, 10, 1), minor=date(2007, 10, 1)),
+    "N20": dict(ann=date(2026, 8, 14), marriage=date(2019, 8, 15), child=date(2019, 8, 15), grad=date(2024, 8, 14),
+                adult=date(2007, 8, 14), newborn=date(2024, 8, 15)),
+    "N21": dict(ann=date(2026, 8, 24), marriage=date(2019, 8, 25), child=date(2019, 8, 25), grad=date(2024, 8, 24),
+                adult=date(2007, 8, 24), newborn=date(2024, 8, 25)),
+    "N22": dict(ann=date(2026, 8, 28), marriage=date(2019, 8, 29), child=date(2019, 8, 29), grad=date(2024, 8, 28),
+                adult=date(2007, 8, 28)),
 }
 # 지역 조건이 있는 공고와 계층별 지역 입력(원문 PDF의 순위 문구에서 손으로 옮김). 다른 공고에는 지역 입력을 넣지 않는다
 # — 넣으면 기존 그룹의 입력·난수 소비가 바뀌어 골든 기록 전체가 달라진다.
@@ -70,10 +82,14 @@ REGION_FIELDS_BY_LAYER = {
 REGION_FIELDS_BY_LAYER.setdefault("N6", {})["산업단지근로자"] = ["workplace_area"]
 REGION_FIELDS_BY_LAYER["N16"] = {"일반": ["residence_area"]}     # 든든전세: 수도권 거주
 REGION_FIELDS_BY_LAYER["N17"] = {"일반": ["residence_area"]}
+REGION_FIELDS_BY_LAYER["N22"] = {"일반": ["residence_area"]}     # SH 장기미임대: 서울 주민등록
 
 # --- C4a 사업별 입력 풀(원문 금액의 경계 ±1원을 손으로 적은 고정 값) --------------------------------------
 PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_rental", "N14": "newlywed_rental",
-              "N15": "newlywed_rental", "N16": "jeonse", "N17": "jeonse"}
+              "N15": "newlywed_rental", "N16": "jeonse", "N17": "jeonse",
+              "N18": "sh_newlywed", "N19": "sh_newlywed", "N20": "sh_newlywed", "N21": "sh_newlywed", "N22": "jeonse"}
+SH_INCOME = [None, 0, 1] + [v + d for v in (4_693_016, 5_717_900, 7_351_586, 6_934_384, 8_212_778, 10_618_958,
+                                            16_336_858, 12_878_142) for d in (-1, 0, 1)] + [90_000_000]
 WELFARE = [None, "해당없음", "생계·의료·주거급여 수급자", "교육급여만 수급", "차상위계층"]
 YR_OWN_INCOME = [None, 0, 1, 1_000_000, 4_576_035, 4_576_036, 4_576_037, 9_000_000]
 YR_PARENT_INCOME = [None, 0, 1_000_000, 3_576_036, 3_576_037, 5_452_897, 5_452_898, 7_168_429, 7_168_430, 20_000_000]
@@ -105,12 +121,12 @@ def _program_attributes(program: str, layer: str, pools) -> Dict[str, Tuple[list
             attrs.update(age=([18, 19, 39, 40, 45], 40), grad=(pools["grad"], pools["grad"][2]),
                          employed=([None, False, True], False))
         return attrs
-    if program == "newlywed_rental":
+    if program in ("newlywed_rental", "sh_newlywed"):
         return {
             "home": (["무주택", "주택보유"], "무주택"), "marital": (MARITALS, "혼인중"), "size": (SIZES + [6], 3),
             "kids": (pools["kids"], []), "count": (COUNTS, 0), "dual": ([True, False], False),
-            "income": (NR_INCOME, 1), "assets": (NR_ASSETS, 1), "car": (CARS, 0),
-            "marriage": (pools["marriage"], date(2025, 1, 1)), "has_children": (HAS_CHILDREN, None),
+            "income": (SH_INCOME if program == "sh_newlywed" else NR_INCOME, 1), "assets": (NR_ASSETS, 1),
+            "car": (CARS, 0), "marriage": (pools["marriage"], date(2025, 1, 1)), "has_children": (HAS_CHILDREN, None),
             "youngest": (pools["youngest"], None), "welfare": (WELFARE, "해당없음"),
             "supported": ([None, False, True], False),
         }
@@ -136,6 +152,8 @@ GROUPS: List[Tuple[str, str]] = [
     # C4a — 순위·유형 트랙
     ("N11", "청년"), ("N11", "대학생"), ("N11", "취업준비생"), ("N12", "청년"), ("N12", "대학생"), ("N12", "취업준비생"),
     ("N13", "신혼·신생아"), ("N14", "신혼·신생아"), ("N15", "신혼·신생아"), ("N16", "일반"), ("N17", "일반"),
+    # C4b — SH
+    ("N18", "신혼·신생아"), ("N19", "신혼·신생아"), ("N20", "신혼·신생아"), ("N21", "신혼·신생아"), ("N22", "일반"),
 ]
 
 INCOMES = [
@@ -207,7 +225,7 @@ def _pools(nid: str) -> Dict[str, list]:
                  [date(2023, 3, 28)], [date(2023, 3, 27)]],
         "grad": [None] + _around(d["grad"]) + [date(2000, 1, 1), d["ann"]],
         "youngest": [None] + _around(d["child"]) + [date(2000, 1, 1), date(2030, 1, 1)]
-                    + (_around(d["newborn"]) if "newborn" in d else []),
+                    + (_around(d["newborn"]) if "newborn" in d else []) + (_around(d["minor"]) if "minor" in d else []),
         "marriage": [None] + _around(d["marriage"]) + [date(2000, 1, 1), date(2025, 6, 1)],
     }
 

@@ -1,0 +1,108 @@
+{
+  "notice_id": "N22",
+  "title": "SH 2026년 2차 장기미임대 매입임대주택",
+  "announcement_date": "2026-08-28",
+  "issuer": "SH",
+  "program": "SH 장기미임대 매입임대",
+  "version": 1,
+  "valid_from": "2026-08-28",
+  "supersedes": null,
+  "source": {
+    "document": "[공고문] 2026년 2차 장기미임대 입주자 모집공고(2026_08_28_)_수정.pdf",
+    "sha256": "01de15ee44271542dba144c574f67ad3ed33f851ca883a36ea2dc307b0bedbb5",
+    "pages": 44
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "C4b 생성(tools/gen_c4_sh.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+    "log": []
+  },
+  "notes": [
+    "소득은 자격이 아니라 순위에만 쓴다: 도시근로자 월평균소득 130% 이하(1인 5,720,045원·3인 10,618,958원 등)면 1순위, 초과면 2순위(p.6·p.8).",
+    "계약 후에도 공고일 이후 계속 서울에 거주해야 한다(p.7). 외국인은 신청할 수 없다."
+  ],
+  "unsupported_layers": [],
+  "tables": {},
+  "layers": {
+    "일반": {
+      "conditions": [
+        {
+          "id": "N22-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "성년자인 무주택세대 구성원이어야"
+            ],
+            "page": 6
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N22-region",
+          "field": "residence_area",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재 서울특별시에 주민등록이 등재된 성년자인 무주택세대 구성원이어야"
+            ],
+            "page": 6
+          },
+          "note": "공고일 현재 서울특별시에 주민등록이 돼 있는지(계약 후에도 계속 서울 거주)",
+          "check": {
+            "eq": [
+              {
+                "var": "residence_area"
+              },
+              "서울특별시"
+            ]
+          }
+        },
+        {
+          "id": "N22-adult",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "민법상 미성년자(만 19세 미만)는 공급 신청할 수 없습니다"
+            ],
+            "page": 6
+          },
+          "note": "만 19세 이상인지(미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+          "check": {
+            "any": [
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  19
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "age"
+                  },
+                  18
+                ],
+                "review_if_true": {
+                  "code": "SELF_REPORT_UNVERIFIED",
+                  "detail": "미성년자는 원문의 예외(자녀가 있는 미성년 세대주, 형제자매를 부양하는 미성년 세대주, 외국인 부모의 한부모가족 미성년 세대주)에 해당할 때만 신청 가능 — 이 화면은 예외 여부를 확인하지 않음"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -9,6 +9,7 @@
 6) 새 계층(C3): 산업단지근로자·주거급여수급자·지역전략산업종사자·고령자 — 계층 전용 질문과 판정
 7) 계층별 입력 안내(주택 소유·소득·자산·나이의 뜻)와 생년월일 → 공고일 기준 만 나이 경계(원문 출생일 범위와 대조)
 8) 순위·유형 트랙(C4): 순위별 결과 표시, 사업 전용 질문은 그 계층에서만
+9) SH 장기미임대(C4b): 소득이 자격요건이 아니므로 소득을 몰라도 서울 거주면 충족
 """
 import os
 import sys
@@ -176,6 +177,16 @@ def main():
     at = fresh("N11", "취업준비생")
     assert [w for w in at.date_input if w.label.startswith("대학·고등학교 졸업")], "취업준비생에 졸업일 질문이 없음"
     print("8) C4 트랙 — 청년매입:", youth, tracks[0][:30], "| 행복주택 청년엔 부모 질문 없음 | 취업준비생 졸업일 질문 있음")
+    at = fresh("N22", "일반")                       # SH 장기미임대: 소득은 순위 전용 — 몰라도 자격 판정
+    at.radio[0].set_value("만 나이").run()
+    find(at, "number_input", "나이").set_value(40).run()
+    find(at, "selectbox", "본인 거주지").select("서울특별시").run()
+    find(at, "checkbox", "월소득(원) 모름").check().run()
+    at.button[0].click().run()
+    assert not at.exception, at.exception
+    vacant = results(at)[0][:2]
+    assert vacant.startswith("✅"), vacant
+    print("9) SH 장기미임대 — 서울 거주·소득 모름:", vacant)
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)

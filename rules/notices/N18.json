@@ -1,0 +1,896 @@
+{
+  "notice_id": "N18",
+  "title": "SH 2026년 하반기 신혼·신생아 매입임대주택Ⅰ",
+  "announcement_date": "2026-09-30",
+  "issuer": "SH",
+  "program": "SH 신혼·신생아 매입임대Ⅰ",
+  "version": 1,
+  "valid_from": "2026-09-30",
+  "supersedes": null,
+  "source": {
+    "document": "[공고문_신혼1] 2026년 하반기 신혼·신생아 매입임대주택Ⅰ 입주자 모집공고(2026_09_30_).pdf",
+    "sha256": "3e622228332b0b917be4bd61b7fc35f48376cacd9eba4cc4addacab15dd9234c",
+    "pages": 40
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "C4b 생성(tools/gen_c4_sh.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+    "log": []
+  },
+  "notes": [
+    "배우자 자격검증이 불가능한 경우(국내 미거주 재외국민, 외국인 미등록, 주민등록 말소·거주불명·해외체류)는 신청할 수 없다(p.13).",
+    "수급자 등 소득·자산 검증 면제는 해당 증명서를 제출해야 적용된다(p.17)."
+  ],
+  "unsupported_layers": [],
+  "tables": {
+    "sh_rental_income": {
+      "label": "SH 매입임대 소득 상한액: 가구원수×배우자 소득 유무 (70%/90%, 2인 +10%p 반영 금액)",
+      "columns": [
+        "size",
+        "dual"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "dual": {
+          "var": "dual_income"
+        }
+      },
+      "outputs": [
+        "limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "dual": "any"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "AMBIGUOUS_SOURCE",
+            "detail": "원문 소득표에 1인 가구 금액이 없습니다(2~5인만 표기, 가구원수에는 태아 포함). 가구원수를 확인하거나 SH에 문의하세요."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "dual": false
+          },
+          "out": [
+            4693016
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "dual": true
+          },
+          "out": [
+            5866270
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "dual": false
+          },
+          "out": [
+            5717900
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "dual": true
+          },
+          "out": [
+            7351586
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "dual": false
+          },
+          "out": [
+            6161541
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "dual": true
+          },
+          "out": [
+            7921982
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "dual": false
+          },
+          "out": [
+            6528890
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "dual": true
+          },
+          "out": [
+            8394287
+          ]
+        },
+        {
+          "when": {
+            "size": 6,
+            "dual": false
+          },
+          "out": [
+            6934384
+          ]
+        },
+        {
+          "when": {
+            "size": 6,
+            "dual": true
+          },
+          "out": [
+            8915637
+          ]
+        },
+        {
+          "when": {
+            "size": 7,
+            "dual": false
+          },
+          "out": [
+            7339878
+          ]
+        },
+        {
+          "when": {
+            "size": 7,
+            "dual": true
+          },
+          "out": [
+            9436987
+          ]
+        },
+        {
+          "when": {
+            "size": 8,
+            "dual": false
+          },
+          "out": [
+            7745372
+          ]
+        },
+        {
+          "when": {
+            "size": 8,
+            "dual": true
+          },
+          "out": [
+            9958337
+          ]
+        },
+        {
+          "when": {
+            "size": 9,
+            "dual": false
+          },
+          "out": [
+            8150866
+          ]
+        },
+        {
+          "when": {
+            "size": 9,
+            "dual": true
+          },
+          "out": [
+            10479687
+          ]
+        },
+        {
+          "when": {
+            "size": 10,
+            "dual": false
+          },
+          "out": [
+            8556360
+          ]
+        },
+        {
+          "when": {
+            "size": 10,
+            "dual": true
+          },
+          "out": [
+            11001037
+          ]
+        },
+        {
+          "when": {
+            "size": 11,
+            "dual": false
+          },
+          "out": [
+            8961854
+          ]
+        },
+        {
+          "when": {
+            "size": 11,
+            "dual": true
+          },
+          "out": [
+            11522387
+          ]
+        },
+        {
+          "when": {
+            "size": 12,
+            "dual": false
+          },
+          "out": [
+            9367348
+          ]
+        },
+        {
+          "when": {
+            "size": 12,
+            "dual": true
+          },
+          "out": [
+            12043737
+          ]
+        },
+        {
+          "when": {
+            "size": 13,
+            "dual": false
+          },
+          "out": [
+            9772842
+          ]
+        },
+        {
+          "when": {
+            "size": 13,
+            "dual": true
+          },
+          "out": [
+            12565087
+          ]
+        },
+        {
+          "when": {
+            "size": 14,
+            "dual": false
+          },
+          "out": [
+            10178336
+          ]
+        },
+        {
+          "when": {
+            "size": 14,
+            "dual": true
+          },
+          "out": [
+            13086437
+          ]
+        },
+        {
+          "when": {
+            "size": 15,
+            "dual": false
+          },
+          "out": [
+            10583830
+          ]
+        },
+        {
+          "when": {
+            "size": 15,
+            "dual": true
+          },
+          "out": [
+            13607787
+          ]
+        },
+        {
+          "when": {
+            "size": "16+",
+            "dual": "any"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "AMBIGUOUS_SOURCE",
+            "detail": "16인 이상 가구는 판정 범위 밖입니다."
+          }
+        }
+      ],
+      "source": {
+        "quote": [
+          "4,693,016",
+          "5,717,900",
+          "6,161,541",
+          "6,528,890",
+          "5,866,270",
+          "7,351,586",
+          "7,921,982",
+          "8,394,287",
+          "1인당 평균금액(405,494원)",
+          "1인당 평균금액(521,350원)"
+        ],
+        "derivation": "2~5인은 원문 금액. 6인 이상은 원문 규칙대로 5인 금액에 1인당 평균금액(405,494원 / 배우자 소득 시 521,350원)을 더해 계산했다. 1인 가구 금액은 원문에 없다.",
+        "page": 16
+      }
+    },
+    "sh_rental_assets": {
+      "label": "SH 매입임대 자산 기준: 2023.3.28. 이후 출생 자녀 수(기존 미성년 자녀 포함 최대 2명)",
+      "columns": [
+        "child"
+      ],
+      "inputs": {
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "child": 0
+          },
+          "out": [
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "child": 1
+          },
+          "out": [
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "child": "2+"
+          },
+          "out": [
+            413000000,
+            54510000
+          ]
+        }
+      ],
+      "source": {
+        "quote": [
+          "34,500만원 이하",
+          "379,000,000원 이하",
+          "413,000,000원 이하"
+        ],
+        "page": 16
+      }
+    }
+  },
+  "layers": {
+    "신혼·신생아": {
+      "conditions": [
+        {
+          "id": "N18-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "무주택세대구성원으로서 아래의 신혼·신생아Ⅰ 매입임대주택 세부 신청자격 중"
+            ],
+            "page": 12
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N18-type",
+          "field": "유형",
+          "required": true,
+          "source": {
+            "quote": [
+              "신혼·신생아 매입임대Ⅰ 세부 신청자격"
+            ],
+            "page": 12
+          },
+          "note": "세부 신청자격(신생아가구·지원대상 한부모·신혼부부·예비신혼부부·6세 이하 자녀 한부모·6세 이하 자녀 혼인가구) 중 하나에 해당하는지(순위는 자격으로 정해짐)",
+          "tracks": [
+            {
+              "id": "신생아가구",
+              "label": "2년 이내 출생한 자녀(태아 포함)가 있는 가구 — 혼인 여부 무관",
+              "conditions": [
+                {
+                  "id": "N18-T-newborn",
+                  "field": "youngest_child_birth_date",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "2년 이내 출생한 자녀가 있는 가구 (‘24. 10. 1. 이후 출생한 자녀 및 태아)"
+                    ],
+                    "page": 12
+                  },
+                  "note": "2024-10-01 이후 출생(태아는 출산예정일) 자녀가 있는지 — 혼인 여부와 무관",
+                  "check": {
+                    "if": [
+                      {
+                        "is": [
+                          {
+                            "var": "has_children"
+                          },
+                          false
+                        ]
+                      },
+                      false,
+                      {
+                        "gte": [
+                          {
+                            "var": "youngest_child_birth_date"
+                          },
+                          {
+                            "date": "2024-10-01"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "지원대상한부모",
+              "label": "「한부모가족지원법」 지원대상 한부모가족(증명서 발급 가능)",
+              "conditions": [
+                {
+                  "id": "N18-T-supported",
+                  "field": "is_supported_single_parent",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "미성년 자녀가 있는 자(’07. 10. 1. 이후 출생한 자녀)"
+                    ],
+                    "page": 12
+                  },
+                  "note": "지원대상 한부모가족(한부모가족 증명서 발급 가능)인지 — 미성년 자녀(2007-10-01 이후 출생)가 있어야 함",
+                  "check": {
+                    "all": [
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      },
+                      {
+                        "if": [
+                          {
+                            "is": [
+                              {
+                                "var": "has_children"
+                              },
+                              false
+                            ]
+                          },
+                          false,
+                          {
+                            "gte": [
+                              {
+                                "var": "youngest_child_birth_date"
+                              },
+                              {
+                                "date": "2007-10-01"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "신혼부부",
+              "label": "혼인 7년 이내(재혼 포함)",
+              "conditions": [
+                {
+                  "id": "N18-T-newlywed",
+                  "field": "marital_status/marriage_date",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "혼인 7년 이내(혼인신고일이 ‘19. 10. 1. ~ ’26. 9. 30.)인 사람"
+                    ],
+                    "page": 12
+                  },
+                  "note": "혼인 중이고 혼인신고일이 2019-10-01 이후인지(재혼 포함)",
+                  "check": {
+                    "all": [
+                      {
+                        "eq": [
+                          {
+                            "var": "marital_status"
+                          },
+                          "혼인중"
+                        ]
+                      },
+                      {
+                        "gte": [
+                          {
+                            "var": "marriage_date"
+                          },
+                          {
+                            "date": "2019-10-01"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "예비신혼부부",
+              "label": "입주일 전일까지 혼인신고할 예비신혼부부",
+              "conditions": [
+                {
+                  "id": "N18-T-prospective",
+                  "field": "marital_status",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "입주일 전일까지 혼인신고를 하는 사람"
+                    ],
+                    "page": 12
+                  },
+                  "note": "혼인 예정(예비신혼)인지 — 입주일 전일까지 혼인신고해야 함",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "marital_status"
+                      },
+                      "예비신혼"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "6세이하한부모",
+              "label": "6세 이하 자녀를 둔 한부모가족",
+              "conditions": [
+                {
+                  "id": "N18-T-singleparent",
+                  "field": "marital_status/youngest_child_birth_date",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "만 6세 이하 자녀를 둔 모자가족 또는 부자가족(‘19. 10. 1. 이후 출생한 자녀)"
+                    ],
+                    "page": 12
+                  },
+                  "note": "한부모이고 6세 이하 자녀(2019-10-01 이후 출생)가 있는지",
+                  "check": {
+                    "all": [
+                      {
+                        "eq": [
+                          {
+                            "var": "marital_status"
+                          },
+                          "한부모"
+                        ]
+                      },
+                      {
+                        "if": [
+                          {
+                            "is": [
+                              {
+                                "var": "has_children"
+                              },
+                              false
+                            ]
+                          },
+                          false,
+                          {
+                            "gte": [
+                              {
+                                "var": "youngest_child_birth_date"
+                              },
+                              {
+                                "date": "2019-10-01"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "6세이하혼인가구",
+              "label": "6세 이하 자녀가 있는 혼인가구",
+              "conditions": [
+                {
+                  "id": "N18-T-married-child",
+                  "field": "marital_status/youngest_child_birth_date",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "만 6세 이하 자녀가 있는 혼인가구(‘19. 10. 1. 이후 출생한 자녀)"
+                    ],
+                    "page": 12
+                  },
+                  "note": "혼인 중이고 6세 이하 자녀(2019-10-01 이후 출생)가 있는지",
+                  "check": {
+                    "all": [
+                      {
+                        "eq": [
+                          {
+                            "var": "marital_status"
+                          },
+                          "혼인중"
+                        ]
+                      },
+                      {
+                        "if": [
+                          {
+                            "is": [
+                              {
+                                "var": "has_children"
+                              },
+                              false
+                            ]
+                          },
+                          false,
+                          {
+                            "gte": [
+                              {
+                                "var": "youngest_child_birth_date"
+                              },
+                              {
+                                "date": "2019-10-01"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "N18-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "해당 세대의 월평균 소득이 [전년도 도시근로자 가구원수별 가구당 월평균소득]의 70%",
+              {
+                "page": 17,
+                "text": "수급자(생계·의료·주거·교육급여), 지원대상 한부모가족(한부모가족 증명서), 차상위계층은 소득·"
+              }
+            ],
+            "page": 16
+          },
+          "note": "해당 세대 월평균소득이 70%(배우자 소득이 있으면 90%) 이하인지 — 2인은 +10%p, 수급자 등은 검증 면제",
+          "check": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "ne": [
+                      {
+                        "var": "marital_status"
+                      },
+                      "예비신혼"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "교육급여만 수급",
+                            "차상위계층"
+                          ]
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "monthly_income"
+                  },
+                  {
+                    "term": "limit"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "sh_rental_income"
+        },
+        {
+          "id": "N18-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "34,500만원 이하",
+              {
+                "page": 17,
+                "text": "수급자(생계·의료·주거·교육급여), 지원대상 한부모가족(한부모가족 증명서), 차상위계층은 소득·"
+              }
+            ],
+            "page": 16
+          },
+          "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+          "check": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "ne": [
+                      {
+                        "var": "marital_status"
+                      },
+                      "예비신혼"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "교육급여만 수급",
+                            "차상위계층"
+                          ]
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "total_assets"
+                  },
+                  {
+                    "term": "asset_limit"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "sh_rental_assets"
+        },
+        {
+          "id": "N18-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "4,542만원 이하",
+              "수급자(생계·의료·주거·교육급여), 지원대상 한부모가족(한부모가족 증명서), 차상위계층은 소득·"
+            ],
+            "page": 17
+          },
+          "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+          "check": {
+            "any": [
+              {
+                "all": [
+                  {
+                    "ne": [
+                      {
+                        "var": "marital_status"
+                      },
+                      "예비신혼"
+                    ]
+                  },
+                  {
+                    "any": [
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "교육급여만 수급",
+                            "차상위계층"
+                          ]
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "car_value",
+                    "unknown_values": [
+                      "확인불가"
+                    ]
+                  },
+                  {
+                    "term": "car_limit"
+                  }
+                ]
+              }
+            ]
+          },
+          "table": "sh_rental_assets"
+        }
+      ]
+    }
+  }
+}
