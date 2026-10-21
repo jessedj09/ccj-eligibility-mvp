@@ -246,7 +246,7 @@ def main():
     logging.disable(logging.CRITICAL)
     for plan in PLAN:
         pdf = C4.pdf_for(plan["key"])
-        pages = [sv.normalize(p.extract_text() or "") for p in PdfReader(str(pdf)).pages]
+        pages = sv.extract_pages(pdf)
         layers, tables = plan["build"]()
         missing = []
         for layer, ldoc in layers.items():

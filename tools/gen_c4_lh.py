@@ -334,7 +334,7 @@ def main():
         from pypdf import PdfReader
         import logging
         logging.disable(logging.CRITICAL)
-        pages = [sv.normalize(p.extract_text() or "") for p in PdfReader(str(pdf)).pages]
+        pages = sv.extract_pages(pdf)
         layers, tables = plan["build"]()
         missing = []
         for layer, ldoc in layers.items():

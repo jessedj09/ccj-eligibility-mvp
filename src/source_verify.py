@@ -52,10 +52,30 @@ def pdf_path(nid: str) -> Path:
     raise FileNotFoundError(f"{nid}: 공고문 PDF '{name}'을 {SAMPLE_DIRS}에서 찾지 못했습니다")
 
 
+# 쪽 단위 추출 실패 기록: {pdf 경로: [실패한 쪽 번호]}. 예: pypdf 6.21은 SH 장기미임대 PDF p.26(주택목록, KSCms-UHC-H 글꼴)에서
+# UnicodeDecodeError를 낸다(6.19는 경고만). 한 쪽이 실패해도 나머지 대조는 계속하고, 그 쪽은 빈 텍스트로 둔다 —
+# 그 쪽에 인용문이 있으면 대조에서 '없음'으로 드러나므로 조용히 통과하지 않는다.
+EXTRACTION_FAILURES: Dict[str, List[int]] = {}
+
+
+def extract_pages(path) -> List[str]:
+    """PDF 전 쪽의 정규화 텍스트. 생성 스크립트(tools/gen_*.py)도 이 함수를 쓴다."""
+    import logging
+    from pypdf import PdfReader
+    logging.getLogger("pypdf").setLevel(logging.ERROR)
+    pages = []
+    for i, page in enumerate(PdfReader(str(path)).pages, 1):
+        try:
+            pages.append(normalize(page.extract_text() or ""))
+        except Exception:   # noqa: BLE001 — 라이브러리 내부 디코딩 오류 등, 쪽 단위로 격리
+            EXTRACTION_FAILURES.setdefault(str(path), []).append(i)
+            pages.append("")
+    return pages
+
+
 @lru_cache(maxsize=None)
 def pdf_pages(nid: str) -> List[str]:
-    from pypdf import PdfReader
-    return [normalize(p.extract_text() or "") for p in PdfReader(str(pdf_path(nid))).pages]
+    return extract_pages(pdf_path(nid))
 
 
 def page_has(nid: str, page: int, text: str) -> bool:

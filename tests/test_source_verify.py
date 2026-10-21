@@ -104,3 +104,26 @@ def test_income_reference_is_checked_per_notice(monkeypatch, tmp_path):
     assert any("N7" in p and "cited_pages에 없음" in p for p in run(missing).problems)
     wrong = json.loads(json.dumps(ref)); wrong["cited_pages"]["N5"] = [1]
     assert any("N5" in p for p in run(wrong).problems)
+
+
+def test_one_failing_page_does_not_stop_verification(monkeypatch, tmp_path):
+    """pypdf 버전에 따라 특정 쪽 추출이 예외를 낸다(6.21: SH 장기미임대 p.26). 그 쪽만 빈 텍스트로 두고 계속해야 한다."""
+    import pypdf
+
+    class Page:
+        def __init__(self, text, boom=False):
+            self.text, self.boom = text, boom
+
+        def extract_text(self):
+            if self.boom:
+                raise UnicodeDecodeError("utf-16-be", b".", 0, 1, "truncated data")
+            return self.text
+
+    class Reader:
+        def __init__(self, path):
+            self.pages = [Page("첫 쪽 무주택"), Page("", boom=True), Page("셋째 쪽 소득")]
+
+    monkeypatch.setattr(pypdf, "PdfReader", Reader)
+    pages = sv.extract_pages(tmp_path / "fake.pdf")
+    assert pages == ["첫쪽무주택", "", "셋째쪽소득"]
+    assert sv.EXTRACTION_FAILURES[str(tmp_path / "fake.pdf")] == [2]

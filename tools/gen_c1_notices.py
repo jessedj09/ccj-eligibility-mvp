@@ -175,7 +175,7 @@ def relocate(source, pages, anchor, where, missing):
 def build(t):
     tpl = json.loads((ROOT / "rules" / "notices" / f"{t['template']}.json").read_text(encoding="utf-8"))
     pdf = ROOT / t["pdf"]
-    pages = [sv.normalize(p.extract_text() or "") for p in PdfReader(str(pdf)).pages]
+    pages = sv.extract_pages(pdf)
     missing = []
     doc = {
         "notice_id": t["nid"], "title": t["title"], "announcement_date": t["ann"],
