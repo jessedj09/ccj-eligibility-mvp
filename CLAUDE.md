@@ -75,9 +75,15 @@ Engine**이다.
   청년·대학생 중 하나) + 주거약자(고령자 제외). N6·N10의 주거약자용 주택은 고령자 배정 주택형이라 고령자 판정과 같다(유의사항).
   `tools/gen_c5_housing_weak.py`는 변형 계층만 소유하고, 기본 계층을 고치면 다시 돌려 복사본을 맞춘다(`tests/test_c5_housing_weak.py`).
   생성 스크립트 담당: gen_c1 = 템플릿 계층·유의사항·미지원 목록, gen_c3 = 새 계층, gen_c5 = 주거약자용 변형 계층.
-- pytest: 총 **493개 전부 통과**(약 5분 — 원문 대조가 PDF 22건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(3~5분).
+- **C5b(2026-10-22)**: SH 장기전세2 미리내집 7·8차(N23·N24), 장기전세 49·50차(N25·N26). 신청 주택 면적에 따라 소득 기준이 달라
+  변형 계층 `신혼부부(전용 60㎡ 이하/초과)`, `일반(전용 60㎡ 이하/초과)`, 주거약자형 `…(주거약자형·전용 60㎡ 이하)`로 나눈다.
+  장기전세의 여러 순위는 자격이 아니라 접수 순서라 **면적별 최대 상한**(60㎡ 이하 105%·맞벌이 140%, 초과 150%·200%, 출생자녀
+  +10/+20%p — 맞벌이와 중복 없음)만 판정. 49차는 이전 연도 소득표·자산 6.40억 — 원문 금액을 결정표에 직접 적었다.
+  장기전세2는 5년 계속 무소유(`owned_home_in_5y`). 장기전세 우선공급 5종은 미지원. `tools/gen_c5_jeonse.py`, `tests/test_c5_jeonse.py`.
+- pytest: 총 **540개 전부 통과**(약 6분 — 원문 대조가 PDF 26건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(4~6분).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
-- **다음 과제: C5b — SH 장기전세·장기전세2**(사업형·면적·순위별 소득상한, 85㎡ 초과 청약예금, 5년 무소유). 상세는
+- **다음 과제 후보: D 단계 — "한 프로필로 26개 공고 전체를 판정해 신청 가능한 공고 목록"을 보여 주는 화면**(07 §9),
+  또는 남은 미지원(장기전세 우선공급 5종). 공고 26건은 모두 판정 가능하다. 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 
 ## 반드시 지켜야 할 원칙 (요약 — 근거는 docs/01-decisions-log.md)
@@ -126,16 +132,16 @@ Engine**이다.
   validate_profile(), 날짜 컷오프 헬퍼)
 - `src/notices_data.py` — `rules/`에서 로드한 N1/N2/N3·`ALL_NOTICES`를 내보내는 호환 계층(규칙 본체 아님)
 - `src/rule_data.py` — JSON 규칙 로더·조건식 컴파일러(닫힌 연산자 집합, 로드 시 구조·참조 검증)
-- `rules/` — **규칙의 원본**: `notices/N1~N22.json`(조건·결정표·출처·검수 상태·미지원 계층), `reference/income_standard*.json`·`regions.json`
+- `rules/` — **규칙의 원본**: `notices/N1~N26.json`(조건·결정표·출처·검수 상태·미지원 계층), `reference/income_standard*.json`·`regions.json`
 - `sample_lh/`·`sample_sh/` — 공고문 PDF 원본(원문 대조 도구가 `source.document` 파일명으로 찾는다)
 - `tests/golden/` + `tools/regen_golden.py` — 골든 스냅샷(고정 입력 152,747건의 결과 기록)과 재생성 도구
-- `tools/verify_sources.py`(원문 대조), `tools/ui_smoke.py`(화면 헤드리스 점검), `tools/gen_c1_notices.py`(템플릿 기반 공고 생성), `tools/gen_c3_layers.py`(새 계층 추가), `tools/gen_c4_lh.py`(LH 매입임대·든든전세), `tools/gen_c4_sh.py`(SH 매입임대·장기미임대), `tools/gen_c5_housing_weak.py`(주거약자용)
+- `tools/verify_sources.py`(원문 대조), `tools/ui_smoke.py`(화면 헤드리스 점검), `tools/gen_c1_notices.py`(템플릿 기반 공고 생성), `tools/gen_c3_layers.py`(새 계층 추가), `tools/gen_c4_lh.py`(LH 매입임대·든든전세), `tools/gen_c4_sh.py`(SH 매입임대·장기미임대), `tools/gen_c5_housing_weak.py`(주거약자용), `tools/gen_c5_jeonse.py`(SH 장기전세·장기전세2)
 - `src/priority_scoring.py` — 우선공급 배점(verdict와 분리된 별도 점수)
 - `src/profiles_data.py` — 테스트용 프로필 12개 + 수기 정답지
 - `src/explainability.py` — EvaluationResult → 사용자용 근거 문구(Explanation) 변환
 - `app.py` — Streamlit 데모 UI (판정 로직 없음, src/ 함수만 호출)
 - `mvp0/` — **실행 대상 아님.** 초기 스냅샷(옛 버전), `mvp0/README.md` 참조
-- `tests/` — pytest 스위트, **총 494개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
+- `tests/` — pytest 스위트, **총 540개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
   explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22 + 규칙 데이터화·골든·가구원수 모순 MVP0.6·원문 대조 P4·C1 공고 추가·C2 지역·C3 새 계층)
 - `data/*.xlsx` — MVP0 설계 워크북 원본 (programs/notices/rules/reference_values/
   income_basis/profiles/match_matrix 시트 — 코드보다 사람이 보기 편한 원본)
