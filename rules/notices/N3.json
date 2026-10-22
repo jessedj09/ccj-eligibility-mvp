@@ -2,6 +2,8 @@
   "notice_id": "N3",
   "title": "서울번동3 행복주택",
   "announcement_date": "2026-08-19",
+  "issuer": "LH",
+  "program": "행복주택",
   "version": 1,
   "valid_from": "2026-08-19",
   "supersedes": null,

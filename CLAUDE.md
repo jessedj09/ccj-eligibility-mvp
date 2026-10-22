@@ -80,10 +80,14 @@ Engine**이다.
   장기전세의 여러 순위는 자격이 아니라 접수 순서라 **면적별 최대 상한**(60㎡ 이하 105%·맞벌이 140%, 초과 150%·200%, 출생자녀
   +10/+20%p — 맞벌이와 중복 없음)만 판정. 49차는 이전 연도 소득표·자산 6.40억 — 원문 금액을 결정표에 직접 적었다.
   장기전세2는 5년 계속 무소유(`owned_home_in_5y`). 장기전세 우선공급 5종은 미지원. `tools/gen_c5_jeonse.py`, `tests/test_c5_jeonse.py`.
-- pytest: 총 **540개 전부 통과**(약 6분 — 원문 대조가 PDF 26건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(4~6분).
+- **D1(2026-10-22)**: 한 번 입력해 전 공고·계층을 판정하는 `src/matcher.py` + 화면 `pages/1_내_조건으로_공고_찾기.py`.
+  같은 질문의 계층별 뜻(주택 소유·소득·자산이 본인/세대/본인+부모/세대주 여부에 따라)은 `rules/reference/input_scope.json`이
+  정하고, 매처가 계층마다 `HouseholdProfile`을 만들어 기존 `evaluate`로 판정한다(엔진·규칙 불변). 생년월일 → 공고별 만 나이.
+  트랙이 다른 계층 이름인 계층(부천 주거약자)은 트랙마다 그 계층의 범위로 판정해 합친다. 검증 `tests/test_matcher.py`
+  (본인=세대 입력이면 공고별 직접 판정과 같음, 범위가 갈리는 손 사례).
+- pytest: 총 **616개 전부 통과**(약 11분 — 원문 대조가 PDF 26건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(4~6분, 12단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
-- **다음 과제 후보: D 단계 — "한 프로필로 26개 공고 전체를 판정해 신청 가능한 공고 목록"을 보여 주는 화면**(07 §9),
-  또는 남은 미지원(장기전세 우선공급 5종). 공고 26건은 모두 판정 가능하다. 상세는
+- **다음 과제 후보: D2**(프로필 저장·API, 공고 접수기간 표시) 또는 남은 미지원(장기전세 우선공급 5종). 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 
 ## 반드시 지켜야 할 원칙 (요약 — 근거는 docs/01-decisions-log.md)
@@ -139,9 +143,10 @@ Engine**이다.
 - `src/priority_scoring.py` — 우선공급 배점(verdict와 분리된 별도 점수)
 - `src/profiles_data.py` — 테스트용 프로필 12개 + 수기 정답지
 - `src/explainability.py` — EvaluationResult → 사용자용 근거 문구(Explanation) 변환
-- `app.py` — Streamlit 데모 UI (판정 로직 없음, src/ 함수만 호출)
+- `app.py` — Streamlit 데모 UI: 공고 하나 판정 (판정 로직 없음, src/ 함수만 호출)
+- `pages/1_내_조건으로_공고_찾기.py` — 전체 공고 판정 화면(src/matcher.py)
 - `mvp0/` — **실행 대상 아님.** 초기 스냅샷(옛 버전), `mvp0/README.md` 참조
-- `tests/` — pytest 스위트, **총 540개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
+- `tests/` — pytest 스위트, **총 616개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
   explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22 + 규칙 데이터화·골든·가구원수 모순 MVP0.6·원문 대조 P4·C1 공고 추가·C2 지역·C3 새 계층)
 - `data/*.xlsx` — MVP0 설계 워크북 원본 (programs/notices/rules/reference_values/
   income_basis/profiles/match_matrix 시트 — 코드보다 사람이 보기 편한 원본)
