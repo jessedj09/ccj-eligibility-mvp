@@ -14,6 +14,7 @@
 11) 장기전세2(C5b): 5년 무소유 질문은 그 사업에만
 12) 전체 공고 찾기 페이지(D): 범위가 갈리는 입력(본인 무주택·세대 주택 보유)으로 청년 계층이 신청 가능, 든든전세는 아님
 13) 접수 상태(D2): 기준일 2026.10.14.이면 접수 중인 공고만 보이고, 2026.10.22.이면(전부 마감) 안내가 나온다
+14) 내 조건 불러오기(D2b): 저장 파일 내용을 입력란에 채우면 그 프로필을 직접 판정한 것과 결과 수가 같다
 """
 import os
 import sys
@@ -238,6 +239,49 @@ def main():
     assert any("접수 중이거나 접수 예정인 공고가 없습니다" in i.value for i in at.info)
     assert sum(int(m.value) for m in at.metric) == 0
     print("13) 접수 상태(D2): 10.14. 접수 중 공고 5건의 계층", total, "개만 표시 / 10.22. 전부 마감 안내")
+
+    # 14) 불러오기(D2b) — 파일 업로드 대신 불러오기가 하는 일(widget_state → session_state)을 그대로 재현한다
+    from matcher import MasterProfile, match_all
+    from profile_form import widget_state
+    from profile_io import master_from_dict, master_to_dict
+    # 본인·세대 값이 크게 달라 범위를 잘못 옮기면 판정이 갈리는 프로필(부모와 사는 미혼 청년 + 기혼 세대주 두 가지)
+    profiles = [MasterProfile(
+        home_self="무주택", home_household="주택보유", income_self=1_000_000, income_household=12_000_000,
+        assets_self=10_000_000, assets_household=900_000_000, car_self=0, car_household=50_000_000,
+        birth_date=date(2001, 3, 1),
+        common=dict(marital_status="미혼", household_size=3, house_head_status="세대원", dual_income=False,
+                    children_birth_dates=[], residence_area="서울특별시", school_area="서울특별시", student_status="재학중",
+                    parents_count=2, parents_monthly_income=3_000_000, is_employed=True, is_social_rookie=True,
+                    registered_with_parents=True, welfare_status="해당없음", parent_welfare_status="해당없음")),
+        MasterProfile(
+        home_self="무주택", home_household="무주택", income_self=2_500_000, income_household=5_000_000,
+        assets_self=30_000_000, assets_household=120_000_000, car_self=0, car_household=15_000_000,
+        birth_date=date(1994, 5, 17),
+        common=dict(marital_status="혼인중", marriage_date=date(2023, 3, 2), household_size=3, house_head_status="세대주",
+                    dual_income=True, children_birth_dates=[date(2025, 1, 9)], residence_area="서울특별시",
+                    income_base_area="서울특별시", spouse_residence_area="서울특별시", owned_home_in_5y=False,
+                    housing_weak_type="해당없음", supports_elderly_parent_1y=True))]
+    for saved in map(master_to_dict, profiles):
+        m = master_from_dict(saved)
+        at = AppTest.from_file(str(ROOT / "pages" / "1_내_조건으로_공고_찾기.py"), default_timeout=120)
+        for k, v in widget_state(m).items():
+            at.session_state[k] = v
+        at.run()
+        assert not at.exception, at.exception
+        assert not at.warning, [w.value for w in at.warning]       # value=와 session_state 충돌 경고 없음
+        at.button(key="m_run").click().run()
+        at.radio(key="m_view").set_value("전체 공고(마감 포함)").run()
+        assert not at.exception, at.exception
+        got = {m_.label: int(m_.value) for m_ in at.metric}
+        direct = [x.verdict for x in match_all(m, ALL_NOTICES)]
+        want = {"✅ 신청 가능": direct.count("ELIGIBLE"), "🔍 수동 확인 필요": direct.count("MANUAL_REVIEW"),
+                "⚠️ 추가 정보 필요": direct.count("NEEDS_INFO"), "❌ 신청 불가": direct.count("INELIGIBLE")}
+        assert got == want, (got, want)
+        # 결과 수만이 아니라 어떤 공고·계층이 나왔는지까지(신청 불가를 뺀 펼침 목록) 같아야 한다
+        rows = {e.label.split(" | ")[2] for e in at.expander if " | " in e.label}
+        rows_want = {f"{x.notice.title} · {x.layer}" for x in match_all(m, ALL_NOTICES) if x.verdict != "INELIGIBLE"}
+        assert rows == rows_want, (rows ^ rows_want)
+        print("14) 내 조건 불러오기(D2b): 화면 판정 = 직접 판정", got)
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)

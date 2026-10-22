@@ -24,6 +24,25 @@ streamlit run app.py
 `app.py`는 순수 렌더링 레이어다 — 판정 로직은 전혀 갖지 않고 `src/rule_engine.py`
 (`evaluate`, `validate_profile`)와 `src/explainability.py`(`explain`)를 그대로 호출한다.
 
+"내 조건으로 공고 찾기" 화면에서 입력한 조건은 **"내 조건 파일로 저장"**으로 내려받고 다음에 **불러오기**로 다시 채울 수 있다.
+서버에는 저장하지 않는다(소득·자산 같은 개인정보).
+
+## 판정 API (선택)
+
+```bash
+pip install -r requirements-api.txt
+uvicorn api.main:app --reload        # 문서: http://127.0.0.1:8000/docs
+```
+
+| 요청 | 내용 |
+|---|---|
+| `GET /notices?at=2026-10-14T12:00` | 공고 목록·계층·접수 상태(기준 시각, 기본 지금·한국 시간) |
+| `POST /evaluate` | `{"notice_id": "N1", "layer": "신혼부부", "profile": {HouseholdProfile 항목}}` → 판정과 근거 |
+| `POST /match` | `{"profile": 저장 파일 내용, "at": …, "only_open": true}` → 전 공고·계층 판정 |
+
+화면에서 저장한 파일이 그대로 `/match`의 `profile`이 된다. API도 판정 로직을 갖지 않는다(같은 엔진·매처 호출).
+Streamlit Cloud 배포에는 포함되지 않는다 — 외부 공개는 별도 결정.
+
 ## 테스트 실행
 
 ```bash
@@ -32,7 +51,7 @@ python -m pytest -q
 ```
 
 - 회귀(match_matrix 대조) 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 + explainability 6 +
-  MVP0.1 재현/수정 28 + MVP0.2 수동검토 34 + MVP0.3 자녀 수 계산 22 + 규칙 데이터화·골든·가구원수 모순(MVP0.6)·원문 대조(P4)·C1 공고 추가·C2 지역·C3 새 계층·C3.1 보강·C4a 순위·유형·C4b SH·C5a 주거약자용·C5b 장기전세·C5c 우선공급·D1 전체 판정·D2a 접수 상태 = **총 649개**, 모두 통과해야 한다.
+  MVP0.1 재현/수정 28 + MVP0.2 수동검토 34 + MVP0.3 자녀 수 계산 22 + 규칙 데이터화·골든·가구원수 모순(MVP0.6)·원문 대조(P4)·C1 공고 추가·C2 지역·C3 새 계층·C3.1 보강·C4a 순위·유형·C4b SH·C5a 주거약자용·C5b 장기전세·C5c 우선공급·D1 전체 판정·D2a 접수 상태·D2b 저장·API = **총 669개**, 모두 통과해야 한다.
 - 테스트가 검증하는 것과 검증하지 못하는 것의 차이는
   [docs/03-validation-methodology.md](docs/03-validation-methodology.md)를 반드시 읽을 것.
 
