@@ -2656,5 +2656,659 @@
    "note": "신청자 본인이 주거약자인지 — 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
    "timing": "NOW"
   }
+ ],
+ "N23/신혼부부(전용 60㎡ 이하)": [
+  {
+   "id": "N23-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "공고일 현재 서울특별시에 거주하는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "신혼부부(혼인 7년 이내) 또는 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "해당 세대 월평균소득이 120%(맞벌이 180%) 이하인지 — 전용 60㎡ 이하 주택 신청 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-5y",
+   "field": "owned_home_in_5y",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "신청자와 배우자(예비배우자)가 5년 동안(2021-04-25 이후) 계속 주택을 소유하지 않았는지",
+   "timing": "NOW"
+  }
+ ],
+ "N23/신혼부부(전용 60㎡ 초과)": [
+  {
+   "id": "N23-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "공고일 현재 서울특별시에 거주하는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "신혼부부(혼인 7년 이내) 또는 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "해당 세대 월평균소득이 150%(맞벌이 200%) 이하인지 — 전용 60㎡ 초과 주택 신청 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N23-5y",
+   "field": "owned_home_in_5y",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "신청자와 배우자(예비배우자)가 5년 동안(2021-04-25 이후) 계속 주택을 소유하지 않았는지",
+   "timing": "NOW"
+  }
+ ],
+ "N24/신혼부부(전용 60㎡ 이하)": [
+  {
+   "id": "N24-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "공고일 현재 서울특별시에 거주하는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "신혼부부(혼인 7년 이내) 또는 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "해당 세대 월평균소득이 120%(맞벌이 180%) 이하인지 — 전용 60㎡ 이하 주택 신청 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-5y",
+   "field": "owned_home_in_5y",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "신청자와 배우자(예비배우자)가 5년 동안(2021-08-22 이후) 계속 주택을 소유하지 않았는지",
+   "timing": "NOW"
+  }
+ ],
+ "N24/신혼부부(주거약자형·전용 60㎡ 이하)": [
+  {
+   "id": "N24-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "공고일 현재 서울특별시에 거주하는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "신혼부부(혼인 7년 이내) 또는 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "해당 세대 월평균소득이 120%(맞벌이 180%) 이하인지 — 전용 60㎡ 이하 주택 신청 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-5y",
+   "field": "owned_home_in_5y",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "신청자와 배우자(예비배우자)가 5년 동안(2021-08-22 이후) 계속 주택을 소유하지 않았는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-W-weak",
+   "field": "housing_weak_type/age",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+   "timing": "NOW"
+  }
+ ],
+ "N24/신혼부부(전용 60㎡ 초과)": [
+  {
+   "id": "N24-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "공고일 현재 서울특별시에 거주하는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "신혼부부(혼인 7년 이내) 또는 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "해당 세대 월평균소득이 150%(맞벌이 200%) 이하인지 — 전용 60㎡ 초과 주택 신청 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N24-5y",
+   "field": "owned_home_in_5y",
+   "required": true,
+   "source_ref": "공고문 p.13",
+   "note": "신청자와 배우자(예비배우자)가 5년 동안(2021-08-22 이후) 계속 주택을 소유하지 않았는지",
+   "timing": "NOW"
+  }
+ ],
+ "N25/일반(전용 60㎡ 이하)": [
+  {
+   "id": "N25-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 서울특별시에 거주하는지(상계장암지구는 의정부시 거주자 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "해당 세대 월평균소득이 105%(맞벌이 140%) 이하인지 — 전용 60㎡ 이하 주택 기준(순위별 상한 중 최대; 출생자녀 가산 반영)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  }
+ ],
+ "N25/일반(주거약자형·전용 60㎡ 이하)": [
+  {
+   "id": "N25-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 서울특별시에 거주하는지(상계장암지구는 의정부시 거주자 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "해당 세대 월평균소득이 105%(맞벌이 140%) 이하인지 — 전용 60㎡ 이하 주택 기준(순위별 상한 중 최대; 출생자녀 가산 반영)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-W-weak",
+   "field": "housing_weak_type/age",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+   "timing": "NOW"
+  }
+ ],
+ "N25/일반(전용 60㎡ 초과)": [
+  {
+   "id": "N25-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 서울특별시에 거주하는지(상계장암지구는 의정부시 거주자 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "해당 세대 월평균소득이 150%(맞벌이 200%) 이하인지 — 전용 60㎡ 초과 주택 기준(순위별 상한 중 최대; 출생자녀 가산 반영)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N25-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  }
+ ],
+ "N26/일반(전용 60㎡ 이하)": [
+  {
+   "id": "N26-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 서울특별시에 거주하는지(상계장암지구는 의정부시 거주자 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "해당 세대 월평균소득이 105%(맞벌이 140%) 이하인지 — 전용 60㎡ 이하 주택 기준(순위별 상한 중 최대; 출생자녀 가산 반영)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  }
+ ],
+ "N26/일반(주거약자형·전용 60㎡ 이하)": [
+  {
+   "id": "N26-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 서울특별시에 거주하는지(상계장암지구는 의정부시 거주자 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "해당 세대 월평균소득이 105%(맞벌이 140%) 이하인지 — 전용 60㎡ 이하 주택 기준(순위별 상한 중 최대; 출생자녀 가산 반영)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-W-weak",
+   "field": "housing_weak_type/age",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+   "timing": "NOW"
+  }
+ ],
+ "N26/일반(전용 60㎡ 초과)": [
+  {
+   "id": "N26-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 서울특별시에 거주하는지(상계장암지구는 의정부시 거주자 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "해당 세대 월평균소득이 150%(맞벌이 200%) 이하인지 — 전용 60㎡ 초과 주택 기준(순위별 상한 중 최대; 출생자녀 가산 반영)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N26-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+   "timing": "NOW"
+  }
  ]
 }

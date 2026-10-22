@@ -24,6 +24,18 @@ def _load(name):
 GEN_C1 = _load("gen_c1_notices")
 
 
+def test_rerunning_c5_jeonse_generator_reproduces_committed_files(tmp_path, monkeypatch):
+    """C5b(SH 장기전세·장기전세2)는 공고 파일 전체를 만든다 — 다시 돌린 결과가 커밋 파일과 같아야 한다."""
+    gen = _load("gen_c5_jeonse")
+    (tmp_path / "rules" / "notices").mkdir(parents=True)
+    monkeypatch.setattr(gen, "ROOT", tmp_path)
+    gen.main()
+    for plan in gen.PLAN:
+        nid = plan["nid"]
+        assert json.loads((tmp_path / "rules" / "notices" / f"{nid}.json").read_text(encoding="utf-8")) == \
+            json.loads((ROOT / "rules" / "notices" / f"{nid}.json").read_text(encoding="utf-8")), nid
+
+
 def test_rerunning_c5_generator_keeps_committed_files(tmp_path, monkeypatch):
     """C5(주거약자용 변형 계층)는 기존 파일을 읽어 변형 계층만 다시 만든다 — 결과가 커밋 파일과 같아야 한다."""
     import shutil

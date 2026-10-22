@@ -202,6 +202,8 @@ class HouseholdProfile:
     housing_weak_type: Optional[str] = None
     # 신청자 본인: "장애인" / "국가유공자(상이 1~7급)" / "보훈보상대상자(상이 1~7급)" / "5·18민주화운동부상자(장해 1~14급)" /
     # "고엽제후유의증환자(경도 이상)" / "국가유공자에 준하는 군경(상이 1~7급)" / "해당없음"
+    owned_home_in_5y: Optional[bool] = None
+    # C5b(SH 장기전세2): 신청자·배우자(예비배우자)가 공고일 기준 최근 5년 안에 주택을 소유한 적이 있는지 — 없어야(False) 충족
 
     def __post_init__(self):
         if self.children_birth_dates is not None:

@@ -293,6 +293,7 @@ C4_BOOLS = {
     "is_supported_single_parent": "지원대상 한부모가족(본인 이름으로 한부모가족 증명서 발급 가능)",
     "registered_with_parents": "부모와 같은 주민등록표에 등재돼 있음",
     "is_employed": "현재 취업 중",
+    "owned_home_in_5y": "신청자·배우자(예비배우자)가 공고일 기준 최근 5년 안에 주택을 소유한 적 있음",
 }
 C4_AMOUNTS = {
     "parents_monthly_income": "부모 월평균소득 합계(원)",

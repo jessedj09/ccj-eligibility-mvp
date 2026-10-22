@@ -69,6 +69,15 @@ DATES = {
                 adult=date(2007, 8, 24), newborn=date(2024, 8, 25)),
     "N22": dict(ann=date(2026, 8, 28), marriage=date(2019, 8, 29), child=date(2019, 8, 29), grad=date(2024, 8, 28),
                 adult=date(2007, 8, 28)),
+    # C5b(SH 장기전세2·장기전세): 혼인 기준일은 원문(SH25 p.13 "2019. 4. 25. 이후", SH26 p.13 "2019. 8. 22. 이후")
+    "N23": dict(ann=date(2026, 4, 24), marriage=date(2019, 4, 25), child=date(2019, 4, 25), grad=date(2024, 4, 24),
+                adult=date(2007, 4, 24)),
+    "N24": dict(ann=date(2026, 8, 21), marriage=date(2019, 8, 22), child=date(2019, 8, 22), grad=date(2024, 8, 21),
+                adult=date(2007, 8, 21)),
+    "N25": dict(ann=date(2025, 12, 15), marriage=date(2018, 12, 16), child=date(2018, 12, 16), grad=date(2023, 12, 15),
+                adult=date(2006, 12, 15)),
+    "N26": dict(ann=date(2026, 4, 27), marriage=date(2019, 4, 28), child=date(2019, 4, 28), grad=date(2024, 4, 27),
+                adult=date(2007, 4, 27)),
 }
 # 지역 조건이 있는 공고와 계층별 지역 입력(원문 PDF의 순위 문구에서 손으로 옮김). 다른 공고에는 지역 입력을 넣지 않는다
 # — 넣으면 기존 그룹의 입력·난수 소비가 바뀌어 골든 기록 전체가 달라진다.
@@ -87,7 +96,15 @@ REGION_FIELDS_BY_LAYER["N22"] = {"일반": ["residence_area"]}     # SH 장기�
 # --- C4a 사업별 입력 풀(원문 금액의 경계 ±1원을 손으로 적은 고정 값) --------------------------------------
 PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_rental", "N14": "newlywed_rental",
               "N15": "newlywed_rental", "N16": "jeonse", "N17": "jeonse",
-              "N18": "sh_newlywed", "N19": "sh_newlywed", "N20": "sh_newlywed", "N21": "sh_newlywed", "N22": "jeonse"}
+              "N18": "sh_newlywed", "N19": "sh_newlywed", "N20": "sh_newlywed", "N21": "sh_newlywed", "N22": "jeonse",
+              "N23": "sh_jeonse2", "N24": "sh_jeonse2", "N25": "sh_jeonse", "N26": "sh_jeonse"}
+J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
+                            for d in (-1, 0, 1)] + [40_000_000]
+JS_INCOME = [None, 0, 1] + [v + d for v in (4_004_031, 8_576_850, 9_393_693, 10_210_536, 11_435_801, 12_252_644,
+                                            16_336_858, 3_778_072, 8_008_322, 5_397_246) for d in (-1, 0, 1)] + [40_000_000]
+J_ASSETS = [None, 0, 1] + [v + d for v in (640_000_000, 662_000_000, 704_000_000, 728_000_000, 768_000_000, 794_000_000)
+                           for d in (0, 1)]
+J_CARS = [0, 1, "확인불가"] + [v + d for v in (45_420_000, 45_630_000, 49_960_000, 54_510_000) for d in (0, 1)]
 SH_INCOME = [None, 0, 1] + [v + d for v in (4_693_016, 5_717_900, 7_351_586, 6_934_384, 8_212_778, 10_618_958,
                                             16_336_858, 12_878_142) for d in (-1, 0, 1)] + [90_000_000]
 WELFARE = [None, "해당없음", "생계·의료·주거급여 수급자", "교육급여만 수급", "차상위계층"]
@@ -130,6 +147,17 @@ def _program_attributes(program: str, layer: str, pools) -> Dict[str, Tuple[list
             "youngest": (pools["youngest"], None), "welfare": (WELFARE, "해당없음"),
             "supported": ([None, False, True], False),
         }
+    if program in ("sh_jeonse2", "sh_jeonse"):
+        attrs = {
+            "home": (["무주택", "주택보유"], "무주택"), "marital": (MARITALS, "혼인중"), "size": (SIZES + [6], 3),
+            "kids": (pools["kids"], []), "count": (COUNTS, 0), "dual": ([True, False], False),
+            "income": (J2_INCOME if program == "sh_jeonse2" else JS_INCOME, 1), "assets": (J_ASSETS, 1),
+            "car": (J_CARS, 0), "age": ([17, 18, 19, 40, 64, 65], 33),
+            "residence_area": ([None, "서울특별시", "의정부시", "고양시", "부산광역시"], "서울특별시"),
+        }
+        if program == "sh_jeonse2":
+            attrs.update(marriage=(pools["marriage"], date(2025, 1, 1)), owned5=([None, False, True], False))
+        return attrs
     return {   # jeonse — 소득·자산 요건이 없으므로 아무 값이나 넣어도 판정이 바뀌지 않는지 기록
         "home": (["무주택", "주택보유"], "무주택"), "marital": (MARITALS, "미혼"), "age": ([17, 18, 19, 40], 40),
         "size": (SIZES, 3), "kids": (pools["kids"], None), "count": (COUNTS, 0),
@@ -157,6 +185,11 @@ GROUPS: List[Tuple[str, str]] = [
     # C5a — 주거약자용 주택형(기본 계층 + 주거약자 조건)
     ("N4", "신혼부부(주거약자용)"), ("N4", "한부모(주거약자용)"), ("N7", "신혼부부(주거약자용)"), ("N7", "한부모(주거약자용)"),
     ("N8", "신혼부부(주거약자용)"), ("N8", "한부모(주거약자용)"), ("N5", "주거약자(26A1/B1형)"),
+    # C5b — SH 장기전세2·장기전세(면적별 변형 계층)
+    ("N23", "신혼부부(전용 60㎡ 이하)"), ("N23", "신혼부부(전용 60㎡ 초과)"),
+    ("N24", "신혼부부(전용 60㎡ 이하)"), ("N24", "신혼부부(주거약자형·전용 60㎡ 이하)"), ("N24", "신혼부부(전용 60㎡ 초과)"),
+    ("N25", "일반(전용 60㎡ 이하)"), ("N25", "일반(주거약자형·전용 60㎡ 이하)"), ("N25", "일반(전용 60㎡ 초과)"),
+    ("N26", "일반(전용 60㎡ 이하)"), ("N26", "일반(주거약자형·전용 60㎡ 이하)"), ("N26", "일반(전용 60㎡ 초과)"),
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -236,6 +269,11 @@ def _pools(nid: str) -> Dict[str, list]:
 
 def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, object]]:
     """계층별 (값 풀, 기준 프로필의 기본값). 기본값은 '모든 조건이 통과'하는 쪽."""
+    if PROGRAM_OF.get(nid) in ("sh_jeonse2", "sh_jeonse"):   # C5b: 사업 전용 풀(변형 계층 공통) + 주거약자형이면 주거약자
+        attrs = _program_attributes(PROGRAM_OF[nid], layer, pools)
+        if "주거약자" in layer:
+            attrs["weak"] = (WEAK, "장애인")
+        return attrs
     if "(" in layer:                  # 주택형 변형 계층(C5): 기본 계층 입력 + 주거약자 유형·나이
         base = layer.split("(")[0]
         bases = ["지역전략산업종사자", "청년", "대학생"] if base == "주거약자" else [base]
@@ -310,7 +348,8 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
                                             ("parents_income", "parents_monthly_income"),
                                             ("parents_assets", "parents_total_assets"),
                                             ("parents_car", "parents_car_value"),
-                                            ("weak", "housing_weak_type")) if key in v})
+                                            ("weak", "housing_weak_type"),
+                                            ("owned5", "owned_home_in_5y")) if key in v})
 
 
 # 통과 값에 가중해서 '모든 조건이 통과 근처'인 영역(경계가 실제로 판정을 가르는 영역)을 충분히 뽑는다

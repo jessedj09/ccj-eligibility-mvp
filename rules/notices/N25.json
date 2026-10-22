@@ -1,0 +1,1234 @@
+{
+  "notice_id": "N25",
+  "title": "SH 제49차 장기전세주택",
+  "announcement_date": "2025-12-15",
+  "issuer": "SH",
+  "program": "SH 장기전세주택",
+  "version": 1,
+  "valid_from": "2025-12-15",
+  "supersedes": null,
+  "source": {
+    "document": "제49차 장기전세주택 입주자 모집공고문.pdf",
+    "sha256": "550bca32d5dcd906cf66dfa69730998aeeda6aca47d5c8a7e5593f27e1af9624",
+    "pages": 56
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "C5b 생성(tools/gen_c5_jeonse.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+    "log": []
+  },
+  "notes": [
+    "이 공고는 2025.12.15. 공고라 소득 기준이 이전 연도 도시근로자 소득표다(3인 105% 8,008,322원).",
+    "순위(청약저축 회차, 85㎡ 초과 청약예금, 매입형 자치구)는 자격이 아니라 접수 순서다 — 선순위 접수가 마감되면 후순위는 접수 자체가 없을 수 있다(p.6~7).",
+    "상계장암지구는 의정부시 거주자도 신청할 수 있다(p.20)."
+  ],
+  "unsupported_layers": [
+    {
+      "name": "우선공급(고령자·장애인·노부모부양·2자녀·국가유공자)",
+      "page": 29,
+      "note": "서울시 매입형 60㎡ 이하 우선공급 — 유형별 추가 자격(부양기간 등) 구현 후 지원 예정"
+    }
+  ],
+  "tables": {
+    "js_income_60이하": {
+      "label": "장기전세 소득 상한(전용 60㎡ 이하): 가구원수×출생자녀×맞벌이 — 105%(맞벌이 140%), 출생자녀 +10%p/+20%p(맞벌이와 중복 없음)",
+      "columns": [
+        "size",
+        "child",
+        "dual"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        },
+        "dual": {
+          "var": "dual_income"
+        }
+      },
+      "outputs": [
+        "limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "child": "any",
+            "dual": true
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수 1인인데 맞벌이로 입력했습니다(원문 표의 1인 맞벌이 칸은 비어 있음). 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            3778072
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": 1,
+            "dual": false
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수 1인인데 출생자녀 가산 대상 자녀가 있습니다(원문 표 빈칸)."
+          }
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": "2+",
+            "dual": false
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수 1인인데 출생자녀 가산 대상 자녀가 2명 이상입니다(원문 표 빈칸)."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            7667804
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            5750853
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            6298553
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "2+",
+            "dual": false
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수 2인인데 출생자녀 가산 대상 자녀가 2명 이상입니다(원문 표 빈칸)."
+          }
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            10677762
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            8008322
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            8771019
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            9533716
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            12009323
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            9006992
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            9864801
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            10722610
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            12643467
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            9482600
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            10385705
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            11288810
+          ]
+        },
+        {
+          "when": {
+            "size": 6,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            13626320
+          ]
+        },
+        {
+          "when": {
+            "size": 6,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            10219740
+          ]
+        },
+        {
+          "when": {
+            "size": 6,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            11193049
+          ]
+        },
+        {
+          "when": {
+            "size": 6,
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            12166358
+          ]
+        },
+        {
+          "when": {
+            "size": "7+",
+            "child": "any",
+            "dual": "any"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "AMBIGUOUS_SOURCE",
+            "detail": "원문 소득표에 7인 이상 가구 금액이 없습니다(1~6인만 표기)."
+          }
+        }
+      ],
+      "source": {
+        "quote": [
+          "3,778,072원",
+          "5,750,853원",
+          "8,008,322원",
+          "9,006,992원",
+          "9,482,600원",
+          "10,219,740원",
+          "7,667,804원",
+          "10,677,762원",
+          "12,009,323원",
+          "12,643,467원",
+          "13,626,320원"
+        ],
+        "page": 23
+      }
+    },
+    "js_income_60초과": {
+      "label": "장기전세 소득 상한(전용 60㎡ 초과): 가구원수×출생자녀×맞벌이 — 150%(맞벌이 200%), 출생자녀 +10%p/+20%p(맞벌이와 중복 없음)",
+      "columns": [
+        "size",
+        "child",
+        "dual"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        },
+        "dual": {
+          "var": "dual_income"
+        }
+      },
+      "outputs": [
+        "limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "child": "any",
+            "dual": true
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수 1인인데 맞벌이로 입력했습니다(원문 표의 1인 맞벌이 칸은 비어 있음). 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            5397246
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": 1,
+            "dual": false
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수 1인인데 출생자녀 가산 대상 자녀가 있습니다(원문 표 빈칸)."
+          }
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": "2+",
+            "dual": false
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수 1인인데 출생자녀 가산 대상 자녀가 2명 이상입니다(원문 표 빈칸)."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            10954006
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            8215505
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            8763205
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "2+",
+            "dual": false
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수 2인인데 출생자녀 가산 대상 자녀가 2명 이상입니다(원문 표 빈칸)."
+          }
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            15253946
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            11440460
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            12203157
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            12965854
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            17156176
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            12867132
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            13724941
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            14582750
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            18062096
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            13546572
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            14449677
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            15352782
+          ]
+        },
+        {
+          "when": {
+            "size": 6,
+            "child": "any",
+            "dual": true
+          },
+          "out": [
+            19466172
+          ]
+        },
+        {
+          "when": {
+            "size": 6,
+            "child": 0,
+            "dual": false
+          },
+          "out": [
+            14599629
+          ]
+        },
+        {
+          "when": {
+            "size": 6,
+            "child": 1,
+            "dual": false
+          },
+          "out": [
+            15572938
+          ]
+        },
+        {
+          "when": {
+            "size": 6,
+            "child": "2+",
+            "dual": false
+          },
+          "out": [
+            16546246
+          ]
+        },
+        {
+          "when": {
+            "size": "7+",
+            "child": "any",
+            "dual": "any"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "AMBIGUOUS_SOURCE",
+            "detail": "원문 소득표에 7인 이상 가구 금액이 없습니다(1~6인만 표기)."
+          }
+        }
+      ],
+      "source": {
+        "quote": [
+          "5,397,246원",
+          "8,215,505원",
+          "11,440,460원",
+          "12,867,132원",
+          "13,546,572원",
+          "14,599,629원",
+          "10,954,006원",
+          "15,253,946원",
+          "17,156,176원",
+          "18,062,096원",
+          "19,466,172원"
+        ],
+        "page": 23
+      }
+    },
+    "js_assets": {
+      "label": "자산·자동차 기준: 2023.3.28. 이후 출생 자녀(태아 포함) — 1명 / 2명 이상 또는 1명+기존 미성년 자녀",
+      "columns": [
+        "child"
+      ],
+      "inputs": {
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "child": 0
+          },
+          "out": [
+            640000000,
+            45630000
+          ]
+        },
+        {
+          "when": {
+            "child": 1
+          },
+          "out": [
+            704000000,
+            50200000
+          ]
+        },
+        {
+          "when": {
+            "child": "2+"
+          },
+          "out": [
+            768000000,
+            54760000
+          ]
+        }
+      ],
+      "source": {
+        "quote": [
+          "64,000만원",
+          "70,400만원",
+          "76,800만원",
+          "4,563만원",
+          "5,020만원",
+          "5,476만원"
+        ],
+        "page": 24
+      }
+    }
+  },
+  "layers": {
+    "일반(전용 60㎡ 이하)": {
+      "conditions": [
+        {
+          "id": "N25-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "성년자인 무주택세대구성원으로서"
+            ],
+            "page": 20
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N25-region",
+          "field": "residence_area",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재 서울특별시에 거주하는 성년자인 무주택세대구성원"
+            ],
+            "page": 20
+          },
+          "note": "공고일 현재 서울특별시에 거주하는지(상계장암지구는 의정부시 거주자 포함)",
+          "check": {
+            "any": [
+              {
+                "eq": [
+                  {
+                    "var": "residence_area"
+                  },
+                  "서울특별시"
+                ]
+              },
+              {
+                "eq": [
+                  {
+                    "var": "residence_area"
+                  },
+                  "의정부시"
+                ],
+                "review_if_true": {
+                  "code": "AMBIGUOUS_SOURCE",
+                  "detail": "의정부시 거주자는 상계장암지구 주택을 신청할 때만 포함된다(원문) — 신청 단지를 확인해야 함"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N25-adult",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "민법상 미성년자(만19세 미만)·외국인은 신청할 수 없습니다"
+            ],
+            "page": 20
+          },
+          "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+          "check": {
+            "any": [
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  19
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "age"
+                  },
+                  18
+                ],
+                "review_if_true": {
+                  "code": "SELF_REPORT_UNVERIFIED",
+                  "detail": "미성년자는 원문의 예외(자녀가 있는 미성년 세대주 등)에 해당할 때만 신청 가능 — 예외 여부는 확인하지 않음"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N25-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "신청주택 면적 별로 각각 아래 기준 이하인 자"
+            ],
+            "page": 23
+          },
+          "note": "해당 세대 월평균소득이 105%(맞벌이 140%) 이하인지 — 전용 60㎡ 이하 주택 기준(순위별 상한 중 최대; 출생자녀 가산 반영)",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "term": "limit"
+              }
+            ]
+          },
+          "table": "js_income_60이하"
+        },
+        {
+          "id": "N25-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "가액 합산: 64,000만원 이하"
+            ],
+            "page": 24
+          },
+          "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "js_assets"
+        },
+        {
+          "id": "N25-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "보건복지부장관이 정하는 금액: 4,563만원 이하"
+            ],
+            "page": 24
+          },
+          "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "js_assets"
+        }
+      ]
+    },
+    "일반(주거약자형·전용 60㎡ 이하)": {
+      "conditions": [
+        {
+          "id": "N25-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "성년자인 무주택세대구성원으로서"
+            ],
+            "page": 20
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N25-region",
+          "field": "residence_area",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재 서울특별시에 거주하는 성년자인 무주택세대구성원"
+            ],
+            "page": 20
+          },
+          "note": "공고일 현재 서울특별시에 거주하는지(상계장암지구는 의정부시 거주자 포함)",
+          "check": {
+            "any": [
+              {
+                "eq": [
+                  {
+                    "var": "residence_area"
+                  },
+                  "서울특별시"
+                ]
+              },
+              {
+                "eq": [
+                  {
+                    "var": "residence_area"
+                  },
+                  "의정부시"
+                ],
+                "review_if_true": {
+                  "code": "AMBIGUOUS_SOURCE",
+                  "detail": "의정부시 거주자는 상계장암지구 주택을 신청할 때만 포함된다(원문) — 신청 단지를 확인해야 함"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N25-adult",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "민법상 미성년자(만19세 미만)·외국인은 신청할 수 없습니다"
+            ],
+            "page": 20
+          },
+          "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+          "check": {
+            "any": [
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  19
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "age"
+                  },
+                  18
+                ],
+                "review_if_true": {
+                  "code": "SELF_REPORT_UNVERIFIED",
+                  "detail": "미성년자는 원문의 예외(자녀가 있는 미성년 세대주 등)에 해당할 때만 신청 가능 — 예외 여부는 확인하지 않음"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N25-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "신청주택 면적 별로 각각 아래 기준 이하인 자"
+            ],
+            "page": 23
+          },
+          "note": "해당 세대 월평균소득이 105%(맞벌이 140%) 이하인지 — 전용 60㎡ 이하 주택 기준(순위별 상한 중 최대; 출생자녀 가산 반영)",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "term": "limit"
+              }
+            ]
+          },
+          "table": "js_income_60이하"
+        },
+        {
+          "id": "N25-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "가액 합산: 64,000만원 이하"
+            ],
+            "page": 24
+          },
+          "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "js_assets"
+        },
+        {
+          "id": "N25-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "보건복지부장관이 정하는 금액: 4,563만원 이하"
+            ],
+            "page": 24
+          },
+          "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "js_assets"
+        },
+        {
+          "id": "N25-W-weak",
+          "field": "housing_weak_type/age",
+          "required": true,
+          "source": {
+            "quote": [
+              "주거약자형 주택 신청자는 ‘가. 신청자격’에 더하여 아래 신청자격 ①-⑦ 중 한 개 이상의 자격을 추가로"
+            ],
+            "page": 24
+          },
+          "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
+          "check": {
+            "any": [
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  65
+                ]
+              },
+              {
+                "in": [
+                  {
+                    "var": "housing_weak_type"
+                  },
+                  [
+                    "장애인",
+                    "국가유공자(상이 1~7급)",
+                    "보훈보상대상자(상이 1~7급)",
+                    "5·18민주화운동부상자(장해 1~14급)",
+                    "고엽제후유의증환자(경도 이상)",
+                    "국가유공자에 준하는 군경(상이 1~7급)"
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "일반(전용 60㎡ 초과)": {
+      "conditions": [
+        {
+          "id": "N25-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "성년자인 무주택세대구성원으로서"
+            ],
+            "page": 20
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N25-region",
+          "field": "residence_area",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재 서울특별시에 거주하는 성년자인 무주택세대구성원"
+            ],
+            "page": 20
+          },
+          "note": "공고일 현재 서울특별시에 거주하는지(상계장암지구는 의정부시 거주자 포함)",
+          "check": {
+            "any": [
+              {
+                "eq": [
+                  {
+                    "var": "residence_area"
+                  },
+                  "서울특별시"
+                ]
+              },
+              {
+                "eq": [
+                  {
+                    "var": "residence_area"
+                  },
+                  "의정부시"
+                ],
+                "review_if_true": {
+                  "code": "AMBIGUOUS_SOURCE",
+                  "detail": "의정부시 거주자는 상계장암지구 주택을 신청할 때만 포함된다(원문) — 신청 단지를 확인해야 함"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N25-adult",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "민법상 미성년자(만19세 미만)·외국인은 신청할 수 없습니다"
+            ],
+            "page": 20
+          },
+          "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+          "check": {
+            "any": [
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  19
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "age"
+                  },
+                  18
+                ],
+                "review_if_true": {
+                  "code": "SELF_REPORT_UNVERIFIED",
+                  "detail": "미성년자는 원문의 예외(자녀가 있는 미성년 세대주 등)에 해당할 때만 신청 가능 — 예외 여부는 확인하지 않음"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N25-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "신청주택 면적 별로 각각 아래 기준 이하인 자"
+            ],
+            "page": 23
+          },
+          "note": "해당 세대 월평균소득이 150%(맞벌이 200%) 이하인지 — 전용 60㎡ 초과 주택 기준(순위별 상한 중 최대; 출생자녀 가산 반영)",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "term": "limit"
+              }
+            ]
+          },
+          "table": "js_income_60초과"
+        },
+        {
+          "id": "N25-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "가액 합산: 64,000만원 이하"
+            ],
+            "page": 24
+          },
+          "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "js_assets"
+        },
+        {
+          "id": "N25-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "보건복지부장관이 정하는 금액: 4,563만원 이하"
+            ],
+            "page": 24
+          },
+          "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "js_assets"
+        }
+      ]
+    }
+  }
+}

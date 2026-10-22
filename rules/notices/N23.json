@@ -1,0 +1,842 @@
+{
+  "notice_id": "N23",
+  "title": "SH 제7차 장기전세주택2(미리내집)",
+  "announcement_date": "2026-04-24",
+  "issuer": "SH",
+  "program": "SH 장기전세주택2(미리내집)",
+  "version": 1,
+  "valid_from": "2026-04-24",
+  "supersedes": null,
+  "source": {
+    "document": "제7차 장기전세주택2(미리내집) 공고문.pdf",
+    "sha256": "fbeb1fa6c83e99016d9643c9a9e26b60e17f24127e0aad75abc6315241644ce7",
+    "pages": 48
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "C5b 생성(tools/gen_c5_jeonse.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+    "log": []
+  },
+  "notes": [
+    "신청 주택의 전용면적(60㎡ 이하/초과)에 따라 소득 기준이 다르다 — 신청할 주택형의 계층을 고르세요(p.13).",
+    "선정은 가점(서울 거주기간·청약통장)·감점 순이며 신규공급 물량의 40%는 소득 우선배정 — 이 판정과 무관(p.19)."
+  ],
+  "unsupported_layers": [],
+  "tables": {
+    "j2_income_60이하": {
+      "label": "장기전세2 소득 상한(전용 60㎡ 이하): 가구원수×맞벌이 — 120%(맞벌이 180%)",
+      "columns": [
+        "size",
+        "dual"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "dual": {
+          "var": "dual_income"
+        }
+      },
+      "outputs": [
+        "limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "dual": "any"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "신혼부부·예비신혼부부 가구원수는 2인 이상입니다(예비신혼부부는 혼인으로 구성될 세대). 가구원수를 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "dual": false
+          },
+          "out": [
+            7039524
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "dual": true
+          },
+          "out": [
+            10559286
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "dual": false
+          },
+          "out": [
+            9802115
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "dual": true
+          },
+          "out": [
+            14703172
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "dual": false
+          },
+          "out": [
+            10562642
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "dual": true
+          },
+          "out": [
+            15843964
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "dual": false
+          },
+          "out": [
+            11192382
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "dual": true
+          },
+          "out": [
+            16788573
+          ]
+        },
+        {
+          "when": {
+            "size": "6+",
+            "dual": "any"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "AMBIGUOUS_SOURCE",
+            "detail": "원문 소득표에 6인 이상 가구 금액이 없습니다(2~5인만 표기)."
+          }
+        }
+      ],
+      "source": {
+        "quote": [
+          "7,039,524원",
+          "9,802,115원",
+          "10,562,642원",
+          "11,192,382원",
+          "10,559,286원",
+          "14,703,172원",
+          "15,843,964원",
+          "16,788,573원"
+        ],
+        "page": 16
+      }
+    },
+    "j2_income_60초과": {
+      "label": "장기전세2 소득 상한(전용 60㎡ 초과): 가구원수×맞벌이 — 150%(맞벌이 200%)",
+      "columns": [
+        "size",
+        "dual"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "dual": {
+          "var": "dual_income"
+        }
+      },
+      "outputs": [
+        "limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "dual": "any"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "신혼부부·예비신혼부부 가구원수는 2인 이상입니다(예비신혼부부는 혼인으로 구성될 세대). 가구원수를 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "dual": false
+          },
+          "out": [
+            8799405
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "dual": true
+          },
+          "out": [
+            11732540
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "dual": false
+          },
+          "out": [
+            12252644
+          ]
+        },
+        {
+          "when": {
+            "size": 3,
+            "dual": true
+          },
+          "out": [
+            16336858
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "dual": false
+          },
+          "out": [
+            13203303
+          ]
+        },
+        {
+          "when": {
+            "size": 4,
+            "dual": true
+          },
+          "out": [
+            17604404
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "dual": false
+          },
+          "out": [
+            13990478
+          ]
+        },
+        {
+          "when": {
+            "size": 5,
+            "dual": true
+          },
+          "out": [
+            18653970
+          ]
+        },
+        {
+          "when": {
+            "size": "6+",
+            "dual": "any"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "AMBIGUOUS_SOURCE",
+            "detail": "원문 소득표에 6인 이상 가구 금액이 없습니다(2~5인만 표기)."
+          }
+        }
+      ],
+      "source": {
+        "quote": [
+          "8,799,405원",
+          "12,252,644원",
+          "13,203,303원",
+          "13,990,478원",
+          "11,732,540원",
+          "16,336,858원",
+          "17,604,404원",
+          "18,653,970원"
+        ],
+        "page": 17
+      }
+    },
+    "j2_assets": {
+      "label": "자산·자동차 기준: 2023.3.28. 이후 출생 자녀(태아 포함) — 1명 / 2명 이상 또는 1명+기존 미성년 자녀",
+      "columns": [
+        "child"
+      ],
+      "inputs": {
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "child": 0
+          },
+          "out": [
+            662000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "child": 1
+          },
+          "out": [
+            728000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "child": "2+"
+          },
+          "out": [
+            794000000,
+            54510000
+          ]
+        }
+      ],
+      "source": {
+        "quote": [
+          "66,200만원",
+          "72,800만원",
+          "79,400만원",
+          "4,542만원",
+          "4,996만원",
+          "5,451만원"
+        ],
+        "page": 16
+      }
+    }
+  },
+  "layers": {
+    "신혼부부(전용 60㎡ 이하)": {
+      "conditions": [
+        {
+          "id": "N23-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재 서울특별시에 거주하는 무주택세대구성원"
+            ],
+            "page": 13
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N23-region",
+          "field": "residence_area",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재 서울특별시에 거주하는 무주택세대구성원"
+            ],
+            "page": 13
+          },
+          "note": "공고일 현재 서울특별시에 거주하는지",
+          "check": {
+            "eq": [
+              {
+                "var": "residence_area"
+              },
+              "서울특별시"
+            ]
+          }
+        },
+        {
+          "id": "N23-adult",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "민법상 미성년자(만19세 미만)는 공급 신청 할 수 없습니다"
+            ],
+            "page": 13
+          },
+          "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+          "check": {
+            "any": [
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  19
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "age"
+                  },
+                  18
+                ],
+                "review_if_true": {
+                  "code": "SELF_REPORT_UNVERIFIED",
+                  "detail": "미성년자는 원문의 예외(자녀가 있는 미성년 세대주 등)에 해당할 때만 신청 가능 — 예외 여부는 확인하지 않음"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N23-type",
+          "field": "유형",
+          "required": true,
+          "source": {
+            "quote": [
+              "신혼부부는 ①-㉮와 ②~③과 ⑤를, 예비신혼부부는 ①-㉯와 ②~⑤를 모두 갖추어야 함"
+            ],
+            "page": 13
+          },
+          "note": "신혼부부(혼인 7년 이내) 또는 예비신혼부부인지",
+          "tracks": [
+            {
+              "id": "신혼부부",
+              "label": "혼인신고 후 7년 이내",
+              "conditions": [
+                {
+                  "id": "N23-T-newlywed",
+                  "field": "marital_status/marriage_date",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "혼인 신고를 한 날로부터 7년 이내(2019. 4. 25. 이후"
+                    ],
+                    "page": 13
+                  },
+                  "note": "혼인 중이고 혼인신고일이 2019-04-25 이후(당일 포함)인지",
+                  "check": {
+                    "all": [
+                      {
+                        "eq": [
+                          {
+                            "var": "marital_status"
+                          },
+                          "혼인중"
+                        ]
+                      },
+                      {
+                        "gte": [
+                          {
+                            "var": "marriage_date"
+                          },
+                          {
+                            "date": "2019-04-25"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "예비신혼부부",
+              "label": "입주 전까지 혼인 사실을 증명할 예비신혼부부",
+              "conditions": [
+                {
+                  "id": "N23-T-prospective",
+                  "field": "marital_status",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "혼인을 계획 중이며 해당 주택의 입주전까지"
+                    ],
+                    "page": 13
+                  },
+                  "note": "혼인 예정(예비신혼)인지 — 입주 전까지 혼인 사실을 증명해야 함",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "marital_status"
+                      },
+                      "예비신혼"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "N23-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "(전용면적 60㎡ 이하) 해당 무주택세대구성원"
+            ],
+            "page": 13
+          },
+          "note": "해당 세대 월평균소득이 120%(맞벌이 180%) 이하인지 — 전용 60㎡ 이하 주택 신청 기준",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "term": "limit"
+              }
+            ]
+          },
+          "table": "j2_income_60이하"
+        },
+        {
+          "id": "N23-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "⑷ ⑴,⑵,⑶에 해당하지 않는 경우: 66,200만원"
+            ],
+            "page": 13
+          },
+          "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "j2_assets"
+        },
+        {
+          "id": "N23-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "⑷ ⑴,⑵,⑶에 해당하지 않는 경우: 4,542만원"
+            ],
+            "page": 13
+          },
+          "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "j2_assets"
+        },
+        {
+          "id": "N23-5y",
+          "field": "owned_home_in_5y",
+          "required": true,
+          "source": {
+            "quote": [
+              "5년 동안(2021. 4. 25.이후) 계속하여 주택을 소유하지 않았을 것"
+            ],
+            "page": 13
+          },
+          "note": "신청자와 배우자(예비배우자)가 5년 동안(2021-04-25 이후) 계속 주택을 소유하지 않았는지",
+          "check": {
+            "eq": [
+              {
+                "var": "owned_home_in_5y"
+              },
+              false
+            ]
+          }
+        }
+      ]
+    },
+    "신혼부부(전용 60㎡ 초과)": {
+      "conditions": [
+        {
+          "id": "N23-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재 서울특별시에 거주하는 무주택세대구성원"
+            ],
+            "page": 13
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N23-region",
+          "field": "residence_area",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재 서울특별시에 거주하는 무주택세대구성원"
+            ],
+            "page": 13
+          },
+          "note": "공고일 현재 서울특별시에 거주하는지",
+          "check": {
+            "eq": [
+              {
+                "var": "residence_area"
+              },
+              "서울특별시"
+            ]
+          }
+        },
+        {
+          "id": "N23-adult",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "민법상 미성년자(만19세 미만)는 공급 신청 할 수 없습니다"
+            ],
+            "page": 13
+          },
+          "note": "만 19세 이상인지(미성년자는 자녀가 있거나 형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청 가능)",
+          "check": {
+            "any": [
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  19
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "age"
+                  },
+                  18
+                ],
+                "review_if_true": {
+                  "code": "SELF_REPORT_UNVERIFIED",
+                  "detail": "미성년자는 원문의 예외(자녀가 있는 미성년 세대주 등)에 해당할 때만 신청 가능 — 예외 여부는 확인하지 않음"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N23-type",
+          "field": "유형",
+          "required": true,
+          "source": {
+            "quote": [
+              "신혼부부는 ①-㉮와 ②~③과 ⑤를, 예비신혼부부는 ①-㉯와 ②~⑤를 모두 갖추어야 함"
+            ],
+            "page": 13
+          },
+          "note": "신혼부부(혼인 7년 이내) 또는 예비신혼부부인지",
+          "tracks": [
+            {
+              "id": "신혼부부",
+              "label": "혼인신고 후 7년 이내",
+              "conditions": [
+                {
+                  "id": "N23-T-newlywed",
+                  "field": "marital_status/marriage_date",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "혼인 신고를 한 날로부터 7년 이내(2019. 4. 25. 이후"
+                    ],
+                    "page": 13
+                  },
+                  "note": "혼인 중이고 혼인신고일이 2019-04-25 이후(당일 포함)인지",
+                  "check": {
+                    "all": [
+                      {
+                        "eq": [
+                          {
+                            "var": "marital_status"
+                          },
+                          "혼인중"
+                        ]
+                      },
+                      {
+                        "gte": [
+                          {
+                            "var": "marriage_date"
+                          },
+                          {
+                            "date": "2019-04-25"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "예비신혼부부",
+              "label": "입주 전까지 혼인 사실을 증명할 예비신혼부부",
+              "conditions": [
+                {
+                  "id": "N23-T-prospective",
+                  "field": "marital_status",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "혼인을 계획 중이며 해당 주택의 입주전까지"
+                    ],
+                    "page": 13
+                  },
+                  "note": "혼인 예정(예비신혼)인지 — 입주 전까지 혼인 사실을 증명해야 함",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "marital_status"
+                      },
+                      "예비신혼"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "N23-income",
+          "field": "monthly_income",
+          "required": true,
+          "source": {
+            "quote": [
+              "(전용면적 60㎡ 초과) 해당 무주택세대구성원"
+            ],
+            "page": 13
+          },
+          "note": "해당 세대 월평균소득이 150%(맞벌이 200%) 이하인지 — 전용 60㎡ 초과 주택 신청 기준",
+          "check": {
+            "lte": [
+              {
+                "var": "monthly_income"
+              },
+              {
+                "term": "limit"
+              }
+            ]
+          },
+          "table": "j2_income_60초과"
+        },
+        {
+          "id": "N23-assets",
+          "field": "total_assets",
+          "required": true,
+          "source": {
+            "quote": [
+              "⑷ ⑴,⑵,⑶에 해당하지 않는 경우: 66,200만원"
+            ],
+            "page": 13
+          },
+          "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "total_assets"
+              },
+              {
+                "term": "asset_limit"
+              }
+            ]
+          },
+          "table": "j2_assets"
+        },
+        {
+          "id": "N23-car",
+          "field": "car_value",
+          "required": true,
+          "source": {
+            "quote": [
+              "⑷ ⑴,⑵,⑶에 해당하지 않는 경우: 4,542만원"
+            ],
+            "page": 13
+          },
+          "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지",
+          "check": {
+            "lte": [
+              {
+                "var": "car_value",
+                "unknown_values": [
+                  "확인불가"
+                ]
+              },
+              {
+                "term": "car_limit"
+              }
+            ]
+          },
+          "table": "j2_assets"
+        },
+        {
+          "id": "N23-5y",
+          "field": "owned_home_in_5y",
+          "required": true,
+          "source": {
+            "quote": [
+              "5년 동안(2021. 4. 25.이후) 계속하여 주택을 소유하지 않았을 것"
+            ],
+            "page": 13
+          },
+          "note": "신청자와 배우자(예비배우자)가 5년 동안(2021-04-25 이후) 계속 주택을 소유하지 않았는지",
+          "check": {
+            "eq": [
+              {
+                "var": "owned_home_in_5y"
+              },
+              false
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

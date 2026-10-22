@@ -11,6 +11,7 @@
 8) 순위·유형 트랙(C4): 순위별 결과 표시, 사업 전용 질문은 그 계층에서만
 9) SH 장기미임대(C4b): 소득이 자격요건이 아니므로 소득을 몰라도 서울 거주면 충족
 10) 주거약자용 주택형(C5a): 변형 계층에만 주거약자 유형 질문
+11) 장기전세2(C5b): 5년 무소유 질문은 그 사업에만
 """
 import os
 import sys
@@ -191,6 +192,9 @@ def main():
     weak_q = lambda at: [w for w in at.selectbox if w.label.startswith("주거약자 유형")]
     assert weak_q(fresh("N4", "신혼부부(주거약자용)")) and not weak_q(fresh("N4", "신혼부부")), "주거약자 질문 노출 오류"
     print("10) 주거약자용(C5a): 변형 계층에만 주거약자 유형 질문")
+    five_q = lambda at: [w for w in at.selectbox if w.label.startswith("신청자·배우자(예비배우자)가 공고일 기준 최근 5년")]
+    assert five_q(fresh("N23", "신혼부부(전용 60㎡ 이하)")) and not five_q(fresh("N26", "일반(전용 60㎡ 이하)"))
+    print("11) 장기전세2(C5b): 5년 무소유 질문은 장기전세2에만")
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)
