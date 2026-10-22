@@ -12,6 +12,7 @@
 9) SH 장기미임대(C4b): 소득이 자격요건이 아니므로 소득을 몰라도 서울 거주면 충족
 10) 주거약자용 주택형(C5a): 변형 계층에만 주거약자 유형 질문
 11) 장기전세2(C5b): 5년 무소유 질문은 그 사업에만
+12) 전체 공고 찾기 페이지(D): 범위가 갈리는 입력(본인 무주택·세대 주택 보유)으로 청년 계층이 신청 가능, 든든전세는 아님
 """
 import os
 import sys
@@ -195,6 +196,29 @@ def main():
     five_q = lambda at: [w for w in at.selectbox if w.label.startswith("신청자·배우자(예비배우자)가 공고일 기준 최근 5년")]
     assert five_q(fresh("N23", "신혼부부(전용 60㎡ 이하)")) and not five_q(fresh("N26", "일반(전용 60㎡ 이하)"))
     print("11) 장기전세2(C5b): 5년 무소유 질문은 장기전세2에만")
+
+    # 12) 전체 공고 찾기 페이지(D): 부모와 사는 25세 세대원 — 본인 무주택·저소득, 세대는 주택 보유·고소득
+    at = AppTest.from_file(str(ROOT / "pages" / "1_내_조건으로_공고_찾기.py"), default_timeout=120).run()
+    assert not at.exception, at.exception
+    pick = lambda label: [w for w in at.selectbox if w.label.startswith(label)][0]
+    at.date_input(key="m_birth").set_value(date(2001, 3, 1)).run()
+    [w for w in at.number_input if w.label.startswith("가구원수")][0].set_value(3).run()
+    pick("세대주/세대원").select("세대원").run()
+    pick("본인 주택 소유").select("무주택").run()
+    pick("세대 전원 주택 소유").select("주택보유").run()
+    for label, key, value in (("세대 월평균소득", "m_inc_house", 9_000_000), ("본인 월평균소득", "m_inc_self", 3_000_000),
+                              ("세대 총자산", "m_ast_house", 600_000_000), ("본인 총자산", "m_ast_self", 20_000_000),
+                              ("세대 보유 자동차", "m_car_house", 20_000_000), ("본인 자동차", "m_car_self", 0)):
+        [w for w in at.checkbox if w.label.startswith(label)][0].check().run()
+        at.number_input(key=key).set_value(value).run()
+    pick("본인 거주지").select("서울특별시").run()
+    at.button(key="m_run").click().run()
+    assert not at.exception, at.exception
+    metrics = {m.label: m.value for m in at.metric}
+    youth = [e.label for e in at.expander if e.label.endswith("· 청년")]
+    assert int(metrics["✅ 신청 가능"]) >= 6 and len(youth) >= 6, (metrics, youth)
+    assert not [e for e in at.expander if "든든전세" in e.label and "✅" in e.label]
+    print("12) 전체 공고 찾기(D):", metrics, "| 청년 계층", len(youth), "건 신청 가능")
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)

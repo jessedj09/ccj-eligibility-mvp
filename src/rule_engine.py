@@ -203,6 +203,13 @@ class HouseholdProfile:
     # 신청자 본인: "장애인" / "국가유공자(상이 1~7급)" / "보훈보상대상자(상이 1~7급)" / "5·18민주화운동부상자(장해 1~14급)" /
     # "고엽제후유의증환자(경도 이상)" / "국가유공자에 준하는 군경(상이 1~7급)" / "해당없음"
     owned_home_in_5y: Optional[bool] = None
+    # --- C5c: 장기전세 우선공급(서울시 매입형). 증빙으로 확인되는 사실 — None = 모름.
+    disabled_spouse_qualifies: Optional[bool] = None
+    # 배우자가 지적장애인·정신장애인 또는 장애의 정도가 심한 뇌병변장애인(장애인 우선공급은 그 배우자도 포함)
+    supports_elderly_parent_1y: Optional[bool] = None
+    # 만 65세 이상 직계존속(배우자의 직계존속 포함)을 같은 세대별 주민등록표에서 1년 이상 부양, 피부양자·그 배우자도 무주택
+    veteran_priority_notified: Optional[bool] = None
+    # 국가보훈부가 장기전세 우선공급 대상자로 선정·통보한 국가유공자 등(유족 포함)
     # C5b(SH 장기전세2): 신청자·배우자(예비배우자)가 공고일 기준 최근 5년 안에 주택을 소유한 적이 있는지 — 없어야(False) 충족
 
     def __post_init__(self):

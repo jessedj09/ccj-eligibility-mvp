@@ -261,8 +261,17 @@ def _fn_max(env: _Env, a, b):
     return None if a is None or b is None else max(a, b)
 
 
+def _fn_children_on_or_after(env: _Env, d):
+    """children_birth_dates 중 d 이후(당일 포함) 출생(태아는 출산예정일) 자녀 수. 자녀 목록을 모르면 None."""
+    kids = env.profile.children_birth_dates
+    if kids is None or d is None:
+        return None
+    return sum(1 for k in kids if k >= d)
+
+
 FUNCTIONS = {
     "add": (_fn_add, 2),
+    "children_on_or_after": (_fn_children_on_or_after, 1),
     "max": (_fn_max, 2),
     "child_bonus_count": (_fn_child_bonus_count, 0),
     "years_before": (_fn_years_before, 2),

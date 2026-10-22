@@ -294,6 +294,9 @@ C4_BOOLS = {
     "registered_with_parents": "부모와 같은 주민등록표에 등재돼 있음",
     "is_employed": "현재 취업 중",
     "owned_home_in_5y": "신청자·배우자(예비배우자)가 공고일 기준 최근 5년 안에 주택을 소유한 적 있음",
+    "disabled_spouse_qualifies": "배우자가 지적·정신장애인 또는 장애 정도가 심한 뇌병변장애인",
+    "supports_elderly_parent_1y": "만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 1년 이상 부양 — 부모와 그 배우자도 무주택",
+    "veteran_priority_notified": "국가보훈부로부터 장기전세 우선공급 대상자로 통보받음(국가유공자·유족 등)",
 }
 C4_AMOUNTS = {
     "parents_monthly_income": "부모 월평균소득 합계(원)",
@@ -303,7 +306,7 @@ C4_AMOUNTS = {
 c4_fields = [f for f in list(C4_CHOICES) + list(C4_BOOLS) + ["parents_count"] + list(C4_AMOUNTS)
              if f in notice.layers[layer].inputs]
 if c4_fields:
-    st.subheader("복지 자격·부모 정보")
+    st.subheader("추가 자격 정보")
     st.caption("순위·유형마다 필요한 정보가 다릅니다. 모르는 항목은 '모름'으로 두면 그 순위는 '추가 정보 필요'로 표시됩니다.")
     for f in c4_fields:
         if f in C4_CHOICES:

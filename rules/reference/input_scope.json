@@ -1,0 +1,30 @@
+{
+  "id": "input_scope",
+  "label": "공고·계층별 입력 범위 — 같은 질문(주택 소유·소득·자산)이 계층마다 누구 기준인지",
+  "note": "전체 공고 판정(src/matcher.py)이 한 번 받은 입력을 계층마다 맞는 범위로 바꿔 넣을 때 쓴다. 위에서부터 처음 맞는 규칙을 쓴다. program은 공고 메타 program의 앞부분, layers는 기본 계층 이름(변형 계층은 괄호 앞), '*'는 전부.",
+  "scopes": {
+    "home": {
+      "self": "본인 무주택",
+      "household": "세대 전원 무주택",
+      "self_if_unmarried": "혼인 중이면 세대 전원, 아니면 본인"
+    },
+    "income": {
+      "self": "본인 소득·자산",
+      "household": "세대(무주택세대구성원 전원) 소득·자산",
+      "self_plus_parents": "소득은 본인+부모, 자산은 본인(가구원수 = 본인+부모+본인 자녀)",
+      "youth_head": "세대원이 있는 세대주면 세대 전체, 세대원이면 본인"
+    }
+  },
+  "rules": [
+    {"program": "행복주택", "layers": ["대학생"], "home": "self", "income": "self_plus_parents",
+     "source": "N2 p.5 ③ '신청자 부모와 본인의 월평균소득 합계', ④ '신청자 본인의 총 자산가액'; 무주택은 '무주택자'(본인, N3 p.3)"},
+    {"program": "행복주택", "layers": ["청년"], "home": "self", "income": "youth_head",
+     "source": "N3 p.3 '대학생, 청년 계층의 주택 소유여부는 신청자 본인에 한하여 검증'; 서울오류 p.8 '청년계층의 해당 세대의 범위'"},
+    {"program": "행복주택", "layers": ["산업단지근로자", "지역전략산업종사자"], "home": "self_if_unmarried", "income": "household",
+     "source": "서울금천 p.5 '무주택세대구성원(혼인 중이 아닌 경우 무주택자)'; 부천 p.6·p.7 '무주택세대구성원(미혼일 경우 무주택자)', 소득·자산은 무주택세대구성원 전원"},
+    {"program": "청년매입임대", "layers": ["*"], "home": "self", "income": "self",
+     "source": "LH06 p.3 '무주택자인 미혼 청년', '부모가 주택을 소유한 경우에도 신청 가능', 3순위 '본인의 월평균 소득' — 2순위의 부모 소득·자산은 별도 입력"},
+    {"program": "*", "layers": ["*"], "home": "household", "income": "household",
+     "source": "그 밖의 계층은 무주택세대구성원 전원의 주택·소득·자산(각 공고 신청자격)"}
+  ]
+}
