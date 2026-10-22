@@ -23,6 +23,7 @@ from notices_data import ALL_NOTICES
 from rule_data import REGION_NONE, region_groups
 from explainability import explain
 from profiles_data import PROFILES
+from schedule import load_schedules, status as schedule_status
 
 REVIEW_BADGE = {
     "DRAFT": ("🟠 초안(DRAFT)", "규칙을 만든 쪽 외의 독립 검토를 아직 거치지 않았습니다. 참고용으로만 쓰세요."),
@@ -58,6 +59,11 @@ with st.sidebar:
     program = " · ".join(x for x in (notice.meta.get("issuer"), notice.meta.get("program")) if x)
     st.caption(f"{program + ' / ' if program else ''}입주자모집공고일: {notice.announcement_date} "
                f"(혼인기간·자녀연령·졸업경과 등은 이 날짜 기준으로 계산합니다)")
+    sched_status = schedule_status(notice_id)
+    st.caption(f"청약 접수: **{sched_status.text}** (한국 시간, 공고문 원문 기준)")
+    sched = load_schedules().get(notice_id)
+    if sched and sched.note:
+        st.caption(f"🗓️ {sched.note}")
     review_status = notice.meta["review"]["status"]
     label, hint = REVIEW_BADGE[review_status]
     st.caption(f"규칙 검수 상태: **{label}** — {hint}")

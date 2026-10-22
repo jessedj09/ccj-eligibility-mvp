@@ -13,6 +13,7 @@
 10) 주거약자용 주택형(C5a): 변형 계층에만 주거약자 유형 질문
 11) 장기전세2(C5b): 5년 무소유 질문은 그 사업에만
 12) 전체 공고 찾기 페이지(D): 범위가 갈리는 입력(본인 무주택·세대 주택 보유)으로 청년 계층이 신청 가능, 든든전세는 아님
+13) 접수 상태(D2): 기준일 2026.10.14.이면 접수 중인 공고만 보이고, 2026.10.22.이면(전부 마감) 안내가 나온다
 """
 import os
 import sys
@@ -214,11 +215,29 @@ def main():
     pick("본인 거주지").select("서울특별시").run()
     at.button(key="m_run").click().run()
     assert not at.exception, at.exception
+    at.radio(key="m_view").set_value("전체 공고(마감 포함)").run()
+    assert not at.exception, at.exception
     metrics = {m.label: m.value for m in at.metric}
     youth = [e.label for e in at.expander if e.label.endswith("· 청년")]
     assert int(metrics["✅ 신청 가능"]) >= 6 and len(youth) >= 6, (metrics, youth)
     assert not [e for e in at.expander if "든든전세" in e.label and "✅" in e.label]
     print("12) 전체 공고 찾기(D):", metrics, "| 청년 계층", len(youth), "건 신청 가능")
+
+    # 13) 접수 상태(D2) — 2026.10.14. 12:00에 접수 중: N4(~10.14)·N8·N18·N19(10.13~15)·N17(10.14~16)
+    at.radio(key="m_view").set_value("접수 중·예정 공고만").run()
+    at.date_input(key="m_at").set_value(date(2026, 10, 14)).run()
+    assert not at.exception, at.exception
+    # 신청 불가는 묶음 안의 한 줄(캡션), 나머지는 펼침 — 어느 쪽이든 접수 상태가 앞에 붙는다
+    labels = [e.label for e in at.expander if " | " in e.label]
+    lines = [c.value for c in at.caption if c.value.split(" ")[0] in ("🟢", "🗓️", "⚫")]
+    total = sum(int(m.value) for m in at.metric)
+    expect = sum(len(ALL_NOTICES[n].layers) for n in ("N4", "N8", "N17", "N18", "N19"))
+    assert total == expect, (total, expect)
+    assert all(x.startswith("🟢") for x in labels + lines) and labels + lines, (labels, lines)
+    at.date_input(key="m_at").set_value(date(2026, 10, 22)).run()
+    assert any("접수 중이거나 접수 예정인 공고가 없습니다" in i.value for i in at.info)
+    assert sum(int(m.value) for m in at.metric) == 0
+    print("13) 접수 상태(D2): 10.14. 접수 중 공고 5건의 계층", total, "개만 표시 / 10.22. 전부 마감 안내")
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)

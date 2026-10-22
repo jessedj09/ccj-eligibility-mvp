@@ -18,7 +18,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 PROJECT = Path(__file__).resolve().parent.parent
 RULES = PROJECT / "rules"
@@ -170,9 +170,40 @@ def verify_income_reference(ref_id: str = "income_standard") -> Report:
     return report
 
 
+def _date_in_quote(t: str, quote: str) -> bool:
+    """접수기간의 월·일·시각이 인용문에 있는지 — 데이터의 날짜와 인용문이 서로 어긋나는 오타를 잡는다."""
+    y, mo, d, hm = t[2:4], int(t[5:7]), int(t[8:10]), t[11:16]
+    return (re.search(rf"(^|[^0-9]){mo:02d}\.{d:02d}|(^|[^0-9]){mo}\.{d}($|[^0-9])", quote) is not None
+            and hm in quote)
+
+
+def verify_schedules(doc: Optional[dict] = None) -> Report:
+    """rules/schedules.json(D2) — 공고마다 접수기간이 있고, 각 기간의 인용문이 그 쪽에 있고, 날짜·시각이 인용문과 같다."""
+    from rule_data import notice_ids
+    doc = (doc or json.loads((RULES / "schedules.json").read_text(encoding="utf-8")))["notices"]
+    report = Report()
+    for nid in notice_ids():
+        if nid not in doc:
+            report.problems.append(f"schedules: {nid}의 접수기간이 없음")
+    for nid, e in doc.items():
+        if nid not in notice_ids():
+            report.problems.append(f"schedules: 없는 공고 {nid}")
+            continue
+        for i, w in enumerate(e["windows"]):
+            where = f"schedules[{i}] {w['label']}"
+            _check_source(report, nid, where, w["source"])
+            quote = normalize(" ".join(w["source"]["quote"]))
+            for key in ("start", "end"):
+                report.checked += 1
+                if not _date_in_quote(w[key], quote):
+                    report.problems.append(f"{nid} {where}: {key} {w[key]}의 월·일·시각이 인용문 '{quote}'에 없음")
+    return report
+
+
 def verify_all() -> Dict[str, Report]:
     from rule_data import notice_ids
     result = {nid: verify_notice(nid) for nid in notice_ids()}
     for path in sorted((RULES / "reference").glob("income_standard*.json")):
         result[path.stem] = verify_income_reference(path.stem)
+    result["schedules"] = verify_schedules()
     return result

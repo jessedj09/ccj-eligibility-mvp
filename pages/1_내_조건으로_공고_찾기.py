@@ -4,7 +4,7 @@
 판정은 src/matcher.py가 하고(같은 질문의 계층별 뜻은 rules/reference/input_scope.json), 이 화면은 입력과 표시만 한다.
 """
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 import streamlit as st
@@ -16,6 +16,7 @@ from explainability import explain  # noqa: E402
 from matcher import MasterProfile, match_all, missing_inputs  # noqa: E402
 from notices_data import ALL_NOTICES  # noqa: E402
 from rule_data import REGION_NONE, region_groups  # noqa: E402
+from schedule import CLOSED, KST, OPEN, UPCOMING, load_schedules, now_kst, statuses  # noqa: E402
 
 st.set_page_config(page_title="내 조건으로 공고 찾기", page_icon="🔎", layout="wide")
 st.title("🔎 내 조건으로 공고 찾기")
@@ -137,7 +138,30 @@ if st.session_state.get("m_judged"):
                     industrial_workplace=workplace, industrial_affiliation=affiliation, regional_industry_type=regional,
                     disabled_spouse_qualifies=spouse_disabled, supports_elderly_parent_1y=elderly_parent,
                     veteran_priority_notified=veteran))
-    matches = match_all(master, ALL_NOTICES)
+    all_matches = match_all(master, ALL_NOTICES)
+
+    # D2: 접수 상태 — 자격 판정과 별개로, 기준 시각에 접수 중·예정인 공고만 볼 수 있다.
+    st.subheader("접수 상태")
+    s1, s2 = st.columns([1, 2])
+    with s1:
+        today = now_kst().date()
+        on = st.date_input("기준일", value=today, key="m_at",
+                           help="오늘이면 지금 시각, 다른 날이면 그날 12:00(한국 시간) 기준으로 접수 상태를 봅니다.")
+    with s2:
+        view = st.radio("보기", ["접수 중·예정 공고만", "전체 공고(마감 포함)"], key="m_view", horizontal=True)
+    at = now_kst() if on == today else datetime.combine(on, time(12, 0), tzinfo=KST)
+    stat = statuses(list(ALL_NOTICES), at)
+    count = {c: sum(1 for s in stat.values() if s.code == c) for c in (OPEN, UPCOMING, CLOSED)}
+    st.caption(f"{at:%Y.%m.%d. %H:%M} 기준 — 🟢 접수 중 {count[OPEN]}건 · 🗓️ 접수 예정 {count[UPCOMING]}건 · "
+               f"⚫ 마감 {count[CLOSED]}건 (보유 공고 {len(ALL_NOTICES)}건, 접수기간은 공고문 원문 기준)")
+    only_open = view.startswith("접수 중")
+    matches = [x for x in all_matches if not only_open or stat[x.notice.notice_id].applicable]
+    if only_open and not matches:
+        st.info("이 기준일에 접수 중이거나 접수 예정인 공고가 없습니다 — 보유한 공고는 모두 접수가 끝났습니다. "
+                "'전체 공고(마감 포함)'로 바꾸면 마감된 공고의 판정 결과도 볼 수 있고, 새 공고가 추가되면 여기에 표시됩니다.")
+    order = {OPEN: 0, UPCOMING: 1, CLOSED: 2}
+    matches.sort(key=lambda x: (order.get(stat[x.notice.notice_id].code, 3),
+                                stat[x.notice.notice_id].window.start if stat[x.notice.notice_id].window else at))
     by = {v: [x for x in matches if x.verdict == v] for v in ("ELIGIBLE", "MANUAL_REVIEW", "NEEDS_INFO", "INELIGIBLE")}
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("✅ 신청 가능", len(by["ELIGIBLE"]))
@@ -145,7 +169,7 @@ if st.session_state.get("m_judged"):
     m3.metric("⚠️ 추가 정보 필요", len(by["NEEDS_INFO"]))
     m4.metric("❌ 신청 불가", len(by["INELIGIBLE"]))
     st.caption("공고·계층(주택형) 단위로 셉니다. 신청 자격(필수요건)만 판정하며 순위·가점·추첨·당첨은 포함하지 않습니다. "
-               "접수 기간이 지난 공고도 있으니 공고일과 원문을 확인하세요.")
+               "접수 일정은 공고 이후 바뀔 수 있으니 신청 전 원문과 공지사항을 확인하세요.")
 
     need = missing_inputs(matches)
     if need:
@@ -156,9 +180,17 @@ if st.session_state.get("m_judged"):
         n = x.notice
         tracks = f" · 충족: {', '.join(x.result.eligible_tracks)}" if x.result.eligible_tracks else ""
         head_line = f"{n.notice_id} {n.title} — **{x.layer}**{tracks}"
-        with st.expander(f"{n.meta.get('issuer', '')} {n.meta.get('program', '')} | 공고일 {n.announcement_date} | "
+        s = stat[n.notice_id]
+        with st.expander(f"{s.text.split(' — ')[0]} | {n.meta.get('issuer', '')} {n.meta.get('program', '')} | "
                          f"{n.title} · {x.layer}", expanded=expanded):
             st.markdown(head_line)
+            st.caption(f"{s.text} (공고일 {n.announcement_date})")
+            sched = load_schedules().get(n.notice_id)
+            if sched and len(sched.windows) > 1:
+                st.caption("접수 일정: " + " / ".join(f"{w.label} {w.start:%m.%d.} {w.start:%H:%M}~{w.end:%m.%d.} {w.end:%H:%M}"
+                                                    for w in sched.windows))
+            if sched and sched.note:
+                st.caption(f"🗓️ {sched.note}")
             exp = explain(x.result, n)
             for item in exp.failed:
                 st.caption(f"❌ {item.description} (근거: {item.source_ref})")
@@ -183,7 +215,8 @@ if st.session_state.get("m_judged"):
                 for x in items:
                     exp = explain(x.result, x.notice)
                     reason = exp.failed[0].description if exp.failed else ""
-                    st.caption(f"{x.notice.notice_id} {x.notice.title} · {x.layer} — {reason}")
+                    st.caption(f"{stat[x.notice.notice_id].text.split(' — ')[0]} {x.notice.notice_id} "
+                               f"{x.notice.title} · {x.layer} — {reason}")
         else:
             for x in items:
                 row(x)
