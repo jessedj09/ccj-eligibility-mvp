@@ -113,6 +113,9 @@ with st.expander("추가 정보(해당하는 것만) — 대학생·취업준비
         affiliation = pick("근무처 소속 여부", ["소속", "비소속 1년 이상 근무(예정)", "비소속 1년 미만"], "m_affil")
         regional = pick("지역전략산업종사자 유형(부천)", ["콘텐츠산업 종사자", "전문예술법인·단체 종사자", "등록 예술인",
                                                  "부천시 추천자", "해당없음"], "m_regional")
+        spouse_disabled = yes_no("배우자가 지적·정신장애인 또는 장애 정도가 심한 뇌병변장애인", "m_spdis")
+        elderly_parent = yes_no("만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 1년 이상 부양", "m_eparent")
+        veteran = yes_no("국가보훈부로부터 장기전세 우선공급 대상자 통보받음", "m_veteran")
 
 if st.button("전체 공고 판정", type="primary", key="m_run"):
     st.session_state["m_judged"] = True
@@ -131,7 +134,9 @@ if st.session_state.get("m_judged"):
                     registered_with_parents=reg_parents, is_supported_single_parent=supported_sp,
                     housing_benefit_status=benefit, parents_count=parents_count, parents_monthly_income=parents_income,
                     parents_total_assets=parents_assets, parents_car_value=parents_car, housing_weak_type=weak,
-                    industrial_workplace=workplace, industrial_affiliation=affiliation, regional_industry_type=regional))
+                    industrial_workplace=workplace, industrial_affiliation=affiliation, regional_industry_type=regional,
+                    disabled_spouse_qualifies=spouse_disabled, supports_elderly_parent_1y=elderly_parent,
+                    veteran_priority_notified=veteran))
     matches = match_all(master, ALL_NOTICES)
     by = {v: [x for x in matches if x.verdict == v] for v in ("ELIGIBLE", "MANUAL_REVIEW", "NEEDS_INFO", "INELIGIBLE")}
     m1, m2, m3, m4 = st.columns(4)

@@ -190,6 +190,11 @@ GROUPS: List[Tuple[str, str]] = [
     ("N24", "신혼부부(전용 60㎡ 이하)"), ("N24", "신혼부부(주거약자형·전용 60㎡ 이하)"), ("N24", "신혼부부(전용 60㎡ 초과)"),
     ("N25", "일반(전용 60㎡ 이하)"), ("N25", "일반(주거약자형·전용 60㎡ 이하)"), ("N25", "일반(전용 60㎡ 초과)"),
     ("N26", "일반(전용 60㎡ 이하)"), ("N26", "일반(주거약자형·전용 60㎡ 이하)"), ("N26", "일반(전용 60㎡ 초과)"),
+    # C5c — 장기전세 우선공급(서울시 매입형 60㎡ 이하)
+    ("N25", "일반(우선공급·장애인)"), ("N25", "일반(우선공급·노부모부양)"), ("N25", "일반(우선공급·2자녀이상)"),
+    ("N25", "일반(우선공급·국가유공자)"),
+    ("N26", "일반(우선공급·고령자)"), ("N26", "일반(우선공급·장애인)"), ("N26", "일반(우선공급·노부모부양)"),
+    ("N26", "일반(우선공급·2자녀이상)"), ("N26", "일반(우선공급·국가유공자)"),
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -273,6 +278,15 @@ def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, objec
         attrs = _program_attributes(PROGRAM_OF[nid], layer, pools)
         if "주거약자" in layer:
             attrs["weak"] = (WEAK, "장애인")
+        if "우선공급" in layer:   # C5c: 유형별 입력(통과 쪽 기본값)
+            attrs["weak"] = (WEAK, "장애인")
+            attrs["spouse_dis"] = ([None, False, True], False)
+            attrs["eparent"] = ([None, False, True], True)
+            attrs["veteran"] = ([None, False, True], False)
+            if "2자녀" in layer:
+                attrs["kids"] = (pools["kids"], [AFTER, BEFORE_MINOR])
+            if "고령자" in layer:
+                attrs["age"] = ([40, 64, 65, 70], 70)
         return attrs
     if "(" in layer:                  # 주택형 변형 계층(C5): 기본 계층 입력 + 주거약자 유형·나이
         base = layer.split("(")[0]
@@ -349,7 +363,10 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
                                             ("parents_assets", "parents_total_assets"),
                                             ("parents_car", "parents_car_value"),
                                             ("weak", "housing_weak_type"),
-                                            ("owned5", "owned_home_in_5y")) if key in v})
+                                            ("owned5", "owned_home_in_5y"),
+                                            ("spouse_dis", "disabled_spouse_qualifies"),
+                                            ("eparent", "supports_elderly_parent_1y"),
+                                            ("veteran", "veteran_priority_notified")) if key in v})
 
 
 # 통과 값에 가중해서 '모든 조건이 통과 근처'인 영역(경계가 실제로 판정을 가르는 영역)을 충분히 뽑는다

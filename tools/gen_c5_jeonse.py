@@ -185,6 +185,40 @@ def jeonse2(nid, dates, quotes, weak_quote=None):
     return layers, tables
 
 
+def priority_types(nid, minor_date, with_elderly, q):
+    """서울시 매입형 60㎡ 이하 우선공급(SH23 p.27~28 / SH24 p.28~29): 일반공급 자격 + 유형별 조건."""
+    out = {}
+    if with_elderly:
+        out["고령자"] = cond(f"{nid}-P-elderly", "age/household_size/marital_status", [q["elderly"]],
+                          "만 65세 이상이고 2인 이하 무주택 세대(신청자와 배우자)인지",
+                          {"all": [{"gte": [{"var": "age"}, 65]},
+                                   {"any": [{"lte": [{"var": "household_size"}, 1]},
+                                            {"all": [{"eq": [{"var": "household_size"}, 2]},
+                                                     {"eq": [{"var": "marital_status"}, "혼인중"]}]},
+                                            {"all": [{"eq": [{"var": "household_size"}, 2]},
+                                                     {"ne": [{"var": "marital_status"}, "혼인중"]}],
+                                             "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                                                "detail": "원문의 2인 기준은 '신청자와 신청자의 배우자' — 배우자가 아닌 "
+                                                                          "세대원과 2인이면 해당 여부가 원문에서 불명확"}}]}]})
+    out["장애인"] = cond(f"{nid}-P-disabled", "housing_weak_type/disabled_spouse_qualifies", [q["disabled"]],
+                      "본인이 장애인등록증을 교부받았거나, 배우자가 지적·정신장애인 또는 장애 정도가 심한 뇌병변장애인인지",
+                      {"any": [{"eq": [{"var": "housing_weak_type"}, "장애인"]},
+                               {"eq": [{"var": "disabled_spouse_qualifies"}, True]}]})
+    out["노부모부양"] = cond(f"{nid}-P-parent", "supports_elderly_parent_1y", [q["parent"]],
+                         "만 65세 이상 직계존속(배우자의 직계존속 포함)을 같은 등본에서 1년 이상 부양하고, 피부양자와 그 배우자도 무주택인지",
+                         {"eq": [{"var": "supports_elderly_parent_1y"}, True]})
+    out["2자녀이상"] = cond(f"{nid}-P-children", "children_birth_dates", [q["children"]],
+                         f"미성년 자녀({minor_date} 이후 출생, 태아 포함) 2명 이상이 같은 등본에 있는지 "
+                         "(조부모·손자녀로만 구성된 세대의 손자녀도 인정 — 그 경우 손자녀를 자녀 칸에 입력)",
+                         {"gte": [{"fn": "children_on_or_after", "args": [{"date": minor_date}]}, 2]})
+    out["국가유공자"] = cond(f"{nid}-P-veteran", "veteran_priority_notified", [q["veteran"]],
+                          "국가보훈부가 우선공급 대상자로 선정·통보한 국가유공자 등(유족 포함)인지",
+                          {"eq": [{"var": "veteran_priority_notified"}, True],
+                           "review_if_true": {"code": "SELF_REPORT_UNVERIFIED",
+                                              "detail": "국가보훈부가 선정·통보한 사람만 대상 — 통보 여부와 순위는 이 화면에서 확인할 수 없음"}})
+    return out
+
+
 def jeonse(nid, quotes, weak_quote):
     """장기전세: 면적별 최대 소득 상한 + 출생자녀 가산(맞벌이와 중복 없음), 서울(상계장암은 의정부 포함)."""
     data = JS[nid]
@@ -213,6 +247,8 @@ def jeonse(nid, quotes, weak_quote):
         layers[f"일반({label})"] = {"conditions": json.loads(json.dumps(conds))}
         if band == "60이하":
             layers["일반(주거약자형·전용 60㎡ 이하)"] = {"conditions": json.loads(json.dumps(conds)) + [weak_cond(nid, weak_quote)]}
+            for kind, extra in priority_types(nid, quotes["minor_date"], quotes["with_elderly"], quotes["priority"]).items():
+                layers[f"일반(우선공급·{kind})"] = {"conditions": json.loads(json.dumps(conds)) + [extra]}
     a, c = data["assets"], data["cars"]
     tables["js_assets"] = assets_table(a, c, [f"{a[0] // 10000:,}만원", f"{a[1] // 10000:,}만원", f"{a[2] // 10000:,}만원",
                                               f"{c[0] // 10000:,}만원", f"{c[1] // 10000:,}만원", f"{c[2] // 10000:,}만원"])
@@ -246,18 +282,27 @@ PLAN = [
          notes=["신청 주택의 전용면적(60㎡ 이하/초과 — 85㎡ 초과 주택도 60㎡ 초과 기준)에 따라 소득 기준이 다르다(p.13).",
                 "주거약자형 주택은 신청자 본인이 주거약자여야 하며, 일반 자격으로 신청하면 주거약자형으로 공급되지 않는다(p.11)."]),
     dict(nid="N25", key="SH23", title="SH 제49차 장기전세주택", ann="2025-12-15", program="SH 장기전세주택",
-         build=lambda: jeonse("N25", dict(Q_JS, assets="가액 합산: 64,000만원 이하", car="보건복지부장관이 정하는 금액: 4,563만원 이하"),
+         build=lambda: jeonse("N25", dict(Q_JS, assets="가액 합산: 64,000만원 이하", car="보건복지부장관이 정하는 금액: 4,563만원 이하",
+                                          minor_date="2006-12-16", with_elderly=False, priority=dict(
+                                              disabled="「장애인복지법」 제32조에 따라 장애인등록증이 교부된 사람",
+                                              parent="[1960.12.15.이전 출생(당일 포함)]의 직계존속(배우자의 직계존속 포함)을",
+                                              children="민법상 미성년자(2006.12.16.이후 출생, 당일 포함)인 2명 이상의 자녀",
+                                              veteran="국가보훈부에서 우선공급 대상자로 선정하여 통보한 사람")),
                               "주거약자형 주택 신청자는 ‘가. 신청자격’에 더하여 아래 신청자격 ①-⑦ 중 한 개 이상의 자격을 추가로"),
-         unsupported=[{"name": "우선공급(고령자·장애인·노부모부양·2자녀·국가유공자)", "page": 29,
-                       "note": "서울시 매입형 60㎡ 이하 우선공급 — 유형별 추가 자격(부양기간 등) 구현 후 지원 예정"}],
+         unsupported=[],
          notes=["이 공고는 2025.12.15. 공고라 소득 기준이 이전 연도 도시근로자 소득표다(3인 105% 8,008,322원).",
                 "순위(청약저축 회차, 85㎡ 초과 청약예금, 매입형 자치구)는 자격이 아니라 접수 순서다 — 선순위 접수가 마감되면 후순위는 "
                 "접수 자체가 없을 수 있다(p.6~7).", "상계장암지구는 의정부시 거주자도 신청할 수 있다(p.20)."]),
     dict(nid="N26", key="SH24", title="SH 제50차 장기전세주택", ann="2026-04-27", program="SH 장기전세주택",
-         build=lambda: jeonse("N26", dict(Q_JS, assets="가액 합산: 66,200만원 이하", car="보건복지부장관이 정하는 금액: 4,542만원 이하"),
+         build=lambda: jeonse("N26", dict(Q_JS, assets="가액 합산: 66,200만원 이하", car="보건복지부장관이 정하는 금액: 4,542만원 이하",
+                                          minor_date="2007-04-28", with_elderly=True, priority=dict(
+                                              elderly="만65세 이상[1961.04.27.이전 출생(당일 포함)]인 2인 이하 무주택 세대구성원",
+                                              disabled="「장애인복지법」 제32조에 따라 장애인등록증이 교부된 사람",
+                                              parent="[1961.4.27.이전 출생(당일 포함)]의 직계존속(배우자의 직계존속 포함)을",
+                                              children="민법상 미성년자(2007.4.28.이후 출생, 당일 포함)인 2명 이상의 자녀",
+                                              veteran="국가보훈부에서 우선공급 대상자로 선정하여 통보한 사람")),
                               "주거약자형 주택 신청자는 ‘가. 신청자격’에 더하여 아래 신청자격 ①-⑦ 중 한 개 이상의 자격을 추가로"),
-         unsupported=[{"name": "우선공급(고령자·장애인·노부모부양·2자녀·국가유공자)", "page": 7,
-                       "note": "서울시 매입형 60㎡ 이하 우선공급 — 유형별 추가 자격(부양기간 등) 구현 후 지원 예정"}],
+         unsupported=[],
          notes=["순위(청약저축 회차, 85㎡ 초과 청약예금, 매입형 자치구)는 자격이 아니라 접수 순서다 — 선순위 접수가 마감되면 후순위는 "
                 "접수 자체가 없을 수 있다(p.6~7).", "상계장암지구는 의정부시 거주자도 신청할 수 있다(p.20)."]),
 ]

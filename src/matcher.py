@@ -180,6 +180,8 @@ FIELD_LABELS = {
     "is_supported_single_parent": "지원대상 한부모", "is_employed": "취업 여부", "parents_count": "부모 수",
     "parents_monthly_income": "부모 소득", "parents_total_assets": "부모 자산", "parents_car_value": "부모 자동차",
     "housing_weak_type": "주거약자 유형", "owned_home_in_5y": "최근 5년 주택 소유",
+    "disabled_spouse_qualifies": "배우자 장애", "supports_elderly_parent_1y": "노부모 부양",
+    "veteran_priority_notified": "국가보훈부 우선공급 통보",
 }
 
 

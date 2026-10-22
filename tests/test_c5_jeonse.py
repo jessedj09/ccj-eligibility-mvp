@@ -129,8 +129,9 @@ def test_jeonse_assets_by_round():
 
 
 @pytest.mark.parametrize("nid", ["N25", "N26"])
-def test_jeonse_weak_unit_and_unsupported_priority_supply(nid):
+def test_jeonse_weak_unit_and_priority_supply_supported(nid):
     assert v(nid, JS_WEAK, housing_weak_type="장애인") == "ELIGIBLE"
     assert v(nid, JS_WEAK, housing_weak_type="해당없음") == "INELIGIBLE"
     assert v(nid, JS_WEAK, housing_weak_type="해당없음", age=65) == "ELIGIBLE"
-    assert any("우선공급" in u["name"] for u in load_notice(nid).meta["unsupported_layers"])
+    # 우선공급 5종은 C5c에서 계층으로 지원(tests/test_c5c_priority.py) — 미지원 목록이 비었다
+    assert not load_notice(nid).meta["unsupported_layers"]
