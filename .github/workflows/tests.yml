@@ -17,7 +17,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-api.txt   # requirements.txt + 판정 API(테스트용 fastapi·httpx)
       - name: Source verification (rules vs notice PDFs)
         run: python tools/verify_sources.py
       - name: pytest

@@ -95,9 +95,15 @@ Engine**이다.
   (시작·마감 시각 포함, 장기전세는 순위별 기간), 공고 찾기 화면은 기본으로 "접수 중·예정 공고만" 보여 준다(기준일 선택 가능).
   원문 대조는 인용문 위치 + 데이터의 월·일·시각이 인용문에 있는지까지(`verify_schedules`). `tests/test_d2_schedule.py`.
   **새 공고를 추가하면 schedules.json에도 접수기간을 넣어야 한다(빠지면 원문 대조가 실패).**
-- pytest: 총 **649개 전부 통과**(약 11분 — 원문 대조가 PDF 26건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(4~6분, 13단계).
+- **D2b(2026-10-23) 프로필 저장·판정 API**: 저장 파일 형식 `ccj-profile/1`(`src/profile_io.py` — master: 본인·세대 범위 항목,
+  common: 그 밖의 HouseholdProfile 항목, common의 null은 "모름"으로 보존). 서버는 프로필을 저장하지 않는다 — 화면에서
+  "내 조건 파일로 저장"으로 내려받고 "불러오기"로 다시 채운다(입력란 대응표 `src/profile_form.py`). 같은 파일이 API `/match`의
+  요청 본문이다. API `api/main.py`(FastAPI, `requirements-api.txt` — 화면 배포와 분리): `/health`, `/notices`(접수 상태 포함),
+  `/evaluate`, `/match`(only_open·기준 시각). 판정 로직 없음 — src/를 그대로 호출. `tests/test_d2b_profile_api.py`.
+  **화면에 질문을 추가하면 `profile_form.WIDGETS`에도 넣어야 한다(빠지면 테스트 실패).**
+- pytest: 총 **669개 전부 통과**(약 11분 — 원문 대조가 PDF 26건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(4~6분, 14단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
-- **다음 과제 후보: D2 나머지**(프로필 저장, 판정 API). 상세는
+- **다음 과제 후보**: 새 공고 추가(사용자가 별도 진행 — 백로그), API 외부 배포 여부 결정. 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 
 ## 반드시 지켜야 할 원칙 (요약 — 근거는 docs/01-decisions-log.md)

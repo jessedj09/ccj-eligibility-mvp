@@ -3,6 +3,7 @@
 
 판정은 src/matcher.py가 하고(같은 질문의 계층별 뜻은 rules/reference/input_scope.json), 이 화면은 입력과 표시만 한다.
 """
+import json
 import sys
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -14,6 +15,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from explainability import explain  # noqa: E402
 from matcher import MasterProfile, match_all, missing_inputs  # noqa: E402
+from profile_form import widget_state  # noqa: E402
+from profile_io import ProfileFormatError, master_from_dict, master_to_dict  # noqa: E402
 from notices_data import ALL_NOTICES  # noqa: E402
 from rule_data import REGION_NONE, region_groups  # noqa: E402
 from schedule import CLOSED, KST, OPEN, UPCOMING, load_schedules, now_kst, statuses  # noqa: E402
@@ -39,7 +42,7 @@ def yes_no(label, key, help=None):
 
 
 def amount(label, key, help=None):
-    known = st.checkbox(f"{label} 입력", key=f"{key}_known", value=False)
+    known = st.checkbox(f"{label} 입력", key=f"{key}_known")
     return st.number_input(label, min_value=0, step=100_000, key=key, help=help, disabled=not known) if known else None
 
 
@@ -48,17 +51,37 @@ def region(label, key):
     return None if v == UNKNOWN else v
 
 
+with st.expander("📂 저장한 내 조건 불러오기 · 저장 안내"):
+    st.caption("입력한 조건은 서버에 저장하지 않습니다(소득·자산 같은 개인정보). 아래 '내 조건 파일로 저장'으로 내려받은 파일을 "
+               "여기서 다시 불러오면 입력란이 채워집니다. 같은 파일을 판정 API(/match)에 그대로 보낼 수도 있습니다.")
+    up = st.file_uploader("내 조건 파일(.json)", type=["json"], key="m_upload")
+    if up is not None and st.session_state.get("m_loaded") != up.file_id:
+        try:
+            # 위젯이 만들어지기 전에 session_state에 넣는다
+            st.session_state.update(widget_state(master_from_dict(json.loads(up.getvalue().decode("utf-8"))), UNKNOWN))
+            st.session_state["m_loaded"] = up.file_id
+            st.rerun()
+        except (ProfileFormatError, ValueError, UnicodeDecodeError) as e:
+            st.error(f"불러오지 못했습니다: {e}")
+    elif up is not None:
+        st.success("불러온 조건으로 입력란을 채웠습니다. 필요하면 고친 뒤 판정하세요.")
+
+
+# 기본값은 session_state에 둔다 — 위젯에 value=를 주면 불러오기(session_state로 값 넣기)와 충돌 경고가 난다
+for _k, _v in (("m_birth", date(1996, 1, 1)), ("m_marriage", date(2022, 1, 1)), ("m_size", 1), ("m_kids", 0)):
+    st.session_state.setdefault(_k, _v)
+
 col1, col2, col3 = st.columns(3)
 with col1:
     st.subheader("기본")
-    birth = st.date_input("생년월일", value=date(1996, 1, 1), min_value=date(1920, 1, 1), max_value=date.today(),
+    birth = st.date_input("생년월일", min_value=date(1920, 1, 1), max_value=date.today(),
                           key="m_birth", help="공고마다 공고일 기준 만 나이로 계산합니다.")
     marital = st.selectbox("혼인 상태", ["미혼", "혼인중", "예비신혼", "한부모"], key="m_marital")
     marriage_date = None
     if marital == "혼인중":
-        marriage_date = st.date_input("혼인신고일", value=date(2022, 1, 1), min_value=date(1970, 1, 1),
+        marriage_date = st.date_input("혼인신고일", min_value=date(1970, 1, 1),
                                       max_value=date.today(), key="m_marriage")
-    size = st.number_input("가구원수(무주택세대구성원 전원, 태아 포함)", min_value=1, max_value=10, value=1, key="m_size",
+    size = st.number_input("가구원수(무주택세대구성원 전원, 태아 포함)", min_value=1, max_value=10, key="m_size",
                            help="예비신혼부부는 혼인으로 구성될 세대 기준입니다.")
     head = pick("세대주/세대원(등본 기준)", ["세대주", "세대원"], "m_head")
     dual = st.checkbox("맞벌이(본인·배우자 모두 근로·사업소득)", key="m_dual")
@@ -73,8 +96,10 @@ with col2:
     car_household = amount("세대 보유 자동차 중 가장 높은 차량가액(원, 없으면 0)", "m_car_house")
     car_self = amount("본인 자동차가액(원, 없으면 0)", "m_car_self")
     st.subheader("자녀(태아 포함)")
-    n_kids = st.number_input("세대별 주민등록표에 등재된 미성년 자녀 수(태아 포함)", min_value=0, max_value=8, value=0, key="m_kids")
-    kids = [st.date_input(f"자녀 {i + 1} 생년월일(태아는 출산예정일)", value=date(2024, 1, 1), min_value=date(1990, 1, 1),
+    n_kids = st.number_input("세대별 주민등록표에 등재된 미성년 자녀 수(태아 포함)", min_value=0, max_value=8, key="m_kids")
+    for i in range(int(n_kids)):
+        st.session_state.setdefault(f"m_kid_{i}", date(2024, 1, 1))
+    kids = [st.date_input(f"자녀 {i + 1} 생년월일(태아는 출산예정일)", min_value=date(1990, 1, 1),
                           max_value=date.today() + timedelta(days=300), key=f"m_kid_{i}") for i in range(int(n_kids))]
 with col3:
     st.subheader("지역")
@@ -118,26 +143,33 @@ with st.expander("추가 정보(해당하는 것만) — 대학생·취업준비
         elderly_parent = yes_no("만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 1년 이상 부양", "m_eparent")
         veteran = yes_no("국가보훈부로부터 장기전세 우선공급 대상자 통보받음", "m_veteran")
 
-if st.button("전체 공고 판정", type="primary", key="m_run"):
-    st.session_state["m_judged"] = True
+master = MasterProfile(
+    home_self=home_self, home_household=home_household, income_self=income_self, income_household=income_household,
+    assets_self=assets_self, assets_household=assets_household, car_self=car_self, car_household=car_household,
+    birth_date=birth,
+    common=dict(marital_status=marital, marriage_date=marriage_date, household_size=int(size),
+                house_head_status=head, dual_income=dual, children_birth_dates=kids,
+                residence_area=residence, income_base_area=income_base, school_area=school,
+                spouse_residence_area=spouse_res, spouse_income_base_area=spouse_inc, workplace_area=workplace_area,
+                student_status=student, grad_or_dropout_date=grad, is_employed=employed, is_social_rookie=rookie,
+                owned_home_in_5y=owned5, welfare_status=welfare, parent_welfare_status=parent_welfare,
+                registered_with_parents=reg_parents, is_supported_single_parent=supported_sp,
+                housing_benefit_status=benefit, parents_count=parents_count, parents_monthly_income=parents_income,
+                parents_total_assets=parents_assets, parents_car_value=parents_car, housing_weak_type=weak,
+                industrial_workplace=workplace, industrial_affiliation=affiliation, regional_industry_type=regional,
+                disabled_spouse_qualifies=spouse_disabled, supports_elderly_parent_1y=elderly_parent,
+                veteran_priority_notified=veteran))
+
+b1, b2 = st.columns([1, 3])
+with b1:
+    if st.button("전체 공고 판정", type="primary", key="m_run"):
+        st.session_state["m_judged"] = True
+with b2:
+    st.download_button("💾 내 조건 파일로 저장", key="m_save", file_name="내조건.json", mime="application/json",
+                       data=json.dumps(master_to_dict(master), ensure_ascii=False, indent=2),
+                       help="이 기기에 파일로만 저장됩니다. 다음에 위 '저장한 내 조건 불러오기'로 다시 채울 수 있습니다.")
 
 if st.session_state.get("m_judged"):
-    master = MasterProfile(
-        home_self=home_self, home_household=home_household, income_self=income_self, income_household=income_household,
-        assets_self=assets_self, assets_household=assets_household, car_self=car_self, car_household=car_household,
-        birth_date=birth,
-        common=dict(marital_status=marital, marriage_date=marriage_date, household_size=int(size),
-                    house_head_status=head, dual_income=dual, children_birth_dates=kids,
-                    residence_area=residence, income_base_area=income_base, school_area=school,
-                    spouse_residence_area=spouse_res, spouse_income_base_area=spouse_inc, workplace_area=workplace_area,
-                    student_status=student, grad_or_dropout_date=grad, is_employed=employed, is_social_rookie=rookie,
-                    owned_home_in_5y=owned5, welfare_status=welfare, parent_welfare_status=parent_welfare,
-                    registered_with_parents=reg_parents, is_supported_single_parent=supported_sp,
-                    housing_benefit_status=benefit, parents_count=parents_count, parents_monthly_income=parents_income,
-                    parents_total_assets=parents_assets, parents_car_value=parents_car, housing_weak_type=weak,
-                    industrial_workplace=workplace, industrial_affiliation=affiliation, regional_industry_type=regional,
-                    disabled_spouse_qualifies=spouse_disabled, supports_elderly_parent_1y=elderly_parent,
-                    veteran_priority_notified=veteran))
     all_matches = match_all(master, ALL_NOTICES)
 
     # D2: 접수 상태 — 자격 판정과 별개로, 기준 시각에 접수 중·예정인 공고만 볼 수 있다.
