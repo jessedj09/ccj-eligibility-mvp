@@ -172,9 +172,10 @@ def verify_income_reference(ref_id: str = "income_standard") -> Report:
 
 def _date_in_quote(t: str, quote: str) -> bool:
     """접수기간의 월·일·시각이 인용문에 있는지 — 데이터의 날짜와 인용문이 서로 어긋나는 오타를 잡는다."""
-    y, mo, d, hm = t[2:4], int(t[5:7]), int(t[8:10]), t[11:16]
+    mo, d, h, mi = int(t[5:7]), int(t[8:10]), int(t[11:13]), t[14:16]
+    # 시각은 "09:00"도 "9:00"도 쓴다
     return (re.search(rf"(^|[^0-9]){mo:02d}\.{d:02d}|(^|[^0-9]){mo}\.{d}($|[^0-9])", quote) is not None
-            and hm in quote)
+            and re.search(rf"(^|[^0-9])0?{h}:{mi}", quote) is not None)
 
 
 def verify_schedules(doc: Optional[dict] = None) -> Report:

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """test_c5_housing_weak.py — C5a 주거약자용 주택형.
 
-원문: N4 하남 p.7 / N7 대방 p.7·p.8 / N8 의왕 p.8 — "신혼부부·한부모가족 계층의 요건을 모두 갖추고 주거약자의 요건을 갖춘 자",
+원문: N1 공릉 p.7·p.8(N7과 같은 문구) / N2 봉천 p.1 "주거약자용주택은 '대학생인 주거약자'에게 우선공급"·p.7 /
+N4 하남 p.7 / N7 대방 p.7·p.8 / N8 의왕 p.8 — "신혼부부·한부모가족 계층의 요건을 모두 갖추고 주거약자의 요건을 갖춘 자",
 주거약자 = ① 65세 이상 ② 장애인 ③~⑦ 상이 국가유공자 등. N5 부천 p.11 — "지역전략산업종사자, 청년, 대학생 중 하나의
 자격요건을 충족하면서 주거약자(장애인 등)" (정의에 고령자 없음). N6 금천·N10 오류 — 고령자 배정 주택형(고령자 판정과 같음).
 """
@@ -16,7 +17,7 @@ import pytest
 from rule_data import RULES_DIR, load_notice
 from rule_engine import HouseholdProfile, evaluate
 
-VARIANTS = [(nid, base) for nid in ("N4", "N7", "N8") for base in ("신혼부부", "한부모")]
+VARIANTS = [(nid, base) for nid in ("N1", "N4", "N7", "N8") for base in ("신혼부부", "한부모")] + [("N2", "대학생")]
 
 
 def _doc(nid):
@@ -81,7 +82,7 @@ def test_bucheon_weak_layer_needs_one_of_three_layers_and_no_elderly_path():
     assert evaluate(none, notice, layer).verdict == "INELIGIBLE"
 
 
-@pytest.mark.parametrize("nid", ["N4", "N5", "N6", "N7", "N8", "N10"])
+@pytest.mark.parametrize("nid", ["N1", "N2", "N4", "N5", "N6", "N7", "N8", "N10"])
 def test_housing_weak_units_are_no_longer_unsupported(nid):
     meta = load_notice(nid).meta
     assert not any("주거약자" in u["name"] for u in meta.get("unsupported_layers", []))

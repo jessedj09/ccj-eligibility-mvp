@@ -101,9 +101,15 @@ Engine**이다.
   요청 본문이다. API `api/main.py`(FastAPI, `requirements-api.txt` — 화면 배포와 분리): `/health`, `/notices`(접수 상태 포함),
   `/evaluate`, `/match`(only_open·기준 시각). 판정 로직 없음 — src/를 그대로 호출. `tests/test_d2b_profile_api.py`.
   **화면에 질문을 추가하면 `profile_form.WIDGETS`에도 넣어야 한다(빠지면 테스트 실패).**
-- pytest: 총 **669개 전부 통과**(약 11분 — 원문 대조가 PDF 26건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(4~6분, 14단계).
+- **E1(2026-10-24)**: ① 화면·문서 최신화(메인 화면 안내 26건 기준, 지원 범위 안내). 점검 중 **공릉(N1)·봉천(N2) 주거약자용
+  주택이 판정도 '아직 지원 안 함' 표시도 없이 빠져 있던 것**을 찾아 `신혼부부·한부모(주거약자용)`(N1), `대학생(주거약자용)`(N2)으로
+  추가(`tools/gen_c5_housing_weak.py`, 골든 76개 그룹 — 기존 73개 불변). ② 새 공고 등록용 내부 도구 `tools/notice_intake.py`:
+  PDF → 공고일·접수기간(schedules 초안)·소득표 쪽·기준일 리터럴·계층 키워드·유사 공고/생성 스크립트 후보 보고서, `--audit`로
+  등록 누락 점검(pytest가 같은 점검). 절차는 `docs/08-adding-a-notice.md`. 판정은 하지 않는다.
+- pytest: 총 **688개 전부 통과**(약 11분 — 원문 대조가 PDF 26건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(4~6분, 14단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
-- **다음 과제 후보**: 새 공고 추가(사용자가 별도 진행 — 백로그), API 외부 배포 여부 결정. 상세는
+- **다음 과제 후보**: 새 공고 추가(사용자가 별도 진행 — 백로그, `docs/08-adding-a-notice.md` 절차), API 외부 배포 여부 결정,
+  웹 업로드 공고의 "검증 전 초안 판정"(설계 결정 필요). 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 
 ## 반드시 지켜야 할 원칙 (요약 — 근거는 docs/01-decisions-log.md)
