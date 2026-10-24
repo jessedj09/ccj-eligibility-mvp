@@ -124,6 +124,12 @@ def test_one_failing_page_does_not_stop_verification(monkeypatch, tmp_path):
             self.pages = [Page("첫 쪽 무주택"), Page("", boom=True), Page("셋째 쪽 소득")]
 
     monkeypatch.setattr(pypdf, "PdfReader", Reader)
-    pages = sv.extract_pages(tmp_path / "fake.pdf")
+    monkeypatch.setattr(sv, "PDF_CACHE", tmp_path / "cache")
+    fake = tmp_path / "fake.pdf"
+    fake.write_bytes(b"%PDF-fake")
+    pages = sv.extract_pages(fake)
     assert pages == ["첫쪽무주택", "", "셋째쪽소득"]
-    assert sv.EXTRACTION_FAILURES[str(tmp_path / "fake.pdf")] == [2]
+    assert sv.EXTRACTION_FAILURES[str(fake)] == [2]
+    # 캐시에서 읽어도 실패한 쪽 기록이 되살아나야 한다(대조 보고에서 그 쪽이 빈 텍스트임을 알 수 있게)
+    sv.EXTRACTION_FAILURES.pop(str(fake))
+    assert sv.extract_pages(fake) == pages and sv.EXTRACTION_FAILURES[str(fake)] == [2]

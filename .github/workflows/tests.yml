@@ -18,6 +18,12 @@ jobs:
           cache: pip
       - name: Install
         run: pip install -r requirements-api.txt   # requirements.txt + 판정 API(테스트용 fastapi·httpx)
+      - name: PDF text cache
+        # 공고문 PDF 추출 텍스트(src/source_verify.py) — PDF·추출 코드·의존성이 같으면 재사용. 키가 바뀌면 다시 추출한다.
+        uses: actions/cache@v4
+        with:
+          path: .cache/pdf_text
+          key: pdf-text-${{ hashFiles('sample_lh/**/*.pdf', 'sample_sh/**/*.pdf', 'src/source_verify.py', 'requirements*.txt') }}
       - name: Source verification (rules vs notice PDFs)
         run: python tools/verify_sources.py
       - name: pytest

@@ -106,7 +106,10 @@ Engine**이다.
   추가(`tools/gen_c5_housing_weak.py`, 골든 76개 그룹 — 기존 73개 불변). ② 새 공고 등록용 내부 도구 `tools/notice_intake.py`:
   PDF → 공고일·접수기간(schedules 초안)·소득표 쪽·기준일 리터럴·계층 키워드·유사 공고/생성 스크립트 후보 보고서, `--audit`로
   등록 누락 점검(pytest가 같은 점검). 절차는 `docs/08-adding-a-notice.md`. 판정은 하지 않는다.
-- pytest: 총 **688개 전부 통과**(약 11분 — 원문 대조가 PDF 26건을 읽는다). 화면 점검: `python tools/ui_smoke.py`(4~6분, 14단계).
+- **E2(2026-10-24) 정비**: PDF 추출 텍스트 캐시(`.cache/pdf_text/`, git 제외 — 키 = PDF sha256 + pypdf 버전 + 정규화 코드,
+  `CCJ_NO_PDF_CACHE=1`이면 끔, CI는 actions/cache), 골든 입력 그룹 단위 생성(`golden_cases.cases(only=…)` — 같은 입력),
+  `mvp0/` 삭제, `pytest.ini`(경고 필터 — **ASCII만**: pytest가 OS 인코딩 cp949로 읽는다). 기획 정리 `기획서/PRD_v2.md`(로컬, 저장소 밖).
+- pytest: 총 **691개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 14단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제 후보**: 새 공고 추가(사용자가 별도 진행 — 백로그, `docs/08-adding-a-notice.md` 절차), API 외부 배포 여부 결정,
   웹 업로드 공고의 "검증 전 초안 판정"(설계 결정 필요). 상세는
@@ -167,7 +170,7 @@ Engine**이다.
 - `src/explainability.py` — EvaluationResult → 사용자용 근거 문구(Explanation) 변환
 - `app.py` — Streamlit 데모 UI: 공고 하나 판정 (판정 로직 없음, src/ 함수만 호출)
 - `pages/1_내_조건으로_공고_찾기.py` — 전체 공고 판정 화면(src/matcher.py)
-- `mvp0/` — **실행 대상 아님.** 초기 스냅샷(옛 버전), `mvp0/README.md` 참조
+- (`mvp0/` 초기 스냅샷은 E2에서 삭제 — git 이력에 있음)
 - `tests/` — pytest 스위트, **총 616개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
   explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22 + 규칙 데이터화·골든·가구원수 모순 MVP0.6·원문 대조 P4·C1 공고 추가·C2 지역·C3 새 계층)
 - `data/*.xlsx` — MVP0 설계 워크북 원본 (programs/notices/rules/reference_values/
