@@ -195,12 +195,15 @@ if st.session_state.get("m_judged"):
     matches.sort(key=lambda x: (order.get(stat[x.notice.notice_id].code, 3),
                                 stat[x.notice.notice_id].window.start if stat[x.notice.notice_id].window else at))
     by = {v: [x for x in matches if x.verdict == v] for v in ("ELIGIBLE", "MANUAL_REVIEW", "NEEDS_INFO", "INELIGIBLE")}
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("✅ 신청 가능", len(by["ELIGIBLE"]))
-    m2.metric("🔍 수동 확인 필요", len(by["MANUAL_REVIEW"]))
-    m3.metric("⚠️ 추가 정보 필요", len(by["NEEDS_INFO"]))
-    m4.metric("❌ 신청 불가", len(by["INELIGIBLE"]))
-    st.caption("공고·계층(주택형) 단위로 셉니다. 신청 자격(필수요건)만 판정하며 순위·가점·추첨·당첨은 포함하지 않습니다. "
+    # 화면은 지원 가능 / 보류 / 지원 불가 3상태(PRD v2.1 F18) — 보류는 원인(추가 정보 필요·수동 확인 필요)을 나눠 보인다
+    hold = len(by["NEEDS_INFO"]) + len(by["MANUAL_REVIEW"])
+    m1, m2, m3 = st.columns(3)
+    m1.metric("✅ 지원 가능", len(by["ELIGIBLE"]))
+    m2.metric("🟡 보류", hold)
+    m3.metric("❌ 지원 불가", len(by["INELIGIBLE"]))
+    st.caption(f"보류 {hold}건 = ⚠️ 추가 정보 필요 {len(by['NEEDS_INFO'])}건(더 입력하면 판정) · "
+               f"🔍 수동 확인 필요 {len(by['MANUAL_REVIEW'])}건(원문·기관 확인). 공고·계층(주택형) 단위로 셉니다. "
+               "신청 자격(필수요건)만 판정하며 순위·가점·추첨·당첨은 포함하지 않습니다. "
                "접수 일정은 공고 이후 바뀔 수 있으니 신청 전 원문과 공지사항을 확인하세요.")
 
     need = missing_inputs(matches)
@@ -236,14 +239,14 @@ if st.session_state.get("m_judged"):
             for note in n.meta.get("notes", []):
                 st.caption(f"📌 {note}")
 
-    for verdict, title in (("ELIGIBLE", "✅ 신청 가능"), ("MANUAL_REVIEW", "🔍 수동 확인 필요"),
-                           ("NEEDS_INFO", "⚠️ 추가 정보 필요"), ("INELIGIBLE", "❌ 신청 불가")):
+    for verdict, title in (("ELIGIBLE", "✅ 지원 가능"), ("NEEDS_INFO", "🟡 보류 — ⚠️ 추가 정보 필요(더 입력하면 판정)"),
+                           ("MANUAL_REVIEW", "🟡 보류 — 🔍 수동 확인 필요(원문·기관 확인)"), ("INELIGIBLE", "❌ 지원 불가")):
         if not by[verdict]:
             continue
         st.subheader(f"{title} ({len(by[verdict])})")
         items = by[verdict]
         if verdict == "INELIGIBLE":
-            with st.expander(f"신청 불가 {len(items)}건 펼쳐 보기"):
+            with st.expander(f"지원 불가 {len(items)}건 펼쳐 보기"):
                 for x in items:
                     exp = explain(x.result, x.notice)
                     reason = exp.failed[0].description if exp.failed else ""

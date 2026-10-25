@@ -24,6 +24,9 @@ from rule_data import REGION_NONE, region_groups
 from explainability import explain
 from profiles_data import PROFILES
 from schedule import load_schedules, status as schedule_status
+from display_status import display
+from notice_identify import REGISTERED, SAME_NOTICE_OTHER_FILE, identify_pdf
+from upload_view import render_identified, render_not_judgeable
 
 REVIEW_BADGE = {
     "DRAFT": ("🟠 초안(DRAFT)", "규칙을 만든 쪽 외의 독립 검토를 아직 거치지 않았습니다. 참고용으로만 쓰세요."),
@@ -35,8 +38,8 @@ REVIEW_BADGE = {
 st.set_page_config(page_title="주거·복지 Eligibility 데모", page_icon="🏠")
 st.title("🏠 주거·복지 Eligibility 판정 데모")
 st.caption(f"LH·SH 공공임대 공고 {len(ALL_NOTICES)}건(행복주택·매입임대·든든전세·미리내집·장기전세 등)의 신청 자격을 "
-           "공고문 원문 기준으로 판정합니다 — 판정은 결정론적 Rule Engine이 수행합니다. 여러 공고를 한 번에 보려면 왼쪽 메뉴 "
-           "'내 조건으로 공고 찾기'를 쓰세요. (지원 범위는 하단 안내 참조)")
+           "공고문 원문 기준으로 판정합니다 — 판정은 결정론적 Rule Engine이 수행합니다. 공고는 목록에서 고르거나 공고문 PDF를 "
+           "올려 고를 수 있습니다. 여러 공고를 한 번에 보려면 왼쪽 메뉴 '내 조건으로 공고 찾기'를 쓰세요. (지원 범위는 하단 안내 참조)")
 
 PRESETS = {profile.profile_id: (profile, layer) for profile, layer in PROFILES}
 
@@ -49,13 +52,50 @@ VERDICT_STYLE = {
 }
 
 main_notice = st.empty()   # 미지원 계층을 고르면 본문 맨 위에 안내를 띄우는 자리
+upload_area = st.container()   # 공고문 PDF를 올렸을 때 식별 결과(본문 맨 위)
+
+
+def _identify_upload(up):
+    """올린 파일을 한 번만 읽는다(파일마다 session_state에 식별 결과를 둔다). 파일 자체는 저장하지 않는다."""
+    done = st.session_state.setdefault("upload_ident", {})
+    if up.file_id not in done:
+        with st.spinner("공고문을 읽는 중입니다…"):
+            done[up.file_id] = identify_pdf(up.getvalue())
+    return done[up.file_id]
+
 
 with st.sidebar:
     st.header("공고 · 계층 선택")
-    notice_id = st.selectbox(
-        "공고", options=list(ALL_NOTICES.keys()),
-        format_func=lambda nid: f"{nid} — {ALL_NOTICES[nid].title}",
-    )
+    pick_mode = st.radio("공고 고르는 방법", ["목록에서 고르기", "공고문 PDF 올리기"], key="pick_mode", horizontal=True)
+    if pick_mode == "공고문 PDF 올리기":
+        # 주요 기능1 기본형(P0, docs/09): 업로드 → 등록 공고 식별 → 등록 공고면 그 공고로 판정, 아니면 판정하지 않고 안내
+        up = st.file_uploader("공고문 PDF", type=["pdf"], key="notice_pdf",
+                              help="LH 청약플러스·SH 인터넷청약에서 내려받은 입주자모집공고문 PDF. 올린 파일은 저장하지 않습니다.")
+        if up is None:
+            upload_area.info("왼쪽에서 공고문 PDF를 올리면 등록된(검증된) 공고인지 확인하고, 맞으면 바로 판정합니다.")
+            st.stop()
+        ident = _identify_upload(up)
+        if ident.status == REGISTERED:
+            notice_id = ident.notice_id
+        elif ident.status == SAME_NOTICE_OTHER_FILE:
+            confirmed = st.checkbox(f"등록 공고 {ident.notice_id} 원문 기준으로 판정하기", key=f"confirm_{up.file_id}",
+                                    help="같은 공고를 다시 내려받은 파일이면 결과가 같습니다. 정정 공고면 다를 수 있습니다.")
+            if not confirmed:
+                with upload_area:
+                    st.info(f"📄 {ident.reason} 같은 공고가 맞으면 왼쪽의 '원문 기준으로 판정하기'를 체크하세요.")
+                st.stop()
+            notice_id = ident.notice_id
+        else:
+            with upload_area:
+                render_not_judgeable(ident)
+            st.stop()
+        with upload_area:
+            render_identified(ident)
+    else:
+        notice_id = st.selectbox(
+            "공고", options=list(ALL_NOTICES.keys()),
+            format_func=lambda nid: f"{nid} — {ALL_NOTICES[nid].title}",
+        )
     notice = ALL_NOTICES[notice_id]
     program = " · ".join(x for x in (notice.meta.get("issuer"), notice.meta.get("program")) if x)
     st.caption(f"{program + ' / ' if program else ''}입주자모집공고일: {notice.announcement_date} "
@@ -363,8 +403,11 @@ if st.session_state.get("judged"):
         result = evaluate(profile, notice, layer)
         exp = explain(result, notice)
 
+        # 화면은 지원 가능 / 보류(원인) / 지원 불가 3상태로 보인다(PRD v2.1 F18). 엔진 판정은 5상태 그대로.
         icon, style = VERDICT_STYLE[exp.verdict]
-        getattr(st, style)(f"{icon} {exp.headline}")
+        shown = display(exp.verdict)
+        getattr(st, style)(f"{icon} {shown.title} · {exp.headline}")
+        st.caption(shown.todo)
         if exp.score is not None:
             st.caption(f"참고: 확인된 필수조건 중 {exp.score}%를 충족했습니다 "
                        f"(불충족 조건이 하나라도 있으면 신청 자체가 불가하므로, 100% 미만이면 "
