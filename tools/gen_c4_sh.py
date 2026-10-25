@@ -211,28 +211,32 @@ Q_M2 = dict(home="무주택세대구성원으로서 아래의 일반주택형 �
 PLAN = [
     dict(nid="N18", key="SH21", title="SH 2026년 하반기 신혼·신생아 매입임대주택Ⅰ", ann="2026-09-30",
          program="SH 신혼·신생아 매입임대Ⅰ",
-         build=lambda: sh_newlywed("N18", "I", dict(marriage="2019-10-01", child6="2019-10-01", newborn="2024-10-01",
-                                                   minor="2007-10-01"), True, Q_I),
+         template="sh_newlywed", params=dict(kind="I", dates=dict(marriage="2019-10-01", child6="2019-10-01",
+                                                                  newborn="2024-10-01", minor="2007-10-01"),
+                                             single_parent_minor=True, quotes=Q_I),
          notes=["배우자 자격검증이 불가능한 경우(국내 미거주 재외국민, 외국인 미등록, 주민등록 말소·거주불명·해외체류)는 신청할 수 없다(p.13).",
                 "수급자 등 소득·자산 검증 면제는 해당 증명서를 제출해야 적용된다(p.17)."]),
     dict(nid="N19", key="SH22", title="SH 2026년 하반기 신혼·신생아 매입임대주택Ⅱ", ann="2026-09-30",
          program="SH 신혼·신생아 매입임대Ⅱ",
-         build=lambda: sh_newlywed("N19", "II", dict(marriage="2019-10-01", child6="2019-10-01", newborn="2024-10-01",
-                                                    minor="2007-10-01"), True, Q_II),
+         template="sh_newlywed", params=dict(kind="II", dates=dict(marriage="2019-10-01", child6="2019-10-01",
+                                                                   newborn="2024-10-01", minor="2007-10-01"),
+                                             single_parent_minor=True, quotes=Q_II),
          notes=["배우자 자격검증이 불가능한 경우는 신청할 수 없다.", "수급자 등 소득·자산 검증 면제는 해당 증명서를 제출해야 적용된다(p.11)."]),
     dict(nid="N20", key="SH18", title="SH 2026년 제1차 일반주택형 미리내집", ann="2026-08-14",
          program="SH 일반주택형 미리내집(신혼·신생아 매입임대Ⅱ)",
-         build=lambda: sh_newlywed("N20", "II", dict(marriage="2019-08-15", child6="2019-08-15", newborn="2024-08-15"),
-                                   False, Q_M1),
+         template="sh_newlywed", params=dict(kind="II", dates=dict(marriage="2019-08-15", child6="2019-08-15",
+                                                                   newborn="2024-08-15"),
+                                             single_parent_minor=False, quotes=Q_M1),
          notes=["수급자 등 소득·자산 검증 면제는 해당 증명서를 제출해야 적용된다(p.13).",
                 "미리내집 거주 중 출산하면 장기전세주택2 이주 혜택이 있다 — 이 판정과 무관."]),
     dict(nid="N21", key="SH19", title="SH 2026년 일반주택형 미리내집(공공한옥) 잔여세대", ann="2026-08-24",
          program="SH 일반주택형 미리내집(신혼·신생아 매입임대Ⅱ)",
-         build=lambda: sh_newlywed("N21", "II", dict(marriage="2019-08-25", child6="2019-08-25", newborn="2024-08-25"),
-                                   False, Q_M2),
+         template="sh_newlywed", params=dict(kind="II", dates=dict(marriage="2019-08-25", child6="2019-08-25",
+                                                                   newborn="2024-08-25"),
+                                             single_parent_minor=False, quotes=Q_M2),
          notes=["한옥 일부 세대는 3대 이상 대가족 우선 선정 — 이 판정과 무관.", "배우자가 주민등록 말소·거주불명이면 신청할 수 없다."]),
     dict(nid="N22", key="SH20", title="SH 2026년 2차 장기미임대 매입임대주택", ann="2026-08-28",
-         program="SH 장기미임대 매입임대", build=lambda: sh_vacant("N22"),
+         program="SH 장기미임대 매입임대", template="sh_vacant", params={},
          notes=["소득은 자격이 아니라 순위에만 쓴다: 도시근로자 월평균소득 130% 이하(1인 5,720,045원·3인 10,618,958원 등)면 1순위, "
                 "초과면 2순위(p.6·p.8).", "계약 후에도 공고일 이후 계속 서울에 거주해야 한다(p.7). 외국인은 신청할 수 없다."]),
 ]
@@ -240,33 +244,41 @@ PLAN = [
 ANCHORS = {"신혼·신생아": ("세부 신청자격", 10), "일반": ("신청자격", 6)}
 
 
+# 템플릿(사업별 규칙 생성 함수) — 공고별 값은 PLAN의 params(파라미터 시트, P1 docs/09 §5)
+BUILDERS = {"sh_newlywed": sh_newlywed, "sh_vacant": sh_vacant}
+
+
+def make_doc(plan, pdf, pages):
+    """PLAN 항목(또는 같은 모양의 파라미터 시트) + 원문 쪽 텍스트 → 공고 규칙 문서, 찾지 못한 인용문 목록."""
+    layers, tables = BUILDERS[plan["template"]](plan["nid"], **plan["params"])
+    missing = []
+    for layer, ldoc in layers.items():
+        text, hint = ANCHORS[layer]
+        anchor = locate(pages, text, hint) or hint
+        for c in C4.walk(ldoc["conditions"]):
+            place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)
+        for name, t in tables.items():
+            place_quotes(t["source"], pages, anchor + 3, f"table:{name}", missing)
+    doc = {
+        "notice_id": plan["nid"], "title": plan["title"], "announcement_date": plan["ann"],
+        "issuer": "SH", "program": plan["program"], "version": 1, "valid_from": plan["ann"], "supersedes": None,
+        "source": {"document": pdf.name, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(), "pages": len(pages)},
+        "review": {"status": "DRAFT", "note": "C4b 생성(tools/gen_c4_sh.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+                   "log": []},
+        "notes": plan["notes"], "unsupported_layers": [], "tables": tables, "layers": layers,
+    }
+    return doc, missing
+
+
 def main():
-    from pypdf import PdfReader
     import logging
     logging.disable(logging.CRITICAL)
     for plan in PLAN:
         pdf = C4.pdf_for(plan["key"])
-        pages = sv.extract_pages(pdf)
-        layers, tables = plan["build"]()
-        missing = []
-        for layer, ldoc in layers.items():
-            text, hint = ANCHORS[layer]
-            anchor = locate(pages, text, hint) or hint
-            for c in C4.walk(ldoc["conditions"]):
-                place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)
-            for name, t in tables.items():
-                place_quotes(t["source"], pages, anchor + 3, f"table:{name}", missing)
-        doc = {
-            "notice_id": plan["nid"], "title": plan["title"], "announcement_date": plan["ann"],
-            "issuer": "SH", "program": plan["program"], "version": 1, "valid_from": plan["ann"], "supersedes": None,
-            "source": {"document": pdf.name, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(), "pages": len(pages)},
-            "review": {"status": "DRAFT", "note": "C4b 생성(tools/gen_c4_sh.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
-                       "log": []},
-            "notes": plan["notes"], "unsupported_layers": [], "tables": tables, "layers": layers,
-        }
+        doc, missing = make_doc(plan, pdf, sv.extract_pages(pdf))
         out = ROOT / "rules" / "notices" / f"{plan['nid']}.json"
         out.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(plan["nid"], plan["title"], list(layers), "MISSING", len(missing))
+        print(plan["nid"], plan["title"], list(doc["layers"]), "MISSING", len(missing))
         for m in missing:
             print("   -", m)
 

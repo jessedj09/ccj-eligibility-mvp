@@ -63,32 +63,36 @@ PLAN = {
 }
 
 
+def apply_weak(doc, nid, plan, pages):
+    """공고 문서(메모리)에 주거약자용 변형 계층을 넣는다(이전 변형 계층은 지우고 다시 — 재실행 안전). plan = PLAN[nid] 모양."""
+    missing = []
+    anchor = plan["page"]
+    doc["layers"] = {k: v for k, v in doc["layers"].items() if "(" not in k}
+    if "bases" in plan:
+        for base in plan["bases"]:
+            conds = copy.deepcopy(doc["layers"][base]["conditions"])
+            weak = weak_condition(nid, plan["elderly"], list(plan["quotes"]))
+            place_quotes(weak["source"], pages, anchor, f"{base}(주거약자용)/{weak['id']}", missing)
+            doc["layers"][f"{base}(주거약자용)"] = {"conditions": conds + [weak]}
+    else:
+        group = {"id": f"{nid}-W-base", "field": "계층", "required": True,
+                 "source": {"quote": [plan["quotes"][0]]},
+                 "note": "지역전략산업종사자·청년·대학생 중 하나의 자격요건을 충족하는지",
+                 "tracks": [{"id": t, "label": f"{t} 계층 자격요건",
+                             "conditions": copy.deepcopy(doc["layers"][t]["conditions"])} for t in plan["tracks"]]}
+        place_quotes(group["source"], pages, anchor, "주거약자/base", missing)
+        weak = weak_condition(nid, plan["elderly"], list(plan["quotes"][1:]))
+        place_quotes(weak["source"], pages, anchor, "주거약자/weak", missing)
+        doc["layers"]["주거약자(26A1/B1형)"] = {"conditions": [group, weak]}
+    doc["unsupported_layers"] = [u for u in doc.get("unsupported_layers", []) if "주거약자" not in u["name"]]
+    return missing
+
+
 def main():
     for nid, plan in PLAN.items():
         path = ROOT / "rules" / "notices" / f"{nid}.json"
         doc = json.loads(path.read_text(encoding="utf-8"))
-        pages = sv.pdf_pages(nid)
-        missing = []
-        anchor = plan["page"]
-        # 이전 실행의 변형 계층을 지우고 다시 만든다(재실행 안전)
-        doc["layers"] = {k: v for k, v in doc["layers"].items() if "(" not in k}
-        if "bases" in plan:
-            for base in plan["bases"]:
-                conds = copy.deepcopy(doc["layers"][base]["conditions"])
-                weak = weak_condition(nid, plan["elderly"], list(plan["quotes"]))
-                place_quotes(weak["source"], pages, anchor, f"{base}(주거약자용)/{weak['id']}", missing)
-                doc["layers"][f"{base}(주거약자용)"] = {"conditions": conds + [weak]}
-        else:
-            group = {"id": f"{nid}-W-base", "field": "계층", "required": True,
-                     "source": {"quote": [plan["quotes"][0]]},
-                     "note": "지역전략산업종사자·청년·대학생 중 하나의 자격요건을 충족하는지",
-                     "tracks": [{"id": t, "label": f"{t} 계층 자격요건",
-                                 "conditions": copy.deepcopy(doc["layers"][t]["conditions"])} for t in plan["tracks"]]}
-            place_quotes(group["source"], pages, anchor, "주거약자/base", missing)
-            weak = weak_condition(nid, plan["elderly"], list(plan["quotes"][1:]))
-            place_quotes(weak["source"], pages, anchor, "주거약자/weak", missing)
-            doc["layers"]["주거약자(26A1/B1형)"] = {"conditions": [group, weak]}
-        doc["unsupported_layers"] = [u for u in doc.get("unsupported_layers", []) if "주거약자" not in u["name"]]
+        missing = apply_weak(doc, nid, plan, sv.pdf_pages(nid))
         path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(nid, "계층", list(doc["layers"]), "미지원", [u["name"] for u in doc["unsupported_layers"]],
               "MISSING", len(missing))

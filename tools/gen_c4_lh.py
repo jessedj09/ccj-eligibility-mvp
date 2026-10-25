@@ -277,37 +277,41 @@ def jeonse(nid):
 
 PLAN = [
     dict(nid="N11", key="LH06", title="서울지역본부 청년매입임대주택(2차)", ann="2026-06-25", program="청년매입임대",
-         build=lambda: youth_rental("N11", "1986.06.26. ~ 2007.06.25.", "1996.06.26."),
+         template="youth_rental", params=dict(birth_range="1986.06.26. ~ 2007.06.25.", under30="1996.06.26."),
          notes=["공고일(2026.6.25)이 같은 청년 매입임대 공고(타지역 포함)에는 중복 신청할 수 없다(p.1).",
                 "성별 전용 주택(남성·여성 전용)은 공급주택목록에서 확인 — 이 판정은 주택별 조건을 보지 않는다(p.1)."]),
     dict(nid="N12", key="LH07", title="서울지역본부 청년매입임대주택(3차)", ann="2026-09-17", program="청년매입임대",
-         build=lambda: youth_rental("N12", "1986.09.18. ~ 2007.09.17.", "1996.09.18."),
+         template="youth_rental", params=dict(birth_range="1986.09.18. ~ 2007.09.17.", under30="1996.09.18."),
          notes=["주민등록이 거주불명·말소 상태이면 신청할 수 없다(p.6·p.10) — 이 판정은 주민등록 상태를 묻지 않는다.",
                 "성별 전용 주택(남성·여성 전용)은 공급주택목록에서 확인 — 이 판정은 주택별 조건을 보지 않는다."]),
     dict(nid="N13", key="LH01", title="서울지역본부 신혼·신생아 매입임대주택Ⅰ(2차)", ann="2026-06-25",
          program="신혼·신생아 매입임대Ⅰ",
-         build=lambda: newlywed_rental("N13", "I", "혼인신고일이 2019.6.25. ~ 2026.6.25", "2019-06-25", "2019-06-26",
-                                       "2024-06-25", "’19.6.26 이후 출생한 자녀 및 태아", "’24.6.25이후 출생‧입양한 자녀 및 태아"),
+         template="newlywed_rental", params=dict(
+             kind="I", marriage_quote="혼인신고일이 2019.6.25. ~ 2026.6.25", marriage="2019-06-25", child6="2019-06-26",
+             newborn="2024-06-25", child6_quote="’19.6.26 이후 출생한 자녀 및 태아",
+             newborn_quote="’24.6.25이후 출생‧입양한 자녀 및 태아"),
          notes=["배우자가 국내에 거주하지 않는 재외국민이거나 외국인 등록을 하지 않은 외국인이면 신청할 수 없다(p.3).",
                 "같은 지자체(시·군·구)의 기계약자는 신청할 수 없다(p.1)."]),
     dict(nid="N14", key="LH03", title="서울지역본부 신혼·신생아 매입임대주택Ⅰ(3차)", ann="2026-09-17",
          program="신혼·신생아 매입임대Ⅰ",
-         build=lambda: newlywed_rental("N14", "I", "혼인신고일이 2019.9.17~ 2026.9.17", "2019-09-17", "2019-09-18",
-                                       "2024-09-17", "‘19.9.18이후 출생", "‘24.9.17이후 출생"),
+         template="newlywed_rental", params=dict(
+             kind="I", marriage_quote="혼인신고일이 2019.9.17~ 2026.9.17", marriage="2019-09-17", child6="2019-09-18",
+             newborn="2024-09-17", child6_quote="‘19.9.18이후 출생", newborn_quote="‘24.9.17이후 출생"),
          notes=["주민등록이 거주불명·말소 상태이면 신청할 수 없다 — 이 판정은 주민등록 상태를 묻지 않는다.",
                 "배우자가 국내에 거주하지 않는 재외국민이거나 외국인 등록을 하지 않은 외국인이면 신청할 수 없다."]),
     dict(nid="N15", key="LH02", title="서울지역본부 신혼·신생아 매입임대주택Ⅱ 전세형(2차)", ann="2026-06-25",
          program="신혼·신생아 매입임대Ⅱ(전세형)",
-         build=lambda: newlywed_rental("N15", "II", "혼인신고일이 2019.6.25. ~ 2026.6.25", "2019-06-25", "2019-06-26",
-                                       "2024-06-25", "’19.6.26이후 출생", "’24.6.25이후 출생"),
+         template="newlywed_rental", params=dict(
+             kind="II", marriage_quote="혼인신고일이 2019.6.25. ~ 2026.6.25", marriage="2019-06-25", child6="2019-06-26",
+             newborn="2024-06-25", child6_quote="’19.6.26이후 출생", newborn_quote="’24.6.25이후 출생"),
          notes=["같은 날 공고된 신혼·신생아 매입임대Ⅰ과 중복 신청 시 처리 기준은 공고문 확인(p.1).",
                 "배우자가 국내에 거주하지 않는 재외국민이거나 외국인 등록을 하지 않은 외국인이면 신청할 수 없다(p.3)."]),
     dict(nid="N16", key="LH04", title="서울지역본부 든든전세주택(비분양전환형, 1차)", ann="2026-05-22",
-         program="든든전세(비분양전환형)", build=lambda: jeonse("N16"),
+         program="든든전세(비분양전환형)", template="jeonse", params={},
          notes=["소득·자산 요건이 없다. 선정은 신생아 가구·자녀 수 배점 순이며 동점이면 추첨(p.3).",
                 "주민등록상 거주하는 모집권역(서울·인천·경기 중 하나)에만 신청할 수 있다(p.3)."]),
     dict(nid="N17", key="LH05", title="서울지역본부 든든전세주택(비분양전환형, 2차)", ann="2026-10-01",
-         program="든든전세(비분양전환형)", build=lambda: jeonse("N17"),
+         program="든든전세(비분양전환형)", template="jeonse", params={},
          notes=["소득·자산 요건이 없다. 선정은 신생아 가구·자녀 수 배점 순이며 동점이면 추첨(p.3).",
                 "주민등록이 거주불명·말소 상태이면 신청할 수 없다(p.8·p.11) — 이 판정은 주민등록 상태를 묻지 않는다."]),
 ]
@@ -328,34 +332,43 @@ def walk(conditions):
             yield from walk(t["conditions"])
 
 
+# 템플릿(사업별 규칙 생성 함수) — 공고별 값은 PLAN의 params(파라미터 시트, P1 docs/09 §5)
+BUILDERS = {"youth_rental": youth_rental, "newlywed_rental": newlywed_rental, "jeonse": jeonse}
+
+
+def make_doc(plan, pdf, pages):
+    """PLAN 항목(또는 같은 모양의 파라미터 시트) + 원문 쪽 텍스트 → 공고 규칙 문서. 인용문 쪽은 원문에서 찾고,
+    찾지 못한 인용문은 missing으로 돌려준다(새 공고에서 문구가 달라진 조건을 드러낸다)."""
+    layers, tables = BUILDERS[plan["template"]](plan["nid"], **plan["params"])
+    missing = []
+    for layer, ldoc in layers.items():
+        text, hint = ANCHORS[layer]
+        anchor = locate(pages, text, hint) or hint
+        for c in walk(ldoc["conditions"]):
+            place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)
+    for name, t in tables.items():
+        place_quotes(t["source"], pages, 4 if "rental" in name else 3, f"table:{name}", missing)
+    doc = {
+        "notice_id": plan["nid"], "title": plan["title"], "announcement_date": plan["ann"],
+        "issuer": "LH", "program": plan["program"],
+        "version": 1, "valid_from": plan["ann"], "supersedes": None,
+        "source": {"document": pdf.name, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(), "pages": len(pages)},
+        "review": {"status": "DRAFT", "note": "C4a 생성(tools/gen_c4_lh.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+                   "log": []},
+        "notes": plan["notes"], "unsupported_layers": [], "tables": tables, "layers": layers,
+    }
+    return doc, missing
+
+
 def main():
+    import logging
+    logging.disable(logging.CRITICAL)
     for plan in PLAN:
         pdf = pdf_for(plan["key"])
-        from pypdf import PdfReader
-        import logging
-        logging.disable(logging.CRITICAL)
-        pages = sv.extract_pages(pdf)
-        layers, tables = plan["build"]()
-        missing = []
-        for layer, ldoc in layers.items():
-            text, hint = ANCHORS[layer]
-            anchor = locate(pages, text, hint) or hint
-            for c in walk(ldoc["conditions"]):
-                place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)
-        for name, t in tables.items():
-            place_quotes(t["source"], pages, 4 if "rental" in name else 3, f"table:{name}", missing)
-        doc = {
-            "notice_id": plan["nid"], "title": plan["title"], "announcement_date": plan["ann"],
-            "issuer": "LH", "program": plan["program"],
-            "version": 1, "valid_from": plan["ann"], "supersedes": None,
-            "source": {"document": pdf.name, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(), "pages": len(pages)},
-            "review": {"status": "DRAFT", "note": "C4a 생성(tools/gen_c4_lh.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
-                       "log": []},
-            "notes": plan["notes"], "unsupported_layers": [], "tables": tables, "layers": layers,
-        }
+        doc, missing = make_doc(plan, pdf, sv.extract_pages(pdf))
         out = ROOT / "rules" / "notices" / f"{plan['nid']}.json"
         out.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(plan["nid"], plan["title"], list(layers), "MISSING", len(missing))
+        print(plan["nid"], plan["title"], list(doc["layers"]), "MISSING", len(missing))
         for m in missing:
             print("   -", m)
 

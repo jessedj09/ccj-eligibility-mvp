@@ -213,13 +213,16 @@ def regional(nid):
 
 
 ELDER_HOME = "무주택세대구성원으로서 아래의 요건을 모두 갖춘 65세 이상인 자"
+# 계층별 빌더 — 공고마다 바뀌는 값은 args, 위치를 잡는 대표 문구와 쪽 힌트는 anchor·hint(파라미터 시트, P1 docs/09 §5)
+BUILDERS = {"elderly": elderly, "industrial": industrial, "housing_benefit": housing_benefit, "regional": regional}
 PLAN = {
-    "N5": {"지역전략산업종사자": (regional, "지역전략산업종사자", 6)},
-    "N6": {"고령자": (lambda n: elderly(n, ELDER_HOME), "고령자", 13),
-           "산업단지근로자": (industrial, "산업단지 근로자", 5)},
-    "N9": {"고령자": (lambda n: elderly(n, ELDER_HOME), "고령자", 7)},
-    "N10": {"고령자": (lambda n: elderly(n, ELDER_HOME), "고령자", 11),
-            "주거급여수급자": (lambda n: housing_benefit(n, "현재 무주택세대구성원인 주거급여수급자"), "주거급여수급자", 12)},
+    "N5": {"지역전략산업종사자": dict(builder="regional", args={}, anchor="지역전략산업종사자", hint=6)},
+    "N6": {"고령자": dict(builder="elderly", args=dict(home_quote=ELDER_HOME), anchor="고령자", hint=13),
+           "산업단지근로자": dict(builder="industrial", args={}, anchor="산업단지 근로자", hint=5)},
+    "N9": {"고령자": dict(builder="elderly", args=dict(home_quote=ELDER_HOME), anchor="고령자", hint=7)},
+    "N10": {"고령자": dict(builder="elderly", args=dict(home_quote=ELDER_HOME), anchor="고령자", hint=11),
+            "주거급여수급자": dict(builder="housing_benefit", args=dict(home_quote="현재 무주택세대구성원인 주거급여수급자"),
+                            anchor="주거급여수급자", hint=12)},
 }
 # 주거약자용 주택: C1·C2에서 미지원 목록에 빠뜨린 공고(주택형 축 — C5)
 HOUSING_WEAK = {"N6": 8, "N10": 12}
@@ -259,28 +262,33 @@ def place_quotes(source, pages, anchor, where, missing):
     source["quote"] = quotes
 
 
+def apply_layers(doc, nid, layers, pages):
+    """공고 문서(메모리)에 새 계층과 결정표를 넣는다. layers = PLAN[nid] 모양. 찾지 못한 인용문 목록을 돌려준다."""
+    missing = []
+    for layer, spec in layers.items():
+        anchor = locate(pages, spec["anchor"], spec["hint"]) or spec["hint"]
+        conds = BUILDERS[spec["builder"]](nid, **spec["args"])
+        for c in conds:
+            place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)
+        doc["layers"][layer] = {"conditions": conds}
+        name = TABLE_OF.get(layer)
+        if name:
+            tspec = TABLE_SPECS[name]
+            t = table(tspec["label"], tspec["columns"], tspec["rows"], anchor, tspec.get("readings"),
+                      tspec.get("quotes"), tspec.get("derivation"))
+            place_quotes(t["source"], pages, anchor, f"table:{name}", missing)
+            doc["tables"][name] = t
+        doc["unsupported_layers"] = [u for u in doc.get("unsupported_layers", []) if u["name"] != layer]
+    # 금천·오류의 주거약자용 주택은 고령자 배정 주택형이라 고령자 판정과 같다(C5에서 확인) — 미지원 목록에 넣지 않는다
+    doc["unsupported_layers"] = [u for u in doc.get("unsupported_layers", []) if u["name"] != "주거약자용 주택"]
+    return missing
+
+
 def main():
     for nid, layers in PLAN.items():
         path = ROOT / "rules" / "notices" / f"{nid}.json"
         doc = json.loads(path.read_text(encoding="utf-8"))
-        pages = sv.pdf_pages(nid)
-        missing = []
-        for layer, (build, anchor_text, hint) in layers.items():
-            anchor = locate(pages, anchor_text, hint) or hint
-            conds = build(nid)
-            for c in conds:
-                place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)
-            doc["layers"][layer] = {"conditions": conds}
-            name = TABLE_OF.get(layer)
-            if name:
-                spec = TABLE_SPECS[name]
-                t = table(spec["label"], spec["columns"], spec["rows"], anchor, spec.get("readings"),
-                          spec.get("quotes"), spec.get("derivation"))
-                place_quotes(t["source"], pages, anchor, f"table:{name}", missing)
-                doc["tables"][name] = t
-            doc["unsupported_layers"] = [u for u in doc.get("unsupported_layers", []) if u["name"] != layer]
-        # 금천·오류의 주거약자용 주택은 고령자 배정 주택형이라 고령자 판정과 같다(C5에서 확인) — 미지원 목록에 넣지 않는다
-        doc["unsupported_layers"] = [u for u in doc["unsupported_layers"] if u["name"] != "주거약자용 주택"]
+        missing = apply_layers(doc, nid, layers, sv.pdf_pages(nid))
         path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         print(nid, "계층", list(doc["layers"]), "미지원", [u["name"] for u in doc["unsupported_layers"]],
               "MISSING", len(missing))
