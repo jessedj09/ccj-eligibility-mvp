@@ -198,8 +198,11 @@ def build(t):
         for c in tpl["layers"][layer]["conditions"]:
             c = copy.deepcopy(c)
             c["id"] = c["id"].replace(t["template"] + "-", t["nid"] + "-", 1)
-            if (t["nid"], c["id"]) in OVERRIDES:
-                c["source"]["quote"] = list(OVERRIDES[(t["nid"], c["id"])])
+            # 표현이 다른 인용문: 대상 공고의 원문 문구로 바꾼다. 파라미터 시트(tools/templates.py)는 공고 ID 없이
+            # 조건 접미사(예: "R5", "S-child6")로 넘긴다.
+            override = (t.get("overrides") or {}).get(c["id"].split("-", 1)[1]) or OVERRIDES.get((t["nid"], c["id"]))
+            if override:
+                c["source"]["quote"] = list(override)
             elif c["id"].endswith(("-duration", "-child6")):
                 # 템플릿(N1)의 날짜 문구는 대상 공고 날짜로 바꿔 넣으므로 탐색 대상에서 뺀다
                 c["source"]["quote"] = [q for q in c["source"]["quote"]

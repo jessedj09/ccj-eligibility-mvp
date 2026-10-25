@@ -219,9 +219,10 @@ def priority_types(nid, minor_date, with_elderly, q):
     return out
 
 
-def jeonse(nid, quotes, weak_quote):
-    """장기전세: 면적별 최대 소득 상한 + 출생자녀 가산(맞벌이와 중복 없음), 서울(상계장암은 의정부 포함)."""
-    data = JS[nid]
+def jeonse(nid, quotes, weak_quote, income):
+    """장기전세: 면적별 최대 소득 상한 + 출생자녀 가산(맞벌이와 중복 없음), 서울(상계장암은 의정부 포함).
+    income: 면적대별 소득 상한 원문 금액(JS[공고]) — 공고마다 기준 연도가 달라 파라미터로 받는다."""
+    data = income
     residence = {"any": [{"eq": [{"var": "residence_area"}, "서울특별시"]},
                          {"eq": [{"var": "residence_area"}, "의정부시"],
                           "review_if_true": {"code": "AMBIGUOUS_SOURCE",
@@ -267,41 +268,47 @@ Q_JS = dict(home="성년자인 무주택세대구성원으로서", region="현�
 
 PLAN = [
     dict(nid="N23", key="SH25", title="SH 제7차 장기전세주택2(미리내집)", ann="2026-04-24", program="SH 장기전세주택2(미리내집)",
-         build=lambda: jeonse2("N23", dict(marriage="2019-04-25", five="2021-04-25"),
-                               dict(Q_J2, marriage="혼인 신고를 한 날로부터 7년 이내(2019. 4. 25. 이후",
+         template="jeonse2", params=dict(
+             dates=dict(marriage="2019-04-25", five="2021-04-25"),
+             quotes=dict(Q_J2, marriage="혼인 신고를 한 날로부터 7년 이내(2019. 4. 25. 이후",
                                     five="5년 동안(2021. 4. 25.이후) 계속하여 주택을 소유하지 않았을 것")),
          unsupported=[],
          notes=["신청 주택의 전용면적(60㎡ 이하/초과)에 따라 소득 기준이 다르다 — 신청할 주택형의 계층을 고르세요(p.13).",
                 "선정은 가점(서울 거주기간·청약통장)·감점 순이며 신규공급 물량의 40%는 소득 우선배정 — 이 판정과 무관(p.19)."]),
     dict(nid="N24", key="SH26", title="SH 제8차 장기전세주택2(미리내집)", ann="2026-08-21", program="SH 장기전세주택2(미리내집)",
-         build=lambda: jeonse2("N24", dict(marriage="2019-08-22", five="2021-08-22"),
-                               dict(Q_J2, marriage="혼인 신고를 한 날로부터 7년 이내(2019. 8. 22. 이후",
+         template="jeonse2", params=dict(
+             dates=dict(marriage="2019-08-22", five="2021-08-22"),
+             quotes=dict(Q_J2, marriage="혼인 신고를 한 날로부터 7년 이내(2019. 8. 22. 이후",
                                     five="5년 동안(2021.8.22. 이후) 계속하여 주택을 소유하지 않았을 것"),
-                               weak_quote="주거약자형 주택 신청자는 ‘가.신청자격’에 더하여 아래 신청자격 ①~⑦ 중 한 개 이상의"),
+             weak_quote="주거약자형 주택 신청자는 ‘가.신청자격’에 더하여 아래 신청자격 ①~⑦ 중 한 개 이상의"),
          unsupported=[],
          notes=["신청 주택의 전용면적(60㎡ 이하/초과 — 85㎡ 초과 주택도 60㎡ 초과 기준)에 따라 소득 기준이 다르다(p.13).",
                 "주거약자형 주택은 신청자 본인이 주거약자여야 하며, 일반 자격으로 신청하면 주거약자형으로 공급되지 않는다(p.11)."]),
     dict(nid="N25", key="SH23", title="SH 제49차 장기전세주택", ann="2025-12-15", program="SH 장기전세주택",
-         build=lambda: jeonse("N25", dict(Q_JS, assets="가액 합산: 64,000만원 이하", car="보건복지부장관이 정하는 금액: 4,563만원 이하",
+         template="jeonse", params=dict(
+             quotes=dict(Q_JS, assets="가액 합산: 64,000만원 이하", car="보건복지부장관이 정하는 금액: 4,563만원 이하",
                                           minor_date="2006-12-16", with_elderly=False, priority=dict(
                                               disabled="「장애인복지법」 제32조에 따라 장애인등록증이 교부된 사람",
                                               parent="[1960.12.15.이전 출생(당일 포함)]의 직계존속(배우자의 직계존속 포함)을",
                                               children="민법상 미성년자(2006.12.16.이후 출생, 당일 포함)인 2명 이상의 자녀",
                                               veteran="국가보훈부에서 우선공급 대상자로 선정하여 통보한 사람")),
-                              "주거약자형 주택 신청자는 ‘가. 신청자격’에 더하여 아래 신청자격 ①-⑦ 중 한 개 이상의 자격을 추가로"),
+             weak_quote="주거약자형 주택 신청자는 ‘가. 신청자격’에 더하여 아래 신청자격 ①-⑦ 중 한 개 이상의 자격을 추가로",
+             income=JS["N25"]),
          unsupported=[],
          notes=["이 공고는 2025.12.15. 공고라 소득 기준이 이전 연도 도시근로자 소득표다(3인 105% 8,008,322원).",
                 "순위(청약저축 회차, 85㎡ 초과 청약예금, 매입형 자치구)는 자격이 아니라 접수 순서다 — 선순위 접수가 마감되면 후순위는 "
                 "접수 자체가 없을 수 있다(p.6~7).", "상계장암지구는 의정부시 거주자도 신청할 수 있다(p.20)."]),
     dict(nid="N26", key="SH24", title="SH 제50차 장기전세주택", ann="2026-04-27", program="SH 장기전세주택",
-         build=lambda: jeonse("N26", dict(Q_JS, assets="가액 합산: 66,200만원 이하", car="보건복지부장관이 정하는 금액: 4,542만원 이하",
+         template="jeonse", params=dict(
+             quotes=dict(Q_JS, assets="가액 합산: 66,200만원 이하", car="보건복지부장관이 정하는 금액: 4,542만원 이하",
                                           minor_date="2007-04-28", with_elderly=True, priority=dict(
                                               elderly="만65세 이상[1961.04.27.이전 출생(당일 포함)]인 2인 이하 무주택 세대구성원",
                                               disabled="「장애인복지법」 제32조에 따라 장애인등록증이 교부된 사람",
                                               parent="[1961.4.27.이전 출생(당일 포함)]의 직계존속(배우자의 직계존속 포함)을",
                                               children="민법상 미성년자(2007.4.28.이후 출생, 당일 포함)인 2명 이상의 자녀",
                                               veteran="국가보훈부에서 우선공급 대상자로 선정하여 통보한 사람")),
-                              "주거약자형 주택 신청자는 ‘가. 신청자격’에 더하여 아래 신청자격 ①-⑦ 중 한 개 이상의 자격을 추가로"),
+             weak_quote="주거약자형 주택 신청자는 ‘가. 신청자격’에 더하여 아래 신청자격 ①-⑦ 중 한 개 이상의 자격을 추가로",
+             income=JS["N26"]),
          unsupported=[],
          notes=["순위(청약저축 회차, 85㎡ 초과 청약예금, 매입형 자치구)는 자격이 아니라 접수 순서다 — 선순위 접수가 마감되면 후순위는 "
                 "접수 자체가 없을 수 있다(p.6~7).", "상계장암지구는 의정부시 거주자도 신청할 수 있다(p.20)."]),
@@ -309,30 +316,39 @@ PLAN = [
 ANCHOR = {"N23": 13, "N24": 13, "N25": 20, "N26": 20}
 
 
+# 템플릿(사업별 규칙 생성 함수) — 공고별 값은 PLAN의 params(파라미터 시트, P1 docs/09 §5)
+BUILDERS = {"jeonse2": jeonse2, "jeonse": jeonse}
+
+
+def make_doc(plan, pdf, pages, anchor=None):
+    """PLAN 항목(또는 같은 모양의 파라미터 시트) + 원문 쪽 텍스트 → 공고 규칙 문서, 찾지 못한 인용문 목록."""
+    layers, tables = BUILDERS[plan["template"]](plan["nid"], **plan["params"])
+    missing = []
+    anchor = anchor or ANCHOR.get(plan["nid"]) or (13 if plan["template"] == "jeonse2" else 20)
+    for layer, ldoc in layers.items():
+        for c in C4.walk(ldoc["conditions"]):
+            if isinstance(c["source"].get("quote", [None])[0], str) and "page" not in c["source"]:
+                place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)
+    for name, t in tables.items():
+        place_quotes(t["source"], pages, anchor + 3, f"table:{name}", missing)
+    doc = {
+        "notice_id": plan["nid"], "title": plan["title"], "announcement_date": plan["ann"],
+        "issuer": "SH", "program": plan["program"], "version": 1, "valid_from": plan["ann"], "supersedes": None,
+        "source": {"document": pdf.name, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(), "pages": len(pages)},
+        "review": {"status": "DRAFT", "note": "C5b 생성(tools/gen_c5_jeonse.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+                   "log": []},
+        "notes": plan["notes"], "unsupported_layers": plan["unsupported"], "tables": tables, "layers": layers,
+    }
+    return doc, missing
+
+
 def main():
     for plan in PLAN:
         pdf = C4.pdf_for(plan["key"])
-        pages = sv.extract_pages(pdf)
-        layers, tables = plan["build"]()
-        missing = []
-        anchor = ANCHOR[plan["nid"]]
-        for layer, ldoc in layers.items():
-            for c in C4.walk(ldoc["conditions"]):
-                if isinstance(c["source"].get("quote", [None])[0], str) and "page" not in c["source"]:
-                    place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)
-        for name, t in tables.items():
-            place_quotes(t["source"], pages, anchor + 3, f"table:{name}", missing)
-        doc = {
-            "notice_id": plan["nid"], "title": plan["title"], "announcement_date": plan["ann"],
-            "issuer": "SH", "program": plan["program"], "version": 1, "valid_from": plan["ann"], "supersedes": None,
-            "source": {"document": pdf.name, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(), "pages": len(pages)},
-            "review": {"status": "DRAFT", "note": "C5b 생성(tools/gen_c5_jeonse.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
-                       "log": []},
-            "notes": plan["notes"], "unsupported_layers": plan["unsupported"], "tables": tables, "layers": layers,
-        }
+        doc, missing = make_doc(plan, pdf, sv.extract_pages(pdf))
         out = ROOT / "rules" / "notices" / f"{plan['nid']}.json"
         out.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        print(plan["nid"], plan["title"], list(layers), "MISSING", len(missing))
+        print(plan["nid"], plan["title"], list(doc["layers"]), "MISSING", len(missing))
         for m in missing:
             print("   -", m)
 
