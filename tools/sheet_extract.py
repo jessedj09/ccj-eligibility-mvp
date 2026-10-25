@@ -655,7 +655,8 @@ def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW", llm: Optional[LLM] 
         held.insert(0, "announcement_date")
     problems = _sanity(ext)
     critical = [p for p in held if ext["template"] and is_critical(ext["template"], p)] + problems
-    out = dict(template=ext["template"], held=held, critical_held=critical, missing=[], doc=None, blocked=None)
+    out = dict(template=ext["template"], held=held, critical_held=critical, missing=[], doc=None, blocked=None,
+               stale=[], restrictions=[])
     if not ext["template"]:
         out["blocked"] = "사업 유형(템플릿)을 정하지 못함"
         return out
@@ -669,4 +670,95 @@ def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW", llm: Optional[LLM] 
         if ov:
             ext["fields"]["overrides"] = Field(FILLED, ov, how=f"LLM({llm.slot.name}) — 표현이 다른 조건 {len(ov)}개")
             out["doc"], out["missing"] = T.build(to_sheet(ext, nid), pdf, pages)
+    # P2 선행 안전장치: 기준표 연도(인용문에 금액 없는 조건), 템플릿에 없는 새 제한 문구
+    kind = ext["fields"].get("kind").value if isinstance(ext["fields"].get("kind"), Field) else None
+    out["stale"] = reference_guard(out["doc"], pages, ext["template"], kind)
+    out["missing"] += out["stale"]
+    out["restrictions"] = new_restrictions(out["doc"], pages)
     return out
+
+
+# ------------------------------------------------------------------ P2 선행 안전장치 (docs/09 §17)
+LOOKUP_REF = re.compile(r'"lookup":\s*\[\s*"(income_standard[^"]*)"')
+
+
+def _walk(conditions):
+    for c in conditions:
+        yield c
+        for t in c.get("tracks", []):
+            yield from _walk(t["conditions"])
+
+
+def required_reference_values(ref_id: str, template: str, kind=None) -> List[str]:
+    """새 공고에 있어야 할 기준표 대표 금액 — 같은 템플릿(같은 유형) 등록 공고들이 공통으로 싣는 금액."""
+    import json
+    ref = json.loads((sv.RULES / "reference" / f"{ref_id}.json").read_text(encoding="utf-8"))
+    sets = []
+    for nid in T.sheet_ids():
+        sheet = T.gold_sheet(nid)
+        if sheet["template"] != template or (kind is not None and sheet["params"].get("kind") != kind):
+            continue
+        if nid not in ref.get("cited_pages", {}):
+            continue
+        req = ref.get("required_by_notice", {}).get(nid, ref.get("required_in_every_notice", []))
+        sets.append({f"{ref['table'][str(s)][str(r)]:,}" for s, r in req})
+    return sorted(set.intersection(*sets)) if sets else []
+
+
+def reference_guard(doc: Dict, pages: List[str], template: str, kind=None) -> List[str]:
+    """기준표를 직접 참조하는 조건 중, 그 기준표의 대표 금액이 원문에 없으면(다른 기준 연도) 그 조건을 보류 대상으로 돌려준다.
+    인용문에 금액이 없는 조건(예: 청년매입 3순위 본인 소득)이 연도가 바뀌어도 그대로 통과하는 것을 막는다."""
+    text = "".join(pages)
+    out = []
+    for layer, ld in doc["layers"].items():
+        for c in _walk(ld["conditions"]):
+            for ref_id in set(LOOKUP_REF.findall(json_dumps(c.get("check", {})))):
+                need = required_reference_values(ref_id, template, kind)
+                lost = [v for v in need if v not in text]
+                if lost:
+                    out.append(f"{layer}/{c['id']}: '기준표 {ref_id} 금액 {lost[0]}원 등 {len(lost)}개가 원문에 없음(다른 기준 연도)'")
+    return out
+
+
+def json_dumps(x) -> str:
+    import json
+    return json.dumps(x, ensure_ascii=False)
+
+
+RESTRICTION = [re.compile(p) for p in (r"이번공고에서는모집하지않", r"[가-힣·()]{2,20}거주자만(?:신청|공급)",
+                                       r"현재[가-힣]{2,10}(?:특별시|광역시|도|시)에거주하는")]
+
+
+def new_restrictions(doc: Dict, pages: List[str]) -> List[tuple]:
+    """지역·모집 제한 문구 중 만든 규칙의 어느 조건도 인용하지 않는 것 — 템플릿에 없는 제한이 새로 생겼을 수 있다."""
+    quotes = [sv.normalize(q["text"] if isinstance(q, dict) else q)
+              for ld in doc["layers"].values() for c in _walk(ld["conditions"]) for q in c["source"].get("quote", [])]
+    out = []
+    for i, t in enumerate(pages, 1):
+        for rx in RESTRICTION:
+            for m in rx.finditer(t):
+                key = m.group(0)[:10]
+                if not any(key in q for q in quotes):
+                    out.append((i, m.group(0)))
+    return sorted(set(out))
+
+
+def affected_conditions(conditions, condition_ids) -> set:
+    """보류 대상 조건(트랙 안쪽 포함)을 품은 최상위 조건 ID."""
+    def ids(c):
+        yield c.rule_id
+        for t in c.tracks or []:
+            for cc in t.conditions:
+                yield from ids(cc)
+    return {c.rule_id for c in conditions if any(i in condition_ids for i in ids(c))}
+
+
+def adjust_verdict(result, affected: set, restricted: bool) -> str:
+    """초안 판정: 보류 대상 조건이 판정에 쓰였거나 새 제한 문구가 있으면 '지원 가능'을 '수동 확인'으로 낮춘다.
+    '지원 불가'는 불충족 조건이 전부 보류 대상일 때만 '수동 확인'으로."""
+    v = result.verdict
+    if v == "ELIGIBLE" and (affected or restricted):
+        return "MANUAL_REVIEW"
+    if v == "INELIGIBLE" and affected and set(result.failed) <= affected:
+        return "MANUAL_REVIEW"
+    return v
