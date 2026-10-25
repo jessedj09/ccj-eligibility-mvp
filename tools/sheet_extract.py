@@ -20,9 +20,11 @@ from typing import Dict, List, Optional
 ROOT = Path(__file__).resolve().parent.parent
 sys.path[:0] = [str(ROOT / "src"), str(ROOT / "tools")]
 
+import llm_slot as L  # noqa: E402
 import notice_candidates as nc  # noqa: E402
 import source_verify as sv  # noqa: E402
 import templates as T  # noqa: E402
+from rule_data import region_names  # noqa: E402
 from rule_engine import years_before  # noqa: E402
 
 HELD, FILLED, ABSENT = "held", "filled", "absent"   # 보류 / 채움 / 원문에 해당 항목이 없음(값 None)
@@ -160,8 +162,67 @@ def loose_find(pages, sentence: str) -> Optional[tuple]:
     return None
 
 
-def adapt_quotes(pages, ann: date, siblings: List[dict], key_path) -> Dict[str, Field]:
-    """형제 시트들의 문장(dict)을 이 공고 날짜로 바꿔 원문에 있는 것만 채운다. key_path: 시트 → 문장 dict."""
+@dataclass
+class LLM:
+    """LLM 슬롯과 LLM에게 보여 줄 쪽 텍스트(띄어쓰기 유지). 없으면 결정론만."""
+    slot: object
+    raw: List[str]
+
+
+MIN_SIMILARITY = 0.35     # LLM이 고른 문장과 예시 문장의 글자 2-gram 겹침 하한 — 다른 조건의 문장을 고르는 것을 막는다
+
+
+def llm_sentence(pages, llm: Optional[LLM], example: str, hint_pages=(), what="같은 역할의 조건 문장") -> Optional[tuple]:
+    """LLM에게 예시와 같은 뜻의 문장을 찾게 하고, 원문에 실제로 있고 같은 주제일 때만 (쪽, 원문 문장)."""
+    if llm is None or not example:
+        return None
+    look = list(dict.fromkeys([p for p in hint_pages if p] + L.pages_like(pages, example, 2)))[:3]
+    got = llm.slot.find_sentence(llm.raw, look, what, example)
+    if not got:
+        return None
+    snapped = snap(pages, got[0])
+    if snapped is None:
+        return None
+    page, quote = snapped
+    if len(quote) >= 8 and L.bigram_similarity(quote, example) >= MIN_SIMILARITY:
+        return page, quote
+    return None
+
+
+SNAP_COVER = 0.85      # LLM 답의 글자 중 원문의 한 구간과 맞는 비율 하한
+
+
+def snap(pages: List[str], answer: str) -> Optional[tuple]:
+    """LLM 답을 '위치'로만 쓰고 인용문은 원문에서 직접 잘라 온다 — 답이 원문을 글자 한두 개 바꿔 옮겨도(띄어쓰기·조사)
+    원문의 해당 구간을 그대로 쓴다. 답의 85% 이상이 한 쪽의 한 구간과 맞을 때만. → (쪽, 원문 정규화 텍스트)"""
+    from difflib import SequenceMatcher
+    a = sv.normalize(answer)
+    if len(a) < 8:
+        return None
+    exact = on_page(pages, a)
+    if exact:
+        return exact, a
+    # 답 길이만 한 창을 원문 위로 밀며 가장 잘 맞는 구간을 찾는다(앞뒤의 비슷한 문구에 끌려가지 않게).
+    # 답의 6글자 조각이 하나라도 있는 쪽만 본다.
+    pieces = {a[k:k + 6] for k in range(0, len(a) - 5, 3)}
+    size = int(len(a) * 1.15) + 2
+    best = None
+    for i, t in enumerate(pages, 1):
+        if not t or not any(p in t for p in pieces):
+            continue
+        for start in range(0, max(1, len(t) - size + 1), 2):
+            w = t[start:start + size]
+            blocks = [b for b in SequenceMatcher(None, w, a, autojunk=False).get_matching_blocks() if b.size >= 2]
+            matched = sum(b.size for b in blocks)
+            if matched / len(a) >= SNAP_COVER and (best is None or matched > best[0]):
+                s0, e0 = blocks[0].a, blocks[-1].a + blocks[-1].size
+                best = (matched, i, w[s0:e0])
+    return (best[1], best[2]) if best else None
+
+
+def adapt_quotes(pages, ann: date, siblings: List[dict], key_path, llm: Optional[LLM] = None) -> Dict[str, Field]:
+    """형제 시트들의 문장(dict)을 이 공고 날짜로 바꿔 원문에 있는 것만 채운다. key_path: 시트 → 문장 dict.
+    결정론으로 못 찾으면(llm이 있을 때) LLM에게 같은 뜻의 문장을 찾게 하고 검증한다."""
     keys = []
     for s in siblings:
         for k in key_path(s):
@@ -172,7 +233,8 @@ def adapt_quotes(pages, ann: date, siblings: List[dict], key_path) -> Dict[str, 
         # 보류여도 규칙은 만들 수 있게 형제 문장(날짜 맞춤)을 자리표시로 둔다 — 원문에 없으니 규칙을 만들면 그 조건이
         # '찾지 못한 인용문'으로 드러난다(검증 관문)
         first = next((s for s in siblings if isinstance(key_path(s).get(k), str)), None)
-        placeholder = adapt(key_path(first)[k], date_mapping(date.fromisoformat(first["announcement_date"]), ann))             if first else None
+        placeholder = adapt(key_path(first)[k], date_mapping(date.fromisoformat(first["announcement_date"]), ann)) \
+            if first else None
         out[k] = Field(HELD, placeholder, how="형제 공고의 문장이 이 공고 원문에 없음")
         for s in siblings:
             src = key_path(s).get(k)
@@ -190,6 +252,10 @@ def adapt_quotes(pages, ann: date, siblings: List[dict], key_path) -> Dict[str, 
                 if hit:
                     out[k] = Field(FILLED, hit[1], hit[0], hit[1], f"형제 {s['notice_id']} 문장(숫자·Ⅰ/Ⅱ만 다른 원문 표현)")
                     break
+        if out[k].status == HELD and llm is not None and placeholder:
+            hit = llm_sentence(pages, llm, placeholder)
+            if hit:
+                out[k] = Field(FILLED, hit[1], hit[0], sv.normalize(hit[1]), f"LLM({llm.slot.name}) — 원문 확인·주제 일치")
     return out
 
 
@@ -246,7 +312,7 @@ def _newlywed_rental(pages, ann, sib, program):
     return f
 
 
-def _sh_newlywed(pages, ann, sib, program):
+def _sh_newlywed(pages, ann, sib, program, llm=None):
     f = {"kind": Field(FILLED, kind_of(program), how="사업 유형(제목)에서")}
     dates = {"marriage": by_convention(pages, ann, 7, "혼인신고", True), "child6": by_convention(pages, ann, 7, "출생", True),
              "newborn": by_convention(pages, ann, 2, "출생", True)}
@@ -258,7 +324,7 @@ def _sh_newlywed(pages, ann, sib, program):
                                      "지원대상 한부모 미성년 기준일 " + ("있음" if minor.status == FILLED else "없음"))
     same_kind = [s for s in sib if s["params"].get("kind") == f["kind"].value]
     other = [s for s in sib if s not in same_kind]
-    f["quotes"] = adapt_quotes(pages, ann, same_kind + other, lambda s: s["params"]["quotes"])
+    f["quotes"] = adapt_quotes(pages, ann, same_kind + other, lambda s: s["params"]["quotes"], llm)
     inc = f["quotes"].get("income")
     if inc is not None and inc.status == FILLED:
         ratio = "70%" if f["kind"].value == "I" else "130%"
@@ -267,10 +333,10 @@ def _sh_newlywed(pages, ann, sib, program):
     return f
 
 
-def _jeonse2(pages, ann, sib, program):
+def _jeonse2(pages, ann, sib, program, llm=None):
     f = {"dates": {"marriage": by_convention(pages, ann, 7, "혼인", True),
                    "five": by_convention(pages, ann, 5, "소유", True)}}
-    f["quotes"] = adapt_quotes(pages, ann, sib, lambda s: s["params"]["quotes"])
+    f["quotes"] = adapt_quotes(pages, ann, sib, lambda s: s["params"]["quotes"], llm)
     f["weak_quote"] = _weak_quote(pages)
     return f
 
@@ -281,9 +347,9 @@ def _weak_quote(pages) -> Field:
         Field(ABSENT, how="주거약자형 주택 신청자격 문구 없음")
 
 
-def _jeonse(pages, ann, sib, program):
+def _jeonse(pages, ann, sib, program, llm=None):
     f = {}
-    q = adapt_quotes(pages, ann, sib, lambda s: {k: v for k, v in s["params"]["quotes"].items() if isinstance(v, str)})
+    q = adapt_quotes(pages, ann, sib, lambda s: {k: v for k, v in s["params"]["quotes"].items() if isinstance(v, str)}, llm)
     a = find_text(pages, r"가액합산:[0-9,]+만원이하")
     c = find_text(pages, r"보건복지부장관이정하는금액:[0-9,]+만원이하")
     q["assets"] = Field(FILLED, a[1], a[0], a[1], "자산 한도 문구") if a else Field(HELD, how="자산 한도 문구 없음")
@@ -293,7 +359,7 @@ def _jeonse(pages, ann, sib, program):
     elderly = find_text(pages, r"만65세이상\[[^\]]{8,30}\]인2인이하무주택세대구성원")
     q["with_elderly"] = Field(FILLED, bool(elderly), elderly[0] if elderly else None, elderly[1] if elderly else None,
                               "고령자 우선공급 문구 " + ("있음" if elderly else "없음"))
-    prio = adapt_quotes(pages, ann, sib, lambda s: s["params"]["quotes"].get("priority", {}))
+    prio = adapt_quotes(pages, ann, sib, lambda s: s["params"]["quotes"].get("priority", {}), llm)
     if elderly:
         prio["elderly"] = Field(FILLED, elderly[1], elderly[0], elderly[1], "고령자 우선공급 문구")
     q["priority"] = prio
@@ -353,7 +419,39 @@ EXTRA_ARGS = {"elderly": lambda: {"home_quote": T.C3.ELDER_HOME},
               "industrial": dict, "regional": dict}
 
 
-def _happy_housing(pages, ann, sib, program, title_text):
+REGION_FIELDS = {"대학생": ["residence_area", "school_area"], "청년": ["residence_area", "income_base_area"],
+                 "신혼부부": ["residence_area", "income_base_area", "spouse_residence_area", "spouse_income_base_area"],
+                 "한부모": ["residence_area", "income_base_area"]}
+REGION_NOTE = "거주지·소득 근거지(대학생은 재학 대학 소재지) 중 하나가 해당 주택건설지역 또는 연접 지역인지(이 공고는 1순위만 모집)"
+
+
+def _llm_region(pages, llm: LLM, layers, heads) -> Optional[dict]:
+    """1순위만 모집하는 공고의 계층별 지역 자격 문장. 템플릿 지역 목록(서울특별시 + 연접 13개 시)이 문장에 **전부** 있고
+    목록 밖 지역 이름이 **없을** 때만 쓴다 — 목록이 다른 공고에 서울 목록을 쓰면 틀린 '불가'가 나온다."""
+    adj = [sv.normalize(n) for n in T.C1.SEOUL_ADJ]
+    others = [sv.normalize(n) for n in region_names() if n not in T.C1.SEOUL_ADJ]
+    schema = {"type": "object", "properties": {"first_rank": {"type": "string"}, "not_recruited": {"type": "string"}},
+              "required": ["first_rank", "not_recruited"]}
+    out = {}
+    for layer in layers:
+        head = "신혼부부·한부모가족" if layer in ("신혼부부", "한부모") else layer
+        start = heads.get(head) or 1
+        prompt = (f"이 공고는 1순위 지역만 모집한다(2·3순위는 이번 공고에서 모집하지 않음). '{layer}' 계층의 1순위 자격 문장 — "
+                  "'해당 주택건설지역(…) 또는 연접지역(…)이 거주지나 …인 자' 같은 문장 — 을 원문 그대로 first_rank에, "
+                  "2·3순위를 이번 공고에서 모집하지 않는다는 문장을 원문 그대로 not_recruited에 복사하라.\n\n"
+                  + L.page_block(llm.raw, [start, start + 1, start + 2]))
+        got = llm.slot.ask(prompt, schema) or {}
+        first, nore = str(got.get("first_rank", "")).strip(), str(got.get("not_recruited", "")).strip()
+        nf = sv.normalize(first)
+        if not (first and nore and on_page(pages, first) and on_page(pages, nore)):
+            return None
+        if not all(a in nf for a in adj) or any(o in nf for o in others):
+            return None
+        out[layer] = dict(fields=REGION_FIELDS[layer], quote=[first, nore], note=REGION_NOTE)
+    return out
+
+
+def _happy_housing(pages, ann, sib, program, title_text, llm=None):
     f = {"base": Field(FILLED, "N1" if "신혼희망타운" in program else "N3", how="사업 유형(신혼희망타운 여부)")}
     heads = {}
     for i, t in enumerate(pages, 1):
@@ -385,8 +483,13 @@ def _happy_housing(pages, ann, sib, program, title_text):
     f["child"] = Field(FILLED, lit_c, hit[0], hit[1], "'…이후 출생' 리터럴(공고일−7년 무렵)") if lit_c else \
         Field(ABSENT, None, how="6세 기준일 리터럴 없음 — 공고일에서 도출")
     only_first = find_text(pages, r"이번공고에서는모집하지않음")
-    f["region"] = Field(HELD, None, only_first[0], only_first[1], "1순위 지역만 모집 — 계층별 지역 조건 문구는 결정론 추출 미구현") \
-        if only_first else Field(ABSENT, {}, how="2·3순위 미모집 문구 없음")
+    region = _llm_region(pages, llm, layers, heads) if (only_first and llm is not None and layers) else None
+    if region:
+        f["region"] = Field(FILLED, region, only_first[0], only_first[1], f"LLM({llm.slot.name}) — 지역 목록·원문 확인")
+    elif only_first:
+        f["region"] = Field(HELD, None, only_first[0], only_first[1], "1순위 지역만 모집 — 계층별 지역 조건 문장을 확인하지 못함")
+    else:
+        f["region"] = Field(ABSENT, {}, how="2·3순위 미모집 문구 없음")
     f["overrides"] = Field(ABSENT, {}, how="템플릿과 표현이 다른 문장은 규칙을 만든 뒤 '찾지 못한 인용문'으로 드러난다")
     f["weak"] = _happy_weak(pages, layers, heads)
     return f
@@ -420,8 +523,9 @@ def _happy_weak(pages, layers, heads) -> Field:
 
 
 # ------------------------------------------------------------------ 전체
-def extract(pages: List[str], siblings_of=None) -> Dict:
-    """siblings_of(template) → 형제 정답 시트 목록(같은 템플릿, 평가 시 다듬기용 공고만)."""
+def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Dict:
+    """siblings_of(template) → 형제 정답 시트 목록(같은 템플릿, 평가 시 다듬기용 공고만). llm이 있으면 결정론이 못 채운
+    빈칸만 LLM에게 묻는다(검증을 통과해야 채움)."""
     issuer, program = nc.classify(pages)
     anns = nc.announcement_candidates(pages)
     template = choose_template(issuer, program)
@@ -435,10 +539,10 @@ def extract(pages: List[str], siblings_of=None) -> Dict:
     fn = {"lh.youth_rental": lambda: _youth_rental(pages, ann, sib),
           "lh.newlywed_rental": lambda: _newlywed_rental(pages, ann, sib, program),
           "lh.deundeun": dict, "sh.vacant": dict,
-          "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program),
-          "sh.jeonse2": lambda: _jeonse2(pages, ann, sib, program),
-          "sh.jeonse": lambda: _jeonse(pages, ann, sib, program),
-          "lh.happy_housing": lambda: _happy_housing(pages, ann, sib, program, pages[0][:200])}[template]
+          "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),
+          "sh.jeonse2": lambda: _jeonse2(pages, ann, sib, program, llm),
+          "sh.jeonse": lambda: _jeonse(pages, ann, sib, program, llm),
+          "lh.happy_housing": lambda: _happy_housing(pages, ann, sib, program, pages[0][:200], llm)}[template]
     out["fields"] = fn()
     return out
 
@@ -520,7 +624,29 @@ def _sanity(ext) -> List[str]:
     return problems
 
 
-def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW") -> Dict:
+MISSING_QUOTE = re.compile(r"^(?P<layer>[^/]+)/(?P<cid>N\d+-[A-Za-z0-9-]+): '(?P<quote>.+)'$")
+
+
+def _llm_overrides(ext: Dict, doc: Dict, missing: List[str], pages, llm: LLM) -> Dict[str, list]:
+    """행복주택: 템플릿 문구가 이 공고에 없는 조건 → 같은 뜻의 원문 문장으로 바꾼 인용문 목록(조건 접미사 → 문장들)."""
+    out = {}
+    for m in missing:
+        mm = MISSING_QUOTE.match(m)
+        if not mm or mm.group("layer") not in doc["layers"]:
+            continue
+        cond = next((c for c in doc["layers"][mm.group("layer")]["conditions"] if c["id"] == mm.group("cid")), None)
+        if cond is None:
+            continue
+        hit = llm_sentence(pages, llm, mm.group("quote"), hint_pages=[cond["source"].get("page")])
+        if not hit:
+            continue
+        suffix = mm.group("cid").split("-", 1)[1]
+        keep = out.get(suffix) or [q["text"] if isinstance(q, dict) else q for q in cond["source"]["quote"]]
+        out[suffix] = keep + [hit[1]]
+    return out
+
+
+def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW", llm: Optional[LLM] = None) -> Dict:
     """추출 시트로 규칙을 만들어 본다. 결과:
     - held: 보류된 빈칸, critical_held: 그중 판정에 직접 쓰이는 것(있으면 이 공고는 자동 판정하지 않는다 — P2 규칙)
     - missing: 원문에서 찾지 못한 인용문(그 조건은 보류), doc: 만들어진 규칙(만들 수 없으면 None, blocked에 이유)"""
@@ -537,4 +663,10 @@ def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW") -> Dict:
         out["doc"], out["missing"] = T.build(to_sheet(ext, nid), pdf, pages)
     except (KeyError, TypeError, ValueError) as e:     # 필수 빈칸이 보류라 규칙을 만들 수 없음
         out["blocked"] = f"규칙을 만들 수 없음: {type(e).__name__} {e}"
+        return out
+    if llm is not None and ext["template"] == "lh.happy_housing" and out["missing"]:
+        ov = _llm_overrides(ext, out["doc"], out["missing"], pages, llm)
+        if ov:
+            ext["fields"]["overrides"] = Field(FILLED, ov, how=f"LLM({llm.slot.name}) — 표현이 다른 조건 {len(ov)}개")
+            out["doc"], out["missing"] = T.build(to_sheet(ext, nid), pdf, pages)
     return out

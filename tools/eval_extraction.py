@@ -106,10 +106,17 @@ def compare(gold: dict, ext: dict):
                 else:
                     rows.append((f"{name}.{k}", _cmp_quote(gk, fk), False))
         elif name == "overrides":
-            rows.append((name, HELD if gv else OK_ABSENT, False))
+            if f is not None and f.status == X.FILLED:
+                rows.append((name, CORRECT, False))       # LLM이 찾은 원문 문장(원문·주제 확인됨)
+            else:
+                rows.append((name, HELD if gv else OK_ABSENT, False))
         elif name == "region":
             if f is None or f.status == X.ABSENT:
                 rows.append((name, WRONG if gv else OK_ABSENT, True))
+            elif f.status == X.FILLED:
+                want = {k: v["fields"] for k, v in (gv or {}).items()}
+                got = {k: v["fields"] for k, v in f.value.items()}
+                rows.append((name, CORRECT if gv and want == got else WRONG, True))
             else:
                 rows.append((name, HELD, True))
         elif name == "extra_layers":
@@ -189,13 +196,23 @@ def judgment_agreement(nid, g, limit=None):
     return out, notes
 
 
-def evaluate(nids, verbose=False):
+def make_llm(model):
+    """--llm 모델 이름 → 공고마다 LLM 문맥을 만드는 함수(없으면 None — 결정론만)."""
+    if not model:
+        return None
+    import llm_slot as L
+    slot = L.OllamaSlot(model)
+    return lambda nid: X.LLM(slot, L.raw_pages(sv.pdf_path(nid)))
+
+
+def evaluate(nids, verbose=False, llm_for=None):
     per = {}
     for nid in nids:
         gold = T.gold_sheet(nid)
-        ext = X.extract(sv.pdf_pages(nid), siblings_for(nid))
+        llm = llm_for(nid) if llm_for else None
+        ext = X.extract(sv.pdf_pages(nid), siblings_for(nid), llm)
         rows = compare(gold, ext)
-        per[nid] = dict(template=gold["template"], rows=rows, ext=ext)
+        per[nid] = dict(template=gold["template"], rows=rows, ext=ext, llm=llm)
         if verbose:
             bad = [(n, r) for n, r, c in rows if r in (WRONG, HELD)]
             print(f"{nid} {gold['template']}: " + ", ".join(f"{n}={r}" for n, r in bad) if bad else f"{nid} 모두 맞음")
@@ -217,7 +234,7 @@ def summarize(per):
 def judge_all(per, limit=None, verbose=False):
     total = Counter()
     for nid, d in per.items():
-        g = X.gate(d["ext"], sv.pdf_path(nid), sv.pdf_pages(nid), nid)
+        g = X.gate(d["ext"], sv.pdf_path(nid), sv.pdf_pages(nid), nid, d.get("llm"))
         c, notes = judgment_agreement(nid, g, limit)
         d["judge"], d["gate"] = c, g
         total += c
@@ -236,9 +253,11 @@ def main(argv=None):
     ap.add_argument("-v", action="store_true")
     ap.add_argument("--judge", action="store_true", help="골든 입력으로 판정 일치율까지(시간이 걸림)")
     ap.add_argument("--limit", type=int, help="계층마다 골든 입력 앞 N건만")
+    ap.add_argument("--llm", help="결정론이 못 채운 빈칸을 물어볼 로컬 Ollama 모델(예: qwen3.5:4b)")
     a = ap.parse_args(argv)
     nids = {"tune": TUNE, "test": TEST, "all": TUNE + TEST}[a.set]
-    per = evaluate(nids, verbose=a.v)
+    llm_for = make_llm(a.llm)
+    per = evaluate(nids, verbose=a.v, llm_for=llm_for)
     tot, crit, by_t = summarize(per)
     n = sum(tot.values())
     filled = tot[CORRECT] + tot[WRONG] + tot[OK_ABSENT]
@@ -247,6 +266,10 @@ def main(argv=None):
     for t, c in sorted(by_t.items()):
         m = sum(c.values())
         print(f"  {t}: 맞음 {c[CORRECT] + c[OK_ABSENT]}/{m} · 보류 {c[HELD]} · 틀림 {c[WRONG]}")
+    if llm_for:
+        slot = next((d["llm"].slot for d in per.values() if d.get("llm")), None)
+        if slot:
+            print(f"LLM {slot.name}: 새 호출 {slot.calls}회({slot.seconds:.0f}초) · 저장된 답 재사용 {slot.cached}회")
     if a.judge:
         j = judge_all(per, a.limit, verbose=a.v)
         n = sum(j.values())
