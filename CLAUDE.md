@@ -109,10 +109,17 @@ Engine**이다.
 - **E2(2026-10-24) 정비**: PDF 추출 텍스트 캐시(`.cache/pdf_text/`, git 제외 — 키 = PDF sha256 + pypdf 버전 + 정규화 코드,
   `CCJ_NO_PDF_CACHE=1`이면 끔, CI는 actions/cache), 골든 입력 그룹 단위 생성(`golden_cases.cases(only=…)` — 같은 입력),
   `mvp0/` 삭제, `pytest.ini`(경고 필터 — **ASCII만**: pytest가 OS 인코딩 cp949로 읽는다). 기획 정리 `기획서/PRD_v2.md`(로컬, 저장소 밖).
-- pytest: 총 **691개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 14단계).
+- **P0(2026-10-25) 공고 업로드 판정 기본형**(주요 기능1, `docs/09`): 메인 화면 사이드바 "공고문 PDF 올리기" → `src/notice_identify.py`가
+  식별 — 지문(sha256) 일치 = REGISTERED(바로 판정), 공고일·사업 유형(같은 날 같은 사업이면 1~2쪽에서 **먼저 나오는** 단지명)이 같으면
+  SAME_NOTICE_OTHER_FILE(정정 가능성 → 사용자가 체크해야 판정), 그 밖 UNREGISTERED(판정 안 함 + 공고일·접수기간·사업 유형 후보),
+  UNREADABLE. 업로드 파일은 디스크에 남기지 않는다(`extract_pages_bytes(cache=False)`). 후보 추출 함수는 `src/notice_candidates.py`로
+  옮겼다(`tools/notice_intake.py`는 다시 내보냄). 결과 표시는 3상태 `src/display_status.py`(지원 가능 / 보류—추가 정보·수동 확인 / 지원 불가,
+  엔진 5상태 불변). 화면 그리기 `src/upload_view.py`, 화면 점검용 고정 화면 `tools/ui_fixture_upload_view.py`(AppTest는 업로드 불가).
+  `tests/test_p0_upload.py`.
+- pytest: 총 **724개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 15단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
-- **다음 과제 후보**: 새 공고 추가(사용자가 별도 진행 — 백로그, `docs/08-adding-a-notice.md` 절차), API 외부 배포 여부 결정,
-  웹 업로드 공고의 "검증 전 초안 판정"(설계 결정 필요). 상세는
+- **다음 과제**: PRD v2.1 13절 단계별 task — 2단계(What-if, 독립 검증 대조 도구) → 3단계(자동 추출 엔진 P1, 로컬 Ollama).
+  새 공고 추가는 사용자가 별도 진행(백로그, `docs/08-adding-a-notice.md`). 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 
 ## 반드시 지켜야 할 원칙 (요약 — 근거는 docs/01-decisions-log.md)

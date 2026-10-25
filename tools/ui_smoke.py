@@ -15,6 +15,8 @@
 12) 전체 공고 찾기 페이지(D): 범위가 갈리는 입력(본인 무주택·세대 주택 보유)으로 청년 계층이 신청 가능, 든든전세는 아님
 13) 접수 상태(D2): 기준일 2026.10.14.이면 접수 중인 공고만 보이고, 2026.10.22.이면(전부 마감) 안내가 나온다
 14) 내 조건 불러오기(D2b): 저장 파일 내용을 입력란에 채우면 그 프로필을 직접 판정한 것과 결과 수가 같다
+15) 공고 업로드(P0): 'PDF 올리기'를 고르면 판정 전에 업로드를 기다리고, 식별 결과(미등록·읽을 수 없음·다른 파일·등록)를
+    그대로 그린다(AppTest는 파일 업로드를 흉내 낼 수 없어 식별 결과를 직접 넣는다). 판정 결과는 지원 가능/보류(원인)/지원 불가로 보인다
 """
 import os
 import sys
@@ -220,7 +222,7 @@ def main():
     assert not at.exception, at.exception
     metrics = {m.label: m.value for m in at.metric}
     youth = [e.label for e in at.expander if e.label.endswith("· 청년")]
-    assert int(metrics["✅ 신청 가능"]) >= 6 and len(youth) >= 6, (metrics, youth)
+    assert int(metrics["✅ 지원 가능"]) >= 6 and len(youth) >= 6, (metrics, youth)
     assert not [e for e in at.expander if "든든전세" in e.label and "✅" in e.label]
     print("12) 전체 공고 찾기(D):", metrics, "| 청년 계층", len(youth), "건 신청 가능")
 
@@ -274,14 +276,40 @@ def main():
         assert not at.exception, at.exception
         got = {m_.label: int(m_.value) for m_ in at.metric}
         direct = [x.verdict for x in match_all(m, ALL_NOTICES)]
-        want = {"✅ 신청 가능": direct.count("ELIGIBLE"), "🔍 수동 확인 필요": direct.count("MANUAL_REVIEW"),
-                "⚠️ 추가 정보 필요": direct.count("NEEDS_INFO"), "❌ 신청 불가": direct.count("INELIGIBLE")}
+        want = {"✅ 지원 가능": direct.count("ELIGIBLE"),
+                "🟡 보류": direct.count("MANUAL_REVIEW") + direct.count("NEEDS_INFO"),
+                "❌ 지원 불가": direct.count("INELIGIBLE")}
+        hold_line = next(c.value for c in at.caption if c.value.startswith("보류 "))
+        assert f"추가 정보 필요 {direct.count('NEEDS_INFO')}건" in hold_line and             f"수동 확인 필요 {direct.count('MANUAL_REVIEW')}건" in hold_line, hold_line
         assert got == want, (got, want)
         # 결과 수만이 아니라 어떤 공고·계층이 나왔는지까지(신청 불가를 뺀 펼침 목록) 같아야 한다
         rows = {e.label.split(" | ")[2] for e in at.expander if " | " in e.label}
         rows_want = {f"{x.notice.title} · {x.layer}" for x in match_all(m, ALL_NOTICES) if x.verdict != "INELIGIBLE"}
         assert rows == rows_want, (rows ^ rows_want)
         print("14) 내 조건 불러오기(D2b): 화면 판정 = 직접 판정", got)
+
+    # 15) 공고 업로드(P0)
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
+    at.sidebar.radio(key="pick_mode").set_value("공고문 PDF 올리기").run()
+    assert not at.exception, at.exception
+    assert any("공고문 PDF를 올리면" in i.value for i in at.info) and not at.button, "업로드 전에는 판정 버튼이 없어야 한다"
+    for status in ("UNREGISTERED", "UNREADABLE", "SAME_NOTICE_OTHER_FILE", "REGISTERED"):
+        view = AppTest.from_file(str(ROOT / "tools" / "ui_fixture_upload_view.py"), default_timeout=60)
+        view.session_state["fixture_status"] = status
+        view.run()
+        assert not view.exception, (status, view.exception)
+        texts = " ".join([e.value for e in view.info] + [c.value for c in view.caption] + [m.value for m in view.markdown]
+                         + [h.value for h in view.subheader])
+        expect = {"UNREGISTERED": ["아직 판정할 수 없는 공고", "공고일(후보): **2026-12-01**", "N11"],
+                  "UNREADABLE": ["글자를 읽을 수 없는"],
+                  "SAME_NOTICE_OTHER_FILE": ["등록된 원문(N4)", "정정 공고"],
+                  "REGISTERED": ["등록 공고 **N4"]}[status]
+        assert all(e in texts for e in expect), (status, texts[:300])
+    at = fresh("N1", "신혼부부")
+    at.button[0].click().run()
+    shown = [e.value for kind in (at.success, at.error, at.warning) for e in kind]
+    assert shown and any(g in shown[0] for g in ("지원 가능", "보류 —", "지원 불가")), shown
+    print("15) 공고 업로드(P0): 업로드 대기·식별 결과 4종 표시 OK | 판정 표시:", shown[0][:40])
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)

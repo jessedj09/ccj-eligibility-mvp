@@ -74,36 +74,47 @@ def _cache_key(data: bytes) -> str:
 
 def extract_pages(path) -> List[str]:
     """PDF 전 쪽의 정규화 텍스트. 생성 스크립트(tools/gen_*.py)도 이 함수를 쓴다."""
+    return extract_pages_bytes(Path(path).read_bytes(), str(path))
+
+
+def extract_pages_bytes(data: bytes, label: str = "<업로드>", cache: bool = True) -> List[str]:
+    """PDF 바이트에서 쪽별 정규화 텍스트. 화면 업로드(P0)는 cache=False — 사용자가 올린 파일은 디스크에 남기지 않는다.
+    PDF가 아니거나 깨져 읽을 수 없으면 ValueError."""
+    import io
     import logging
     import os
-    data = Path(path).read_bytes()
-    cache = PDF_CACHE / f"{_cache_key(data)}.json"
-    use_cache = os.environ.get("CCJ_NO_PDF_CACHE") != "1"
-    if use_cache and cache.exists():
+    cache_file = PDF_CACHE / f"{_cache_key(data)}.json"
+    use_cache = cache and os.environ.get("CCJ_NO_PDF_CACHE") != "1"
+    if use_cache and cache_file.exists():
         try:
-            hit = json.loads(cache.read_text(encoding="utf-8"))
+            hit = json.loads(cache_file.read_text(encoding="utf-8"))
             if hit["failures"]:
-                EXTRACTION_FAILURES[str(path)] = list(hit["failures"])
+                EXTRACTION_FAILURES[label] = list(hit["failures"])
             return hit["pages"]
         except (ValueError, KeyError):
             pass                       # 깨진 캐시는 무시하고 다시 추출
     from pypdf import PdfReader
+    from pypdf.errors import PdfReadError
     logging.getLogger("pypdf").setLevel(logging.ERROR)
+    try:
+        reader_pages = PdfReader(io.BytesIO(data)).pages
+    except (PdfReadError, ValueError, OSError) as e:
+        raise ValueError(f"PDF를 열 수 없습니다: {e}") from None
     pages, failures = [], []
-    for i, page in enumerate(PdfReader(str(path)).pages, 1):
+    for i, page in enumerate(reader_pages, 1):
         try:
             pages.append(normalize(page.extract_text() or ""))
         except Exception:   # noqa: BLE001 — 라이브러리 내부 디코딩 오류 등, 쪽 단위로 격리
             failures.append(i)
             pages.append("")
     if failures:
-        EXTRACTION_FAILURES.setdefault(str(path), []).extend(failures)
+        EXTRACTION_FAILURES.setdefault(label, []).extend(failures)
     if use_cache:
         try:
             PDF_CACHE.mkdir(parents=True, exist_ok=True)
-            tmp = cache.with_suffix(".tmp")
+            tmp = cache_file.with_suffix(".tmp")
             tmp.write_text(json.dumps({"pages": pages, "failures": failures}, ensure_ascii=False), encoding="utf-8")
-            tmp.replace(cache)
+            tmp.replace(cache_file)
         except OSError:
             pass                       # 캐시는 선택 사항 — 못 써도 결과는 같다
     return pages
