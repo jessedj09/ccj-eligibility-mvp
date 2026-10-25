@@ -127,10 +127,15 @@ Engine**이다.
   숫자·Ⅰ/Ⅱ만 다른 문장, 장기전세 소득표 = 기준표×비율 계산이 원문에 전부 있을 때, 검증 관문 = 시트로 규칙 만들어 인용문 대조),
   `tools/eval_extraction.py`(다듬기 14 / 시험 9, `--judge` 판정 일치). 시험용: 빈칸 자동 채움 90%·틀림 0, 판정 같음 76.5%·확정 판정 틀림 0.
   **추출 규칙에 공고 전용 문자열 금지**(테스트가 점검). 시험용 결과로 규칙을 다듬지 말 것. `tests/test_t31_templates.py`·`test_t32_extract.py`.
-- pytest: 총 **796개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 16단계).
+- **P1 T3.3·T3.4(2026-10-25) 로컬 LLM 슬롯·비교**(docs/09 §16): `tools/llm_slot.py`(Ollama, 답 캐시 `.cache/llm/`), sheet_extract의
+  LLM 단계 — **LLM 답은 위치로만, 인용문은 원문에서 잘라 옴**(`snap`, 85% 이상 일치), 주제 겹침 ≥0.35, 지역 목록 정확 일치.
+  `eval_extraction --llm qwen3.5:4b`. 시험용: 결정론만 90%→LLM 94%, 판정 같음 76.5%→76.8%, 틀림 0. **합격 5개 사업
+  (청년매입·LH 신혼·든든전세·장기전세·장기전세2)은 결정론만으로 판정 100% 같음 → P2를 AI 없이 열 수 있음.** 모델: D:\ollama\models
+  (Ollama 앱 설정 DB `settings.models` + `OLLAMA_MODELS`), 받아 둔 모델 qwen3.5:4b·qwen3:1.7b·hermes3:3b. `tests/test_t33_llm.py`(가짜 슬롯).
+- pytest: 총 **801개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 16단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
-- **다음 과제**: P1 T3.3(로컬 Ollama 슬롯 — 모델 다운로드 승인 필요, 대상: SH 신혼·미리내집 문장, 행복주택 지역 조건·다른 표현 문장)
-  → T3.4(결정론만 vs Ollama 비교 보고). (선택) 2단계 T2.2 독립 검증 대조 도구.
+- **다음 과제**: PRD v2.1 13절 4단계 결정 — P2를 합격 5개 사업에 AI 없이 열지(미등록 공고 "검증 전 초안" 판정), 실행 위치,
+  행복주택 지역 조건·SH 신혼 문장의 고도화(Claude API 등) 여부. (선택) 2단계 T2.2 독립 검증 대조 도구.
   새 공고 추가는 사용자가 별도 진행(백로그, `docs/08-adding-a-notice.md`). 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 
