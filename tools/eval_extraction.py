@@ -150,16 +150,6 @@ def compare(gold: dict, ext: dict):
 SAME, J_HELD, J_WRONG = "same", "held", "wrong"
 
 
-def _affected(conditions, missing_ids):
-    """인용문을 못 찾은 조건(트랙 안쪽 포함)을 품은 최상위 조건 ID."""
-    def ids(c):
-        yield c.rule_id
-        for t in c.tracks or []:
-            for cc in t.conditions:
-                yield from ids(cc)
-    return {c.rule_id for c in conditions if any(i in missing_ids for i in ids(c))}
-
-
 def judgment_agreement(nid, g, limit=None):
     """골든 입력으로 자동 규칙(g = sheet_extract.gate 결과)과 등록 규칙의 판정을 비교 — P2 동작을 흉내 낸다:
     핵심 빈칸 보류·규칙 생성 실패면 그 공고 전부 보류, 인용문을 못 찾은 조건이 판정에 쓰이면 그 판정은 수동 확인.
@@ -186,12 +176,11 @@ def judgment_agreement(nid, g, limit=None):
             if auto is not None:
                 notes.append(f"계층 없음 {layer}")
             continue
-        aff = _affected(auto.layers[layer].conditions, missing_ids)
+        aff = X.affected_conditions(auto.layers[layer].conditions, missing_ids)
+        restricted = bool(g.get("restrictions"))
         for p in cases:
             r, a = judge(p, reg, layer).verdict, judge(p, auto, layer)
-            av = a.verdict
-            if aff and (av == "ELIGIBLE" or (av == "INELIGIBLE" and set(a.failed) <= aff)):
-                av = "MANUAL_REVIEW"
+            av = X.adjust_verdict(a, aff, restricted)
             out[SAME if av == r else J_HELD if av in ("MANUAL_REVIEW", "NEEDS_INFO") else J_WRONG] += 1
     return out, notes
 
