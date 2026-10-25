@@ -58,18 +58,54 @@ def pdf_path(nid: str) -> Path:
 EXTRACTION_FAILURES: Dict[str, List[int]] = {}
 
 
+# 추출 텍스트 캐시(.cache/pdf_text/, git 제외). PDF 26건 추출이 테스트 시간의 대부분(약 2분)이라 한 번 추출한 결과를 재사용한다.
+# 키 = PDF 내용 sha256 + pypdf 버전 + 정규화 코드 — 셋 중 하나라도 바뀌면 다시 추출하므로 대조 결과는 캐시가 없을 때와 같다.
+# CCJ_NO_PDF_CACHE=1이면 캐시를 쓰지 않는다.
+PDF_CACHE = PROJECT / ".cache" / "pdf_text"
+
+
+def _cache_key(data: bytes) -> str:
+    import inspect
+    import pypdf
+    code = inspect.getsource(normalize) + repr(sorted(_DINGBAT.items()))
+    return hashlib.sha256(data).hexdigest()[:32] + "-" + hashlib.sha256(
+        f"{pypdf.__version__}|{code}".encode("utf-8")).hexdigest()[:16]
+
+
 def extract_pages(path) -> List[str]:
     """PDF 전 쪽의 정규화 텍스트. 생성 스크립트(tools/gen_*.py)도 이 함수를 쓴다."""
     import logging
+    import os
+    data = Path(path).read_bytes()
+    cache = PDF_CACHE / f"{_cache_key(data)}.json"
+    use_cache = os.environ.get("CCJ_NO_PDF_CACHE") != "1"
+    if use_cache and cache.exists():
+        try:
+            hit = json.loads(cache.read_text(encoding="utf-8"))
+            if hit["failures"]:
+                EXTRACTION_FAILURES[str(path)] = list(hit["failures"])
+            return hit["pages"]
+        except (ValueError, KeyError):
+            pass                       # 깨진 캐시는 무시하고 다시 추출
     from pypdf import PdfReader
     logging.getLogger("pypdf").setLevel(logging.ERROR)
-    pages = []
+    pages, failures = [], []
     for i, page in enumerate(PdfReader(str(path)).pages, 1):
         try:
             pages.append(normalize(page.extract_text() or ""))
         except Exception:   # noqa: BLE001 — 라이브러리 내부 디코딩 오류 등, 쪽 단위로 격리
-            EXTRACTION_FAILURES.setdefault(str(path), []).append(i)
+            failures.append(i)
             pages.append("")
+    if failures:
+        EXTRACTION_FAILURES.setdefault(str(path), []).extend(failures)
+    if use_cache:
+        try:
+            PDF_CACHE.mkdir(parents=True, exist_ok=True)
+            tmp = cache.with_suffix(".tmp")
+            tmp.write_text(json.dumps({"pages": pages, "failures": failures}, ensure_ascii=False), encoding="utf-8")
+            tmp.replace(cache)
+        except OSError:
+            pass                       # 캐시는 선택 사항 — 못 써도 결과는 같다
     return pages
 
 

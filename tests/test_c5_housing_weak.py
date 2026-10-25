@@ -41,7 +41,7 @@ def test_weak_applicant_gets_exactly_the_base_verdict(nid, base):
     """장애인이면 주거약자 조건이 충족이므로, 변형 계층 판정 = 기본 계층 판정(골든의 기본 계층 입력 전부)."""
     notice = load_notice(nid)
     n = 0
-    for gnid, layer, p in gc.cases():
+    for gnid, layer, p in gc.cases(only=[(nid, base)]):
         if (gnid, layer) != (nid, base):
             continue
         q = dataclasses.replace(p, housing_weak_type="장애인")
@@ -56,7 +56,7 @@ def test_weak_applicant_gets_exactly_the_base_verdict(nid, base):
 def test_non_weak_applicant_is_ineligible_even_if_base_is_eligible(nid, base):
     notice = load_notice(nid)
     checked = 0
-    for gnid, layer, p in gc.cases():
+    for gnid, layer, p in gc.cases(only=[(nid, base)]):
         if (gnid, layer) != (nid, base) or evaluate(p, notice, base).verdict != "ELIGIBLE":
             continue
         for weak, age, expect in (("해당없음", 40, "INELIGIBLE"), (None, 40, "NEEDS_INFO"), ("해당없음", 65, "ELIGIBLE")):

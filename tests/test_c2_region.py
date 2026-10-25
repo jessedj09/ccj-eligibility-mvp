@@ -100,7 +100,7 @@ def test_same_verdicts_as_geumcheon_when_in_seoul():
     n6, n10 = load_notice("N6"), load_notice("N10")
     compared = 0
     region_layers = gc.REGION_FIELDS_BY_LAYER["N10"]       # 지역 조건이 있는 계층만(고령자 등은 지역 요건 없음)
-    for nid, layer, p in gc.cases():
+    for nid, layer, p in gc.cases(only=[("N6", lay) for lay in region_layers]):
         if nid != "N6" or layer not in region_layers:
             continue
         q = dataclasses.replace(p, residence_area="서울특별시")

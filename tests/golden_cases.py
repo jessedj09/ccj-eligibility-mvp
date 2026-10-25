@@ -376,9 +376,12 @@ _PASS = {"marital": 0.8, "home": 0.8, "status": 0.7, "head": 0.7, "car": 0.85, "
 RANDOM_PER_GROUP = 3500
 
 
-def cases() -> Iterator[Tuple[str, str, HouseholdProfile]]:
-    """(공고, 계층, 프로필) — 항상 같은 순서·같은 값."""
+def cases(only=None) -> Iterator[Tuple[str, str, HouseholdProfile]]:
+    """(공고, 계층, 프로필) — 항상 같은 순서·같은 값. only=[(공고, 계층), …]이면 그 그룹만 만든다(그룹의 난수 시드는
+    GROUPS 안의 위치로 정해지므로 전체를 만들 때와 같은 입력이 나온다)."""
     for gi, (nid, layer) in enumerate(GROUPS):
+        if only is not None and (nid, layer) not in only:
+            continue
         attrs = _attributes(layer, _pools(nid), nid)
         base = {k: default for k, (_pool, default) in attrs.items()}
         n = 0
