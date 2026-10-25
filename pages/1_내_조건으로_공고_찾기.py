@@ -20,6 +20,7 @@ from profile_io import ProfileFormatError, master_from_dict, master_to_dict  # n
 from notices_data import ALL_NOTICES  # noqa: E402
 from rule_data import REGION_NONE, region_groups  # noqa: E402
 from schedule import CLOSED, KST, OPEN, UPCOMING, load_schedules, now_kst, statuses  # noqa: E402
+import whatif  # noqa: E402
 
 st.set_page_config(page_title="내 조건으로 공고 찾기", page_icon="🔎", layout="wide")
 st.title("🔎 내 조건으로 공고 찾기")
@@ -255,3 +256,82 @@ if st.session_state.get("m_judged"):
         else:
             for x in items:
                 row(x)
+
+    # ---- What-if (PRD v2.1 F19): 무엇을 바꾸면 지원 가능해지나 — 판정은 같은 엔진, 입력만 바꿔 다시 판정 ----
+    st.divider()
+    st.subheader("🔀 What-if — 무엇을 바꾸면 지원 가능해지나")
+    st.caption(whatif.CAVEAT)
+    keep = (lambda x: stat[x.notice.notice_id].applicable) if only_open else None
+    if only_open and not matches:
+        st.info("지금 접수 중·예정인 공고가 없어 비교할 대상이 없습니다. 위 '보기'에서 '전체 공고(마감 포함)'를 고르면 "
+                "마감된 공고로 비교해 볼 수 있습니다.")
+    tab_near, tab_scn = st.tabs(["조건 하나만 부족한 공고", "시나리오로 비교"])
+    with tab_near:
+        near = whatif.near_misses(master, matches)
+        if not near:
+            st.info("걸린 조건이 하나뿐인 '지원 불가' 공고가 없습니다.")
+        else:
+            st.caption(f"'지원 불가' 중 걸린 조건이 하나뿐인 공고·계층 {len(near)}건 — 금액 한도로 풀 수 있는 것부터 보입니다. "
+                       "한도는 판정 엔진으로 직접 확인한 값(원 단위)입니다.")
+            for n in near[:40]:
+                x = n.match
+                st.markdown(f"**{x.notice.notice_id} {x.notice.title} · {x.layer}** — 이 조건만 해결되면 **{n.after}**")
+                st.caption(f"걸린 조건: {n.description}")
+                for t in n.thresholds:
+                    band = (f", {t.review_limit:,}원 이하면 수동 확인(원문 해석에 따라 다름)" if t.review_limit else "")
+                    st.caption(f"💡 {t.label}({t.scope}) 현재 {t.current:,}원 → **{t.limit:,}원 이하**면 이 조건 충족 "
+                               f"(차이 {t.gap:,}원){band}")
+    with tab_scn:
+        scenario = st.radio("시나리오", ["혼인신고를 하면", "예비신혼부부로 신청하면", "거주지를 옮기면", "세대를 분리하면"],
+                            key="w_scn", horizontal=True)
+        change = None
+        if scenario in ("혼인신고를 하면", "예비신혼부부로 신청하면"):
+            st.caption("가정: 본인·배우자(·본인 자녀)로 새 세대를 꾸리고(부모 세대에서 분리) 같은 곳에 삽니다. "
+                       "세대 소득·자산은 본인+배우자, 주택은 둘 중 하나라도 있으면 보유로 봅니다.")
+            w1, w2 = st.columns(2)
+            with w1:
+                w_date = (st.date_input("혼인신고일", value=now_kst().date(), key="w_mdate")
+                          if scenario == "혼인신고를 하면" else None)
+                w_sp_unknown = st.checkbox("배우자 소득·자산 모름", key="w_sp_unknown")
+                w_sp_income = None if w_sp_unknown else st.number_input("배우자 월평균소득(원)", min_value=0, step=100_000,
+                                                                       key="w_sp_inc")
+            with w2:
+                w_sp_assets = None if w_sp_unknown else st.number_input("배우자 총자산(원)", min_value=0, step=1_000_000,
+                                                                       key="w_sp_ast")
+                w_sp_car = None if w_sp_unknown else st.number_input("배우자 자동차가액(원, 없으면 0)", min_value=0,
+                                                                    step=1_000_000, key="w_sp_car")
+                w_sp_home = st.checkbox("배우자가 주택 보유", key="w_sp_home")
+                w_dual = st.checkbox("맞벌이(본인·배우자 모두 소득)", key="w_dual")
+            change = lambda m: whatif.marry(m, w_date, w_sp_income, w_sp_assets, w_sp_car, w_sp_home, w_dual,  # noqa: E731
+                                            prenuptial=scenario == "예비신혼부부로 신청하면")
+        elif scenario == "거주지를 옮기면":
+            w_region = st.selectbox("옮길 거주지(주민등록)", [r for r in REGIONS if r not in (UNKNOWN, REGION_NONE)],
+                                    key="w_region", format_func=lambda n: f"경기 {n}" if GROUP_OF.get(n) == "경기도" else n)
+            change = lambda m: whatif.move(m, w_region)  # noqa: E731
+        else:
+            st.caption("가정: 부모 세대에서 분리해 본인(과 본인 자녀)으로 세대를 꾸리고 세대주가 됩니다. 세대 소득·자산·주택은 "
+                       "본인 것만 봅니다(대학생 계층의 부모 소득은 등본과 무관하게 계속 합산).")
+            change = whatif.separate_household
+        if st.button("이 시나리오로 다시 판정", key="w_run"):
+            st.session_state["w_done"] = True
+        if st.session_state.get("w_done"):
+            res = whatif.run_scenario(scenario, master, change, ALL_NOTICES, keep=keep)
+            c1, c2, c3 = st.columns(3)
+            for col, k, label in ((c1, "ELIGIBLE", "✅ 지원 가능"), (c2, "HOLD", "🟡 보류"), (c3, "INELIGIBLE", "❌ 지원 불가")):
+                col.metric(label, res.after[k], delta=res.after[k] - res.before[k])
+            st.caption(f"'{scenario}' 전후 비교 — 지금 {res.before['ELIGIBLE']}건 → {res.after['ELIGIBLE']}건 지원 가능"
+                       + (" (접수 중·예정 공고만)" if only_open else ""))
+            if res.gained:
+                st.markdown(f"**새로 지원 가능 {len(res.gained)}건**")
+                for x in res.gained:
+                    st.caption(f"✅ {x.notice.notice_id} {x.notice.title} · {x.layer}")
+            if res.lost:
+                st.markdown(f"**지원 가능에서 빠지는 {len(res.lost)}건**")
+                after = {(y.notice.notice_id, y.layer): y for y in match_all(change(master), ALL_NOTICES)}
+                for x in res.lost:
+                    y = after[(x.notice.notice_id, x.layer)]
+                    why = explain(y.result, y.notice)
+                    reason = why.failed[0].description if why.failed else why.headline
+                    st.caption(f"❌ {x.notice.notice_id} {x.notice.title} · {x.layer} — {reason}")
+            if not res.gained and not res.lost:
+                st.info("이 시나리오로는 지원 가능한 공고가 바뀌지 않습니다.")
