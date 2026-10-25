@@ -17,8 +17,11 @@
 14) 내 조건 불러오기(D2b): 저장 파일 내용을 입력란에 채우면 그 프로필을 직접 판정한 것과 결과 수가 같다
 15) 공고 업로드(P0): 'PDF 올리기'를 고르면 판정 전에 업로드를 기다리고, 식별 결과(미등록·읽을 수 없음·다른 파일·등록)를
     그대로 그린다(AppTest는 파일 업로드를 흉내 낼 수 없어 식별 결과를 직접 넣는다). 판정 결과는 지원 가능/보류(원인)/지원 불가로 보인다
+16) What-if(12단계 화면에서): 조건 하나만 부족한 공고와 금액 한도가 보이고, '세대를 분리하면' 시나리오의 전후 개수와
+    새로 지원 가능·빠지는 목록이 서로 맞는다(이후 개수 − 변화량 = 지금 개수, 새로 가능 − 빠짐 = 지원 가능 변화량)
 """
 import os
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -226,6 +229,25 @@ def main():
     assert not [e for e in at.expander if "든든전세" in e.label and "✅" in e.label]
     print("12) 전체 공고 찾기(D):", metrics, "| 청년 계층", len(youth), "건 신청 가능")
 
+    # 16) What-if — 12단계 화면(전체 공고 보기) 그대로
+    assert {"조건 하나만 부족한 공고", "시나리오로 비교"} <= {t.label for t in at.tabs}
+    near = [m.value for m in at.markdown if "이 조건만 해결되면" in m.value]
+    limits = [c.value for c in at.caption if c.value.startswith("💡")]
+    assert near, "조건 하나만 부족한 공고가 보여야 한다"   # 금액 한도 정확성은 tests/test_s2_whatif.py
+    at.radio(key="w_scn").set_value("세대를 분리하면").run()
+    at.button(key="w_run").click().run()
+    assert not at.exception, at.exception
+    main, scn = list(at.metric)[:3], list(at.metric)[3:6]
+    assert [m.label for m in scn] == ["✅ 지원 가능", "🟡 보류", "❌ 지원 불가"]
+    num = lambda v: int(str(v).replace("+", "") or 0)  # noqa: E731
+    assert [num(a.value) - num(a.delta) for a in scn] == [num(b.value) for b in main], ([(a.value, a.delta) for a in scn],
+                                                                                      [b.value for b in main])
+    count = lambda prefix: next((int(re.search(r"(\d+)건", m.value).group(1))  # noqa: E731
+                                 for m in at.markdown if m.value.startswith(prefix)), 0)
+    gained, lost = count("**새로 지원 가능"), count("**지원 가능에서 빠지는")
+    assert gained - lost == num(scn[0].delta), (gained, lost, scn[0].delta)
+    print("16) What-if: 한 조건 부족", len(near), "건(한도", len(limits), "개) | 세대 분리 → 새로 가능", gained, "· 빠짐", lost)
+
     # 13) 접수 상태(D2) — 2026.10.14. 12:00에 접수 중: N4(~10.14)·N8·N18·N19(10.13~15)·N17(10.14~16)
     at.radio(key="m_view").set_value("접수 중·예정 공고만").run()
     at.date_input(key="m_at").set_value(date(2026, 10, 14)).run()
@@ -233,13 +255,13 @@ def main():
     # 신청 불가는 묶음 안의 한 줄(캡션), 나머지는 펼침 — 어느 쪽이든 접수 상태가 앞에 붙는다
     labels = [e.label for e in at.expander if " | " in e.label]
     lines = [c.value for c in at.caption if c.value.split(" ")[0] in ("🟢", "🗓️", "⚫")]
-    total = sum(int(m.value) for m in at.metric)
+    total = sum(int(m.value) for m in list(at.metric)[:3])
     expect = sum(len(ALL_NOTICES[n].layers) for n in ("N4", "N8", "N17", "N18", "N19"))
     assert total == expect, (total, expect)
     assert all(x.startswith("🟢") for x in labels + lines) and labels + lines, (labels, lines)
     at.date_input(key="m_at").set_value(date(2026, 10, 22)).run()
     assert any("접수 중이거나 접수 예정인 공고가 없습니다" in i.value for i in at.info)
-    assert sum(int(m.value) for m in at.metric) == 0
+    assert sum(int(m.value) for m in list(at.metric)[:3]) == 0
     print("13) 접수 상태(D2): 10.14. 접수 중 공고 5건의 계층", total, "개만 표시 / 10.22. 전부 마감 안내")
 
     # 14) 불러오기(D2b) — 파일 업로드 대신 불러오기가 하는 일(widget_state → session_state)을 그대로 재현한다
