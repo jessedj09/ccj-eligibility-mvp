@@ -129,9 +129,10 @@ Engine**이다.
   **추출 규칙에 공고 전용 문자열 금지**(테스트가 점검). 시험용 결과로 규칙을 다듬지 말 것. `tests/test_t31_templates.py`·`test_t32_extract.py`.
 - **P1 T3.3·T3.4(2026-10-25) 로컬 LLM 슬롯·비교**(docs/09 §16): `tools/llm_slot.py`(Ollama, 답 캐시 `.cache/llm/`), sheet_extract의
   LLM 단계 — **LLM 답은 위치로만, 인용문은 원문에서 잘라 옴**(`snap`, 85% 이상 일치), 주제 겹침 ≥0.35, 지역 목록 정확 일치.
-  `eval_extraction --llm qwen3.5:4b`. 시험용: 결정론만 90%→LLM 94%, 판정 같음 76.5%→76.8%, 틀림 0. **합격 5개 사업
+  `eval_extraction --llm ministral-3:3b`. 시험용: 결정론만 90%→LLM 93%(이전 qwen3.5:4b 94%), 틀림 0. **합격 5개 사업
   (청년매입·LH 신혼·든든전세·장기전세·장기전세2)은 결정론만으로 판정 100% 같음 → P2를 AI 없이 열 수 있음.** 모델: D:\ollama\models
-  (Ollama 앱 설정 DB `settings.models` + `OLLAMA_MODELS`), 받아 둔 모델 qwen3.5:4b·qwen3:1.7b·hermes3:3b. `tests/test_t33_llm.py`(가짜 슬롯).
+  (Ollama 앱 설정 DB `settings.models` + `OLLAMA_MODELS`). **중국 개발 모델은 쓰지 않음** — 기본 `llm_slot.DEFAULT_MODEL` =
+  ministral-3:3b(docs/09 §18 비교), 받아 둔 모델은 이것 하나. `tests/test_t33_llm.py`(가짜 슬롯).
 - **P2 준비(2026-10-25, docs/09 §17)**: 검증 관문에 ① **기준표 연도 확인**(`reference_guard` — 기준표를 직접 참조하는 조건은
   등록 형제 공고들이 공통으로 싣는 기준표 대표 금액이 새 공고에 없으면 보류; 인용문에 금액이 없는 조건이 연도가 바뀌어도 통과하던 구멍)
   ② **새 제한 문구**(`new_restrictions` — 규칙이 인용하지 않는 지역·모집 제한 문구면 '지원 가능'→'수동 확인'). 초안 판정 입구
@@ -143,10 +144,15 @@ Engine**이다.
   환경변수 `CCJ_OPERATOR_PASSWORD`, 잠금은 위젯 콜백으로 — 중간 `st.rerun()`은 아래 위젯 값을 되돌림). 추출기는 운영자 경로에서만
   불러온다(공개 화면 영향 없음). `draft.evaluate_draft`(엔진 결과 그대로·판정만 낮춤), `tests/test_a_stage.py`, 화면 점검 17단계
   (`tools/ui_fixture_draft.py` — 업로드·식별만 바꿔 끼우고 app.py를 그대로 실행).
-- pytest: 총 **844개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 17단계).
+- **B2 비교 도구(2026-10-28, docs/08 2-2)**: `notice_intake.py --save-draft`가 **초안 스냅샷**(규칙 + 판정을 낮추는 보류 조건·제한
+  문구, `draft.to_snapshot`/`from_snapshot`)을 `docs/draft-checks/<분석 키>.draft.json`에 저장 — **등록 작업 전에**(등록하면 그 공고가
+  형제가 되어 초안이 자기 정답을 봄), 덮어쓰기 거부. 등록 후 `tools/draft_compare.py <스냅샷>`이 그 공고의 골든 입력으로 초안·등록
+  판정을 화면 표시 기준으로 비교(같음 / 초안이 더 조심 / **위험: 초안이 확정인데 다름 — 0건이어야, 있으면 종료코드 1** / 초안 판정 없음).
+  `tests/test_b2_compare.py`.
+- pytest: 총 **852개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 17단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
-- **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록(`--draft`로 시작)·B2 두 번째 시험(등록 전 `--save-draft`로 초안 기록 → 등록 후
-  비교) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.
+- **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
+  `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.
   새 공고 추가는 사용자가 별도 진행(백로그, `docs/08-adding-a-notice.md`). 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 

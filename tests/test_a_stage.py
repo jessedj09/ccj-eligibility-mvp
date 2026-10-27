@@ -79,7 +79,7 @@ def test_new_notice_gets_next_ids_and_index_entry():
 def test_save_draft_writes_loadable_rules(tmp_path):
     out = tmp_path / "draft.json"
     assert ni.main([str(sv.pdf_path("N17")), "--save-draft", str(out), "--out", str(tmp_path / "r.md")]) == 0
-    notice = build_notice(json.loads(out.read_text(encoding="utf-8")))
+    notice = build_notice(json.loads(out.read_text(encoding="utf-8"))["doc"])      # 초안 스냅샷(B2)의 규칙 문서
     reg = load_notice("N17")
     assert list(notice.layers) == list(reg.layers)
     for _, _, p in list(gc.cases(only=[("N17", "일반")]))[:50]:

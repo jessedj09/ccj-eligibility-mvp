@@ -242,7 +242,7 @@ def main(argv=None):
     ap.add_argument("-v", action="store_true")
     ap.add_argument("--judge", action="store_true", help="골든 입력으로 판정 일치율까지(시간이 걸림)")
     ap.add_argument("--limit", type=int, help="계층마다 골든 입력 앞 N건만")
-    ap.add_argument("--llm", help="결정론이 못 채운 빈칸을 물어볼 로컬 Ollama 모델(예: qwen3.5:4b)")
+    ap.add_argument("--llm", help="결정론이 못 채운 빈칸을 물어볼 로컬 Ollama 모델(예: ministral-3:3b)")
     a = ap.parse_args(argv)
     nids = {"tune": TUNE, "test": TEST, "all": TUNE + TEST}[a.set]
     llm_for = make_llm(a.llm)
@@ -258,7 +258,10 @@ def main(argv=None):
     if llm_for:
         slot = next((d["llm"].slot for d in per.values() if d.get("llm")), None)
         if slot:
-            print(f"LLM {slot.name}: 새 호출 {slot.calls}회({slot.seconds:.0f}초) · 저장된 답 재사용 {slot.cached}회")
+            print(f"LLM {slot.name}: 새 호출 {slot.calls}회({slot.seconds:.0f}초) · 저장된 답 재사용 {slot.cached}회"
+                  + (f" · **실패 {slot.failed}회**" if slot.failed else ""))
+            if slot.failed and not slot.calls and not slot.cached:
+                print("경고: LLM 호출이 모두 실패했습니다 — 위 결과는 결정론만과 같습니다(모델을 받았는지·Ollama가 켜져 있는지 확인).")
     if a.judge:
         j = judge_all(per, a.limit, verbose=a.v)
         n = sum(j.values())

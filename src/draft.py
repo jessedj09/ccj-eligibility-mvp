@@ -132,3 +132,28 @@ def judge(d: Draft, profile, layer: str) -> Tuple[str, List[str]]:
     """초안 규칙으로 판정 → (판정, 안내)."""
     r, notes = evaluate_draft(d, profile, layer)
     return r.verdict, notes
+
+
+# ------------------------------------------------------------------ 초안 스냅샷(B2 — 등록 전에 얼려 두고 등록 후 판정과 비교)
+SNAPSHOT_FORMAT = "draft-snapshot/1"
+
+
+def to_snapshot(d: Draft, sha256: str, source: str = "", created: str = "") -> Dict:
+    """초안을 파일로 얼린다 — 규칙 문서와 함께 판정을 낮추는 데 쓰는 보류 조건·제한 문구까지(evaluate_draft를 그대로 재현).
+    판정할 수 없는 초안도 이유와 함께 남긴다(그 공고는 '초안 판정 없음'으로 비교된다)."""
+    return {"format": SNAPSHOT_FORMAT, "sha256": sha256, "file": source, "created": created,
+            "status": d.status, "reason": d.reason, "template": d.template, "program": d.program,
+            "announcement_date": d.announcement_date, "held_fields": d.held_fields,
+            "held_conditions": {layer: sorted(ids) for layer, ids in d.held_conditions.items()},
+            "restrictions": [list(r) for r in d.restrictions], "stale": d.stale, "missing": d.missing, "doc": d.doc}
+
+
+def from_snapshot(s: Dict) -> Draft:
+    if s.get("format") != SNAPSHOT_FORMAT:
+        raise ValueError(f"초안 스냅샷 형식이 아닙니다(format={s.get('format')!r})")
+    return Draft(s["status"], s["reason"], template=s["template"], program=s["program"],
+                 announcement_date=s["announcement_date"],
+                 notice=build_notice(s["doc"]) if s["status"] == OK else None,
+                 held_conditions={layer: set(ids) for layer, ids in s["held_conditions"].items()},
+                 stale=s["stale"], restrictions=[tuple(r) for r in s["restrictions"]], held_fields=s["held_fields"],
+                 missing=s["missing"], doc=s["doc"])
