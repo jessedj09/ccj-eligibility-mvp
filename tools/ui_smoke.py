@@ -19,6 +19,9 @@
     그대로 그린다(AppTest는 파일 업로드를 흉내 낼 수 없어 식별 결과를 직접 넣는다). 판정 결과는 지원 가능/보류(원인)/지원 불가로 보인다
 16) What-if(12단계 화면에서): 조건 하나만 부족한 공고와 금액 한도가 보이고, '세대를 분리하면' 시나리오의 전후 개수와
     새로 지원 가능·빠지는 목록이 서로 맞는다(이후 개수 − 변화량 = 지금 개수, 새로 가능 − 빠짐 = 지원 가능 변화량)
+17) 운영자 미리보기(A2): 주소에 ?operator가 없으면 운영자 칸이 없고, 잠금 전에는 미등록 공고를 판정하지 않으며 틀린 비밀번호는
+    거절한다. 잠금을 풀면 미등록 공고(등록 공고 N12 원문을 미등록으로 취급 — tools/ui_fixture_draft.py)를 '검증 전 초안'으로
+    판정하고, 그 판정이 등록 규칙(N12)으로 판정한 것과 같다
 """
 import os
 import re
@@ -332,6 +335,40 @@ def main():
     shown = [e.value for kind in (at.success, at.error, at.warning) for e in kind]
     assert shown and any(g in shown[0] for g in ("지원 가능", "보류 —", "지원 불가")), shown
     print("15) 공고 업로드(P0): 업로드 대기·식별 결과 4종 표시 OK | 판정 표시:", shown[0][:40])
+
+    # 17) 운영자 미리보기(A2)
+    import operator_mode
+    os.environ.setdefault(operator_mode.ENV, "smoke-operator-pw")
+    password = operator_mode.configured_password()
+    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
+    assert not any("운영자" in e.label for e in at.sidebar.expander), "주소에 ?operator가 없으면 운영자 칸이 보이면 안 된다"
+    from source_verify import pdf_path
+    at = AppTest.from_file(str(ROOT / "tools" / "ui_fixture_draft.py"), default_timeout=120)
+    at.session_state["fixture_pdf"] = str(pdf_path("N12"))
+    at.query_params["operator"] = "1"
+    at.run()
+    at.sidebar.radio(key="pick_mode").set_value("공고문 PDF 올리기").run()
+    assert not at.exception, at.exception
+    assert any("아직 판정할 수 없는 공고" in h.value for h in at.subheader) and not at.button, \
+        "운영자 모드가 꺼져 있으면 미등록 공고는 판정하지 않아야 한다"
+    at.sidebar.text_input(key="operator_pw").input("wrong").run()
+    assert any("맞지 않습니다" in e.value for e in at.sidebar.error) and not at.button
+    at.sidebar.text_input(key="operator_pw").input(password).run()
+    assert not at.exception, at.exception
+    assert any("검증 전 초안" in w.value for w in at.warning), [w.value for w in at.warning]
+    assert any("청약 접수기간(후보)" in m.value for m in at.markdown), "초안에는 공고문에서 찾은 접수기간 후보를 보여야 한다"
+    layer = find(at.sidebar, "selectbox", "계층")
+    assert list(layer.options) == list(ALL_NOTICES["N12"].layers), layer.options    # 초안도 등록 규칙과 같은 계층
+    find(at, "button", "판정하기").click().run()
+    assert not at.exception, at.exception
+    draft_shown = [e.value for kind in (at.success, at.error) for e in kind] + \
+        [w.value for w in at.warning if "검증 전 초안" not in w.value]
+    assert draft_shown and any(c.value.startswith("🟠 검증 전 초안") for c in at.caption), draft_shown
+    reg = fresh("N12", "청년")
+    reg.button[0].click().run()
+    reg_shown = [e.value for kind in (reg.success, reg.error, reg.warning) for e in kind]
+    assert draft_shown[0] == reg_shown[0], (draft_shown[0], reg_shown[0])
+    print("17) 운영자 미리보기(A2): ?operator 없으면 숨김·틀린 비밀번호 거절 | 초안 판정 = 등록 규칙 판정:", draft_shown[0][:40])
 
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)

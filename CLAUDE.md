@@ -137,10 +137,16 @@ Engine**이다.
   ② **새 제한 문구**(`new_restrictions` — 규칙이 인용하지 않는 지역·모집 제한 문구면 '지원 가능'→'수동 확인'). 초안 판정 입구
   `src/draft.py`(합격 5개 사업만 — `PASSING`, AI 없음, 업로드 저장 안 함). 화면 연결은 아직(실제 새 공고로 시험 후). `tests/test_p2_prep.py`.
   행복주택 1순위 지역 조건·SH 신혼·미리내집 문장은 **고도화 단계 백로그**(2026-10-25 결정).
-- pytest: 총 **833개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 16단계).
+- **A단계(2026-10-27)**: A1 `notice_intake.py --draft [--save-draft 초안.json]` — 보고서 8절에 추출 초안(채운 값·보류·근거 쪽,
+  규칙을 만들어 본 결과, 생성 스크립트에 붙여 넣을 PLAN 항목·index.json 항목). A2 **운영자 미리보기** — 메인 화면 업로드에서 미등록 공고를
+  운영자 모드일 때만 '검증 전 초안'으로 판정(`src/operator_mode.py`: 주소 `?operator` + 비밀번호 secrets `operator_password` 또는
+  환경변수 `CCJ_OPERATOR_PASSWORD`, 잠금은 위젯 콜백으로 — 중간 `st.rerun()`은 아래 위젯 값을 되돌림). 추출기는 운영자 경로에서만
+  불러온다(공개 화면 영향 없음). `draft.evaluate_draft`(엔진 결과 그대로·판정만 낮춤), `tests/test_a_stage.py`, 화면 점검 17단계
+  (`tools/ui_fixture_draft.py` — 업로드·식별만 바꿔 끼우고 app.py를 그대로 실행).
+- pytest: 총 **844개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 17단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
-- **다음 과제**: 사용자가 넣을 실제 새 공고로 초안 판정 두 번째 시험(docs/09 §17 ③) → 화면 연결(초안 배지·안내, 운영자 미리보기 먼저).
-  (선택) 2단계 T2.2 독립 검증 대조 도구.
+- **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록(`--draft`로 시작)·B2 두 번째 시험(등록 전 `--save-draft`로 초안 기록 → 등록 후
+  비교) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.
   새 공고 추가는 사용자가 별도 진행(백로그, `docs/08-adding-a-notice.md`). 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 

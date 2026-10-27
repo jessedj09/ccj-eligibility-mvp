@@ -25,8 +25,9 @@ from explainability import explain
 from profiles_data import PROFILES
 from schedule import load_schedules, status as schedule_status
 from display_status import display
-from notice_identify import REGISTERED, SAME_NOTICE_OTHER_FILE, identify_pdf
-from upload_view import render_identified, render_not_judgeable
+from notice_identify import REGISTERED, SAME_NOTICE_OTHER_FILE, UNREGISTERED, identify_pdf
+from upload_view import render_draft, render_draft_refused, render_identified, render_not_judgeable
+from operator_mode import sidebar_gate
 
 REVIEW_BADGE = {
     "DRAFT": ("🟠 초안(DRAFT)", "규칙을 만든 쪽 외의 독립 검토를 아직 거치지 않았습니다. 참고용으로만 쓰세요."),
@@ -64,6 +65,19 @@ def _identify_upload(up):
     return done[up.file_id]
 
 
+def _draft_upload(up):
+    """운영자 미리보기(A2): 미등록 공고의 검증 전 초안(src/draft.py — 합격 사업만, AI 없음). 파일마다 한 번만 만든다."""
+    import draft   # 추출기(tools/)는 운영자 미리보기에서만 불러온다 — 공개 화면의 시작 시간·실패 범위를 늘리지 않게
+    done = st.session_state.setdefault("upload_draft", {})
+    if up.file_id not in done:
+        with st.spinner("초안 규칙을 만드는 중입니다(운영자 미리보기)…"):
+            done[up.file_id] = draft.make_draft(up.getvalue())
+    return done[up.file_id]
+
+
+operator = sidebar_gate()
+current_draft = None   # 운영자 미리보기로 판정하는 초안(있으면 등록 규칙 대신 이것으로 판정)
+
 with st.sidebar:
     st.header("공고 · 계층 선택")
     pick_mode = st.radio("공고 고르는 방법", ["목록에서 고르기", "공고문 PDF 올리기"], key="pick_mode", horizontal=True)
@@ -86,17 +100,25 @@ with st.sidebar:
                 st.stop()
             notice_id = ident.notice_id
         else:
-            with upload_area:
-                render_not_judgeable(ident)
-            st.stop()
+            d = _draft_upload(up) if operator and ident.status == UNREGISTERED else None
+            if d is None or d.notice is None:   # 운영자가 아니거나 초안 판정 불가(합격 사업 아님·핵심 빈칸 보류 등)
+                with upload_area:
+                    render_not_judgeable(ident)
+                    if d is not None:
+                        render_draft_refused(d)
+                st.stop()
+            current_draft, notice_id = d, d.notice.notice_id
         with upload_area:
-            render_identified(ident)
+            if current_draft is not None:
+                render_draft(current_draft, ident)
+            else:
+                render_identified(ident)
     else:
         notice_id = st.selectbox(
             "공고", options=list(ALL_NOTICES.keys()),
             format_func=lambda nid: f"{nid} — {ALL_NOTICES[nid].title}",
         )
-    notice = ALL_NOTICES[notice_id]
+    notice = current_draft.notice if current_draft is not None else ALL_NOTICES[notice_id]
     program = " · ".join(x for x in (notice.meta.get("issuer"), notice.meta.get("program")) if x)
     st.caption(f"{program + ' / ' if program else ''}입주자모집공고일: {notice.announcement_date} "
                f"(혼인기간·자녀연령·졸업경과 등은 이 날짜 기준으로 계산합니다)")
@@ -105,9 +127,11 @@ with st.sidebar:
     sched = load_schedules().get(notice_id)
     if sched and sched.note:
         st.caption(f"🗓️ {sched.note}")
-    review_status = notice.meta["review"]["status"]
-    label, hint = REVIEW_BADGE[review_status]
-    st.caption(f"규칙 검수 상태: **{label}** — {hint}")
+    if current_draft is not None:
+        st.caption("규칙 검수 상태: **🟠 검증 전 초안(자동 추출)** — 등록되지 않은 공고를 자동으로 읽은 규칙입니다(운영자 미리보기).")
+    else:
+        label, hint = REVIEW_BADGE[notice.meta["review"]["status"]]
+        st.caption(f"규칙 검수 상태: **{label}** — {hint}")
     unsupported = {u["name"]: u for u in notice.meta.get("unsupported_layers", [])}
     layer = st.selectbox(
         "계층", options=list(notice.layers.keys()) + list(unsupported),
@@ -400,7 +424,12 @@ if st.session_state.get("judged"):
         for e in errors:
             st.markdown(f"- {e}")
     else:
-        result = evaluate(profile, notice, layer)
+        draft_notes = []
+        if current_draft is not None:   # 초안: 보류된 조건·새 제한 문구가 판정에 걸리면 '지원 가능'을 '수동 확인'으로 낮춘 결과
+            from draft import evaluate_draft
+            result, draft_notes = evaluate_draft(current_draft, profile, layer)
+        else:
+            result = evaluate(profile, notice, layer)
         exp = explain(result, notice)
 
         # 화면은 지원 가능 / 보류(원인) / 지원 불가 3상태로 보인다(PRD v2.1 F18). 엔진 판정은 5상태 그대로.
@@ -408,6 +437,8 @@ if st.session_state.get("judged"):
         shown = display(exp.verdict)
         getattr(st, style)(f"{icon} {shown.title} · {exp.headline}")
         st.caption(shown.todo)
+        for note in draft_notes:
+            st.caption(f"🟠 {note}")
         if exp.score is not None:
             st.caption(f"참고: 확인된 필수조건 중 {exp.score}%를 충족했습니다 "
                        f"(불충족 조건이 하나라도 있으면 신청 자체가 불가하므로, 100% 미만이면 "

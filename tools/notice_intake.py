@@ -2,6 +2,7 @@
 """새 공고 등록용 내부 도구(E1). 판정은 하지 않는다 — 규칙 데이터를 만들 사람(또는 Claude)이 원문에서 찾을 것을 모아 준다.
 
     python tools/notice_intake.py <공고문.pdf> [--out 보고서.md]   # 후보 추출 보고서
+    python tools/notice_intake.py <공고문.pdf> --draft [--save-draft 초안.json]   # + 자동 추출 초안(8절, A1)
     python tools/notice_intake.py --audit                          # 등록된 공고 전부의 등록 누락 점검(누락 있으면 종료코드 1)
 
 보고서(후보 추출)에 담는 것 — 모두 '후보'이고, 쪽 번호와 원문 그대로의 인용문을 함께 준다:
@@ -10,6 +11,10 @@
   4) 소득 기준표 쪽 후보(등록된 기준표 rules/reference/income_standard*.json과 같은 숫자가 몇 개 있는지)
   5) 기준일 리터럴 후보("…이후 출생", "…이전 출생" 등 — SH는 공고일−N년의 다음 날이므로 원문 날짜를 그대로 쓴다)
   6) 공급 계층·주택형 키워드가 나오는 쪽, 7) 등록 체크리스트
+  8) (--draft) 자동 추출 초안 — P1 추출기(src/draft.py, AI 없음)가 채운 빈칸·보류된 빈칸과 근거 쪽, 그 시트로 규칙을 만들어
+     본 결과(찾지 못한 인용문·기준표 연도·새 제한 문구), 생성 스크립트에 붙여 넣을 PLAN 항목과 index.json 항목.
+     보류가 없으면 PLAN 항목을 그대로 넣고 체크리스트를 진행하면 되고, 보류된 것만 원문에서 직접 찾는다.
+     --save-draft는 초안 규칙(JSON)을 저장한다 — 정식 등록 전 초안 판정을 기록해 두고 등록 후 판정과 비교할 때 쓴다.
 점검(--audit)은 공고마다 원문 PDF·공고 분석·접수기간·골든 입력(DATES·GROUPS)·입력 범위 규칙·소득표 대조가 다 있는지 본다.
 """
 import argparse
@@ -44,20 +49,143 @@ def next_notice_id() -> str:
     return f"N{max(int(n[1:]) for n in notice_ids()) + 1}"
 
 
-def report(path: Path, pages: Optional[List[str]] = None) -> dict:
+def analysis_key(sha: str, issuer: Optional[str]) -> str:
+    """docs/notice-analysis/index.json의 키 — 이미 있는 원문이면 그 키, 아니면 다음 키(번호는 LH·SH 통틀어 이어진다)."""
+    index = json.loads((ROOT / "docs" / "notice-analysis" / "index.json").read_text(encoding="utf-8"))
+    known = next((x["key"] for x in index if x["sha256"] == sha), None)
+    return known or f"{issuer or 'LH'}{max(int(x['key'][2:]) for x in index) + 1:02d}"
+
+
+def report(path: Path, pages: Optional[List[str]] = None, with_draft: bool = False) -> dict:
     path = Path(path)
-    sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    data = path.read_bytes()
+    sha = hashlib.sha256(data).hexdigest()
     pages = pages if pages is not None else sv.extract_pages(path)
     anns = announcement_candidates(pages)
     ann = date.fromisoformat(anns[0]["date"]) if anns else None
     issuer, program = classify(pages)
     similar = similar_notices(issuer, program)
-    return {"file": str(path), "sha256": sha, "pages": len(pages),
-            "extraction_failures": sv.EXTRACTION_FAILURES.get(str(path), []),
-            "registered_as": registered_as(sha), "next_id": next_notice_id(),
-            "issuer": issuer, "program": program, "similar": similar, "generators": generators_for(similar),
-            "announcement": anns, "windows": window_candidates(pages, ann), "income": income_pages(pages),
-            "cutoffs": cutoff_candidates(pages), "keywords": keyword_pages(pages)}
+    out = {"file": str(path), "sha256": sha, "pages": len(pages),
+           "extraction_failures": sv.EXTRACTION_FAILURES.get(str(path), []),
+           "registered_as": registered_as(sha), "next_id": next_notice_id(), "analysis_key": analysis_key(sha, issuer),
+           "issuer": issuer, "program": program, "similar": similar, "generators": generators_for(similar),
+           "announcement": anns, "windows": window_candidates(pages, ann), "income": income_pages(pages),
+           "cutoffs": cutoff_candidates(pages), "keywords": keyword_pages(pages)}
+    if with_draft:
+        import draft
+        out["draft"] = draft.make_draft(data, only=None, pages=pages)
+    return out
+
+
+# ------------------------------------------------------------------ 8절: 자동 추출 초안 (A1)
+DRAFT_STATE = {"ok": "✅ 규칙을 만들었고 판정에 꼭 필요한 값은 모두 원문에서 확인함",
+               "blocked": "⛔ 판정에 꼭 필요한 값이 보류 — 그 값을 원문에서 찾아 채워야 규칙을 쓸 수 있음",
+               "unsupported": "⛔ 사업 유형(템플릿)을 정하지 못함 — 새 사업 유형이면 생성 스크립트를 새로 만든다",
+               "unreadable": "⛔ 글자를 읽을 수 없음"}
+
+
+def _cell(v, n=70) -> str:
+    s = v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)
+    s = s.replace("|", "\\|").replace("\n", " ")
+    return s if len(s) <= n else s[:n] + "…"
+
+
+def generator_of(template: str) -> str:
+    import templates as T
+    if template == "lh.happy_housing":
+        return "tools/gen_c1_notices.py"
+    return "tools/" + Path(T.TEMPLATES[template]["module"].__file__).name
+
+
+def _literal(x, column: int) -> str:
+    """파이썬 리터럴(여러 줄이면 이어지는 줄을 column 칸에 맞춘다)."""
+    import pprint
+    return pprint.pformat(x, width=110 - column, sort_dicts=False).replace("\n", "\n" + " " * column)
+
+
+def plan_snippet(d, nid: str, key: str, pdf: str) -> str:
+    """생성 스크립트에 붙여 넣을 항목(파이썬). 행복주택은 TARGETS + 추가 계층(gen_c3_layers.PLAN)·주거약자(gen_c5_housing_weak.PLAN)."""
+    import templates as T
+    s = d.sheet
+    p = s["params"]
+    held = f"    # 보류(원문에서 확인해 고칠 것): {', '.join(d.held_fields)}\n" if d.held_fields else ""
+    if s["template"] == "lh.happy_housing":
+        lines = [f"# tools/gen_c1_notices.py TARGETS\n{held}"
+                 f'    dict(nid="{nid}", pdf="{pdf}",\n'
+                 f'         title="<단지 이름 — 원문 1쪽>", ann="{s["announcement_date"]}", template="{p["base"]}", '
+                 f'layers={p["layers"]!r},\n'
+                 f'         marriage={p.get("marriage")!r}, child={p.get("child")!r}, '
+                 f'region={_literal(p.get("region") or {}, 16)},\n'
+                 f'         unsupported=[], notes=[]),']
+        if p.get("extra_layers"):
+            lines.append(f'# tools/gen_c3_layers.py PLAN\n    "{nid}": {_literal(p["extra_layers"], 11)},')
+        if p.get("weak"):
+            lines.append(f'# tools/gen_c5_housing_weak.py PLAN\n    "{nid}": {_literal(p["weak"], 11)},')
+        return "\n".join(lines)
+    return (f"# {generator_of(s['template'])} PLAN\n{held}"
+            f'    dict(nid="{nid}", key="{key}", title="<제목 — 원문 1쪽>", ann="{s["announcement_date"]}",\n'
+            f'         program="{s["program"]}", template="{T.TEMPLATES[s["template"]]["builder"]}",\n'
+            f"         params={_literal(p, 16)},\n"
+            f"         notes=[]),")
+
+
+def draft_markdown(r: dict) -> List[str]:
+    import draft
+    from sheet_extract import is_critical
+    d = r["draft"]
+    L = ["", "## 8. 자동 추출 초안 (--draft — P1 추출기, AI 없음)",
+         "", "> 추출기가 원문에서 **글자로 확인한 값만** 채웠다. 보류된 빈칸만 원문에서 직접 찾으면 된다. "
+             "채운 값도 등록 전에 쪽을 열어 한 번 본다.", "",
+         f"- 상태: **{DRAFT_STATE[d.status]}**" + (f" — {d.reason}" if d.reason and d.status != "ok" else "")]
+    if d.template:
+        L.append(f"- 템플릿 `{d.template}` → 생성 스크립트 `{generator_of(d.template)}`")
+        L.append("- 화면 초안 판정(운영자 미리보기·공개 후보): "
+                 + ("**대상**(P1 평가 합격 사업)" if d.template in draft.PASSING else "대상 아님(정확도 기준 미달 — 정식 등록만)"))
+    if not d.fields:
+        return L
+    rows = draft.field_rows(d.fields)
+    filled = [(k, f) for k, f in rows if f["status"] == "filled"]
+    held = [(k, f) for k, f in rows if f["status"] == "held"]
+    absent = [(k, f) for k, f in rows if f["status"] == "absent"]
+    L += ["", "### 8-1. 채운 빈칸", "", "| 빈칸 | 값 | 쪽 | 찾은 방법 |", "|---|---|---|---|"]
+    L += [f"| `{k}` | {_cell(f['value'])} | {f['page'] or ''} | {_cell(f['how'], 50)} |" for k, f in filled] or ["| (없음) | | | |"]
+    L += ["", "### 8-2. 보류된 빈칸 — 원문에서 직접 찾아 채울 것"]
+    if held:
+        for k, f in held:
+            crit = " **(핵심 — 판정에 직접 쓰임)**" if (is_critical(d.template, k) if d.template else True) else ""
+            L.append(f"- `{k}`{crit} — {f['how']}" + (f" (p.{f['page']})" if f["page"] else ""))
+    else:
+        L.append("- 없음")
+    if absent:
+        L.append("- 원문에 해당 항목이 없음(값 없음으로 둠): " + ", ".join(f"`{k}`" for k, _ in absent))
+    if d.doc is None:
+        return L
+    L += ["", "### 8-3. 이 시트로 규칙을 만들어 본 결과"]
+    plain = [m for m in d.missing if m not in d.stale]
+    L.append(f"- 원문에서 찾지 못한 인용문 {len(plain)}개" + (" — 그 조건은 보류. 원문 표현을 찾아 시트 문장(행복주택은 "
+                                                           "`OVERRIDES`)을 고친다:" if plain else ""))
+    L += [f"  - {m}" for m in plain[:15]] + ([f"  - … 외 {len(plain) - 15}개"] if len(plain) > 15 else [])
+    L.append(f"- 기준표 연도가 다른 조건 {len(d.stale)}개" + (" — 새 연도 기준표면 결정표에 직접 넣는다:" if d.stale else ""))
+    L += [f"  - {m}" for m in d.stale[:10]]
+    L.append(f"- 규칙에 없는 지역·모집 제한 문구 {len(d.restrictions)}개" + (" — 템플릿에 없는 제한이면 조건을 추가한다:"
+                                                                     if d.restrictions else ""))
+    L += [f"  - p.{p} `{t}`" for p, t in d.restrictions[:10]]
+    nid = r["registered_as"] or r["next_id"]
+    key = r["analysis_key"]
+    pdf = Path(r["file"]).as_posix()
+    try:
+        pdf = Path(r["file"]).resolve().relative_to(ROOT).as_posix()
+    except ValueError:
+        pass
+    how = (f"이미 등록된 공고({nid})라 등록 규칙과 비교하는 용도다." if r["registered_as"] else
+           "제목·notes(공고 유의사항)는 원문을 보고 채운다. 넣은 뒤 생성 스크립트를 실행하고 7절 체크리스트"
+           "(골든 DATES는 손계산)를 진행한다.")
+    L += ["", "### 8-4. 생성 스크립트에 넣을 항목", how, "", "```python", plan_snippet(d, nid, key, pdf), "```"]
+    if not r["registered_as"]:
+        entry = {"key": key, "org": r["issuer"] or "LH", "file": pdf, "pages": r["pages"], "sha256": r["sha256"]}
+        L += ["", "### 8-5. 공고 분석 목록 `docs/notice-analysis/index.json` 항목", "", "```json",
+              json.dumps(entry, ensure_ascii=False), "```"]
+    return L
 
 
 def to_markdown(r: dict) -> str:
@@ -106,6 +234,8 @@ def to_markdown(r: dict) -> str:
           "7. 확인: `python tools/verify_sources.py` → `python tools/regen_golden.py`(기존 그룹 불변 확인) → "
           "`python -m pytest -q` → `python tools/ui_smoke.py` → `python tools/notice_intake.py --audit`",
           "8. 문서: `docs/07-notice-generalization.md` 결과 절, CLAUDE.md·README 공고 수"]
+    if "draft" in r:
+        L += draft_markdown(r)
     return "\n".join(L) + "\n"
 
 
@@ -152,6 +282,8 @@ def main(argv=None):
     ap.add_argument("pdf", nargs="?", help="새 공고문 PDF")
     ap.add_argument("--out", help="보고서를 저장할 .md 경로(없으면 화면에 출력)")
     ap.add_argument("--audit", action="store_true", help="등록된 공고 전부의 등록 누락 점검")
+    ap.add_argument("--draft", action="store_true", help="자동 추출 초안(8절)도 만든다")
+    ap.add_argument("--save-draft", help="초안 규칙(JSON)을 저장할 경로(초안도 만든다 — 규칙을 만들 수 있을 때만 저장)")
     a = ap.parse_args(argv)
     if a.audit:
         problems = audit()
@@ -161,7 +293,15 @@ def main(argv=None):
         return 1 if problems else 0
     if not a.pdf:
         ap.error("PDF 경로 또는 --audit가 필요합니다")
-    md = to_markdown(report(Path(a.pdf)))
+    r = report(Path(a.pdf), with_draft=a.draft or bool(a.save_draft))
+    md = to_markdown(r)
+    if a.save_draft:
+        if r["draft"].doc is None:
+            print("초안 규칙을 만들지 못해 저장하지 않았습니다:", r["draft"].reason, file=sys.stderr)
+        else:
+            Path(a.save_draft).write_text(json.dumps(r["draft"].doc, ensure_ascii=False, indent=2) + "\n",
+                                          encoding="utf-8")
+            print("초안 규칙:", a.save_draft)
     if a.out:
         Path(a.out).write_text(md, encoding="utf-8")
         print("보고서:", a.out)
