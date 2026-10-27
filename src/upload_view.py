@@ -43,6 +43,56 @@ def render_not_judgeable(ident: Identification) -> None:
     st.caption("이 공고의 등록을 원하면 공고명과 공고일을 운영자에게 알려 주세요. 등록되면 같은 파일을 올렸을 때 바로 판정됩니다.")
 
 
+FIELD_ICON = {"filled": "✅", "held": "⏸️", "absent": "➖"}
+
+
+def render_draft_details(d) -> None:
+    """초안 추출 내역(운영자용) — 빈칸별 값·근거 쪽, 찾지 못한 인용문, 기준표 연도, 새 제한 문구."""
+    import draft
+    with st.expander("초안 추출 내역(운영자용) — 채운 값·보류·근거 쪽"):
+        for path, f in draft.field_rows(d.fields):
+            value = f["value"] if isinstance(f["value"], str) else str(f["value"])
+            where = f" (p.{f['page']})" if f["page"] else ""
+            st.caption(f"{FIELD_ICON[f['status']]} `{path}` {value[:80]}{where} — {f['how']}")
+        plain = [m for m in d.missing if m not in d.stale]
+        if plain:
+            st.markdown(f"**원문에서 찾지 못한 인용문 {len(plain)}개** (그 조건은 보류)")
+            for m in plain[:10]:
+                st.caption(m)
+        if d.stale:
+            st.markdown(f"**기준표 연도가 다른 조건 {len(d.stale)}개** (보류)")
+            for m in d.stale[:10]:
+                st.caption(m)
+        if d.restrictions:
+            st.markdown(f"**규칙에 없는 지역·모집 제한 문구 {len(d.restrictions)}개** ('지원 가능'을 '수동 확인'으로 낮춤)")
+            for page, text in d.restrictions[:10]:
+                st.caption(f"p.{page} {text}")
+        st.caption("등록하려면 `python tools/notice_intake.py <공고문.pdf> --draft`로 같은 내역과 생성 스크립트 항목을 받는다"
+                   "(docs/08).")
+
+
+def render_draft(d, ident: Identification = None) -> None:
+    """운영자 미리보기(A2): 미등록 공고를 자동 추출 초안 규칙으로 판정할 때 본문 맨 위 안내."""
+    held = sum(len(v) for v in d.held_conditions.values())
+    st.warning("🟠 **검증 전 초안 — 운영자 미리보기.** 등록되지 않은 공고를 자동으로 읽은 초안 규칙으로 판정합니다. "
+               "일반 사용자에게는 보이지 않습니다.")
+    rows = [f"- 사업 유형: **{d.program}** (템플릿 `{d.template}`) · 공고일 **{d.announcement_date}**",
+            f"- 보류된 조건 {held}개 · 규칙에 없는 제한 문구 {len(d.restrictions)}개 — 판정에 쓰이면 '지원 가능'을 "
+            "'수동 확인'으로 낮춥니다."]
+    if ident is not None and ident.windows:     # 초안은 접수기간 데이터(schedules.json)가 없다 — 후보만 보인다
+        rows.append("- 청약 접수기간(후보): " + " / ".join(
+            f"{w['start'].replace('T', ' ')} ~ {w['end'].replace('T', ' ')} (p.{w['page']})" for w in ident.windows[:3]))
+    st.markdown("\n".join(rows))
+    render_draft_details(d)
+
+
+def render_draft_refused(d) -> None:
+    """운영자 미리보기: 초안 판정을 할 수 없는 이유(판정하지 않음)."""
+    st.caption(f"🔧 운영자 미리보기: 초안 판정을 하지 않습니다 — {d.reason}")
+    if d.fields:
+        render_draft_details(d)
+
+
 def render_identified(ident: Identification) -> None:
     """등록 공고로 식별됐을 때 본문 맨 위 안내."""
     n = load_notice(ident.notice_id)
