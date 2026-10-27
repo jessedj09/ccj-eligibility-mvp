@@ -34,7 +34,7 @@ python tools/notice_intake.py "sample_lh/새공고.pdf" --out docs/notice-analys
 
 ```bash
 python tools/notice_intake.py "sample_lh/새공고.pdf" --draft --out docs/notice-analysis/새공고-intake.md
-python tools/notice_intake.py "sample_lh/새공고.pdf" --draft --save-draft 초안.json   # 초안 규칙도 저장(두 번째 시험용)
+python tools/notice_intake.py "sample_lh/새공고.pdf" --draft --save-draft   # 초안 스냅샷도 저장(2-2절, 등록 전에)
 ```
 
 보고서 8절에 P1 추출기(`src/draft.py` → `tools/sheet_extract.py`, **AI 없음**)가 만든 초안이 붙는다.
@@ -50,7 +50,34 @@ python tools/notice_intake.py "sample_lh/새공고.pdf" --draft --save-draft 초
 
 합격 5개 사업(청년매입·LH 신혼·든든전세·장기전세·장기전세2)은 보통 보류 0이다 — 8-4를 붙여 넣고 아래 체크리스트를 진행하면 된다.
 등록 5건으로 시험: 8-4 항목을 그대로 넣어 만든 규칙이 원문 대조를 모두 통과하고 등록 규칙과 같은 조건을 갖는다(`tests/test_a_stage.py`).
-**두 번째 시험(B2)**: 새 공고는 정식 등록 **전에** `--save-draft`로 초안 규칙을 저장해 두고, 등록 후 같은 입력으로 판정을 비교한다.
+### 2-2. 초안 판정 비교 (B2 — 2026-10-28)
+
+새 공고는 초안 판정이 등록(검증) 판정과 같은지 확인한다 — 초안 판정을 일반 사용자에게 열지(C1) 정하는 근거다.
+
+```bash
+# ① 등록 작업 전에(아무것도 고치기 전에) 초안을 얼린다 → docs/draft-checks/<분석 키>.draft.json
+python tools/notice_intake.py "sample_sh/새공고.pdf" --draft --save-draft
+# ② 아래 3절 체크리스트대로 등록(골든 GROUPS까지)
+# ③ 같은 가상 신청자로 두 판정을 비교 → 결과도 같은 폴더에 남긴다
+python tools/draft_compare.py docs/draft-checks/<분석 키>.draft.json --out docs/draft-checks/<분석 키>.md
+```
+
+- **순서가 중요하다**: 등록하면 그 공고가 같은 사업의 형제가 되어, 그 뒤에 만든 초안은 자기 정답을 보고 만들어진다.
+  그래서 스냅샷은 덮어쓰지 않는다(이미 있으면 저장 거부). 이미 등록된 공고로 만들면 경고한다(도구 점검용으로만).
+- 스냅샷에는 규칙 문서와 함께 판정을 낮추는 정보(보류 조건·새 제한 문구)가 들어 있어, 운영자 미리보기 판정을 그대로 재현한다.
+  판정할 수 없는 초안(사업 미지원·핵심 빈칸 보류)도 이유와 함께 남긴다.
+- 결과는 화면 표시(지원 가능·보류·지원 불가·해당 없음) 기준으로 나눈다.
+
+| 분류 | 뜻 | 기준 |
+|---|---|---|
+| 같음 | 화면 표시가 같음 | 높을수록 좋음 |
+| 초안이 더 조심 | 초안 '보류', 등록은 확정 — 안전하지만 사람이 확인해야 하는 몫 | 비율 기록 |
+| **⚠️ 틀린 지원 가능 / 다른 확정 판정** | 초안이 확정인데 등록과 다름 | **0건이어야 함**(있으면 종료코드 1) |
+| 초안 판정 없음 | 초안이 판정하지 않음(화면도 판정 안 함) | 비율 기록 |
+
+위험이 나오면 보고서의 '위험 사례'(초안·등록의 불충족 조건)로 원인을 찾는다 — 추출 오류면 추출기, 템플릿에 없는 새 조건이면
+제한 문구 점검·템플릿 보강. 자체 점검: 등록 공고를 초안으로 만들면 위험 0·같음 100%, 초안에서 조건을 빼면 '틀린 지원 가능'을
+잡는다(`tests/test_b2_compare.py`).
 
 ## 3. 등록 체크리스트
 

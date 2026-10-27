@@ -2,7 +2,7 @@
 """새 공고 등록용 내부 도구(E1). 판정은 하지 않는다 — 규칙 데이터를 만들 사람(또는 Claude)이 원문에서 찾을 것을 모아 준다.
 
     python tools/notice_intake.py <공고문.pdf> [--out 보고서.md]   # 후보 추출 보고서
-    python tools/notice_intake.py <공고문.pdf> --draft [--save-draft 초안.json]   # + 자동 추출 초안(8절, A1)
+    python tools/notice_intake.py <공고문.pdf> --draft [--save-draft [경로]]   # + 자동 추출 초안(8절, A1)·스냅샷(B2)
     python tools/notice_intake.py --audit                          # 등록된 공고 전부의 등록 누락 점검(누락 있으면 종료코드 1)
 
 보고서(후보 추출)에 담는 것 — 모두 '후보'이고, 쪽 번호와 원문 그대로의 인용문을 함께 준다:
@@ -14,7 +14,8 @@
   8) (--draft) 자동 추출 초안 — P1 추출기(src/draft.py, AI 없음)가 채운 빈칸·보류된 빈칸과 근거 쪽, 그 시트로 규칙을 만들어
      본 결과(찾지 못한 인용문·기준표 연도·새 제한 문구), 생성 스크립트에 붙여 넣을 PLAN 항목과 index.json 항목.
      보류가 없으면 PLAN 항목을 그대로 넣고 체크리스트를 진행하면 되고, 보류된 것만 원문에서 직접 찾는다.
-     --save-draft는 초안 규칙(JSON)을 저장한다 — 정식 등록 전 초안 판정을 기록해 두고 등록 후 판정과 비교할 때 쓴다.
+     --save-draft는 초안 스냅샷(규칙 + 판정을 낮추는 보류·제한 정보)을 저장한다 — 정식 등록 전에 얼려 두고 등록 후
+     tools/draft_compare.py로 판정을 비교한다(B2, docs/08 2-2절).
 점검(--audit)은 공고마다 원문 PDF·공고 분석·접수기간·골든 입력(DATES·GROUPS)·입력 범위 규칙·소득표 대조가 다 있는지 본다.
 """
 import argparse
@@ -277,13 +278,35 @@ def audit() -> List[str]:
     return problems
 
 
+DRAFT_CHECKS = ROOT / "docs" / "draft-checks"
+
+
+def save_snapshot(r: dict, target: str = "") -> Optional[Path]:
+    """초안 스냅샷 저장(B2). 이미 있는 파일은 덮어쓰지 않는다 — 등록 전에 얼린 초안이 등록 뒤 다시 만든 것으로 바뀌면 비교가
+    의미 없어진다(등록하면 그 공고가 같은 템플릿의 형제가 되어 초안이 자기 정답을 보고 만들어진다)."""
+    import draft
+    path = Path(target) if target else DRAFT_CHECKS / f"{r['analysis_key']}.draft.json"
+    if path.exists():
+        print(f"이미 있는 초안 스냅샷은 덮어쓰지 않습니다: {path}", file=sys.stderr)
+        return None
+    if r["registered_as"]:
+        print(f"주의: 이미 등록된 공고({r['registered_as']})입니다 — 초안이 이 공고의 등록 규칙을 형제로 보고 만들어져 "
+              "B2 비교 근거가 되지 않습니다(도구 점검용으로만).", file=sys.stderr)
+    snap = draft.to_snapshot(r["draft"], r["sha256"], source=Path(r["file"]).name, created=date.today().isoformat())
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(snap, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"초안 스냅샷({DRAFT_STATE.get(r['draft'].status, r['draft'].status)}): {path}")
+    return path
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("pdf", nargs="?", help="새 공고문 PDF")
     ap.add_argument("--out", help="보고서를 저장할 .md 경로(없으면 화면에 출력)")
     ap.add_argument("--audit", action="store_true", help="등록된 공고 전부의 등록 누락 점검")
     ap.add_argument("--draft", action="store_true", help="자동 추출 초안(8절)도 만든다")
-    ap.add_argument("--save-draft", help="초안 규칙(JSON)을 저장할 경로(초안도 만든다 — 규칙을 만들 수 있을 때만 저장)")
+    ap.add_argument("--save-draft", nargs="?", const="", metavar="경로",
+                    help="초안 스냅샷을 저장(B2 — 등록 전에 실행). 경로를 안 주면 docs/draft-checks/<분석 키>.draft.json")
     a = ap.parse_args(argv)
     if a.audit:
         problems = audit()
@@ -293,15 +316,10 @@ def main(argv=None):
         return 1 if problems else 0
     if not a.pdf:
         ap.error("PDF 경로 또는 --audit가 필요합니다")
-    r = report(Path(a.pdf), with_draft=a.draft or bool(a.save_draft))
+    r = report(Path(a.pdf), with_draft=a.draft or a.save_draft is not None)
     md = to_markdown(r)
-    if a.save_draft:
-        if r["draft"].doc is None:
-            print("초안 규칙을 만들지 못해 저장하지 않았습니다:", r["draft"].reason, file=sys.stderr)
-        else:
-            Path(a.save_draft).write_text(json.dumps(r["draft"].doc, ensure_ascii=False, indent=2) + "\n",
-                                          encoding="utf-8")
-            print("초안 규칙:", a.save_draft)
+    if a.save_draft is not None and save_snapshot(r, a.save_draft) is None:
+        return 1
     if a.out:
         Path(a.out).write_text(md, encoding="utf-8")
         print("보고서:", a.out)

@@ -144,10 +144,15 @@ Engine**이다.
   환경변수 `CCJ_OPERATOR_PASSWORD`, 잠금은 위젯 콜백으로 — 중간 `st.rerun()`은 아래 위젯 값을 되돌림). 추출기는 운영자 경로에서만
   불러온다(공개 화면 영향 없음). `draft.evaluate_draft`(엔진 결과 그대로·판정만 낮춤), `tests/test_a_stage.py`, 화면 점검 17단계
   (`tools/ui_fixture_draft.py` — 업로드·식별만 바꿔 끼우고 app.py를 그대로 실행).
-- pytest: 총 **844개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 17단계).
+- **B2 비교 도구(2026-10-28, docs/08 2-2)**: `notice_intake.py --save-draft`가 **초안 스냅샷**(규칙 + 판정을 낮추는 보류 조건·제한
+  문구, `draft.to_snapshot`/`from_snapshot`)을 `docs/draft-checks/<분석 키>.draft.json`에 저장 — **등록 작업 전에**(등록하면 그 공고가
+  형제가 되어 초안이 자기 정답을 봄), 덮어쓰기 거부. 등록 후 `tools/draft_compare.py <스냅샷>`이 그 공고의 골든 입력으로 초안·등록
+  판정을 화면 표시 기준으로 비교(같음 / 초안이 더 조심 / **위험: 초안이 확정인데 다름 — 0건이어야, 있으면 종료코드 1** / 초안 판정 없음).
+  `tests/test_b2_compare.py`.
+- pytest: 총 **852개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 17단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
-- **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록(`--draft`로 시작)·B2 두 번째 시험(등록 전 `--save-draft`로 초안 기록 → 등록 후
-  비교) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.
+- **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
+  `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.
   새 공고 추가는 사용자가 별도 진행(백로그, `docs/08-adding-a-notice.md`). 상세는
   docs/04-open-items-and-next-steps.md 맨 위 "다음 과제". 사람이 할 일(독립 검증 워크시트, LH 질의)은 계속 보류 중.
 
