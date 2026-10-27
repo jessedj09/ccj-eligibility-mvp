@@ -129,9 +129,10 @@ Engine**이다.
   **추출 규칙에 공고 전용 문자열 금지**(테스트가 점검). 시험용 결과로 규칙을 다듬지 말 것. `tests/test_t31_templates.py`·`test_t32_extract.py`.
 - **P1 T3.3·T3.4(2026-10-25) 로컬 LLM 슬롯·비교**(docs/09 §16): `tools/llm_slot.py`(Ollama, 답 캐시 `.cache/llm/`), sheet_extract의
   LLM 단계 — **LLM 답은 위치로만, 인용문은 원문에서 잘라 옴**(`snap`, 85% 이상 일치), 주제 겹침 ≥0.35, 지역 목록 정확 일치.
-  `eval_extraction --llm qwen3.5:4b`. 시험용: 결정론만 90%→LLM 94%, 판정 같음 76.5%→76.8%, 틀림 0. **합격 5개 사업
+  `eval_extraction --llm ministral-3:3b`. 시험용: 결정론만 90%→LLM 93%(이전 qwen3.5:4b 94%), 틀림 0. **합격 5개 사업
   (청년매입·LH 신혼·든든전세·장기전세·장기전세2)은 결정론만으로 판정 100% 같음 → P2를 AI 없이 열 수 있음.** 모델: D:\ollama\models
-  (Ollama 앱 설정 DB `settings.models` + `OLLAMA_MODELS`), 받아 둔 모델 qwen3.5:4b·qwen3:1.7b·hermes3:3b. `tests/test_t33_llm.py`(가짜 슬롯).
+  (Ollama 앱 설정 DB `settings.models` + `OLLAMA_MODELS`). **중국 개발 모델은 쓰지 않음** — 기본 `llm_slot.DEFAULT_MODEL` =
+  ministral-3:3b(docs/09 §18 비교), 받아 둔 모델은 이것 하나. `tests/test_t33_llm.py`(가짜 슬롯).
 - **P2 준비(2026-10-25, docs/09 §17)**: 검증 관문에 ① **기준표 연도 확인**(`reference_guard` — 기준표를 직접 참조하는 조건은
   등록 형제 공고들이 공통으로 싣는 기준표 대표 금액이 새 공고에 없으면 보류; 인용문에 금액이 없는 조건이 연도가 바뀌어도 통과하던 구멍)
   ② **새 제한 문구**(`new_restrictions` — 규칙이 인용하지 않는 지역·모집 제한 문구면 '지원 가능'→'수동 확인'). 초안 판정 입구

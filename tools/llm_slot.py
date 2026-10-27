@@ -10,12 +10,15 @@ import hashlib
 import json
 import re
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / ".cache" / "llm"
+# 기본 모델 — 비중국 모델 비교(2026-10-27, docs/09 §18)에서 고름: 시험용 자동 채움 93%·틀림 0, 질문당 약 9초(GPU 4GB).
+DEFAULT_MODEL = "ministral-3:3b"
 
 SYSTEM = ("너는 한국 공공임대주택 입주자모집공고문에서 문장을 찾아 **원문 그대로 복사**하는 도구다. "
           "요약·의역·판단을 하지 말고, 공고문에 적힌 글자를 그대로 옮긴다. 찾지 못하면 빈 문자열을 쓴다. "
@@ -76,11 +79,11 @@ class NullSlot:
 
 
 class OllamaSlot:
-    def __init__(self, model: str = "qwen3.5:4b", host: str = "http://127.0.0.1:11434", num_ctx: int = 8192,
+    def __init__(self, model: str = DEFAULT_MODEL, host: str = "http://127.0.0.1:11434", num_ctx: int = 8192,
                  timeout: int = 900):
         self.model, self.host, self.num_ctx, self.timeout = model, host, num_ctx, timeout
         self.name = f"ollama:{model}"
-        self.calls = self.cached = 0
+        self.calls = self.cached = self.failed = 0
         self.seconds = 0.0
 
     def ask(self, prompt: str, schema: dict) -> Optional[dict]:
@@ -92,19 +95,31 @@ class OllamaSlot:
         if cache.exists():
             self.cached += 1
             return json.loads(cache.read_text(encoding="utf-8"))
-        req = urllib.request.Request(f"{self.host}/api/chat", json.dumps(body).encode("utf-8"),
-                                     {"Content-Type": "application/json"})
         t = time.time()
         try:
-            resp = json.load(urllib.request.urlopen(req, timeout=self.timeout))
+            resp = self._post(body)
             out = json.loads(resp["message"]["content"])
         except (OSError, ValueError, KeyError):
+            self.failed += 1
             return None
         self.calls += 1
         self.seconds += time.time() - t
         cache.parent.mkdir(parents=True, exist_ok=True)
         cache.write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
         return out
+
+    def _post(self, body: dict) -> dict:
+        """생각 모드가 없는 모델(gemma3 등)은 think 옵션을 거절한다(400) — 옵션을 빼고 한 번 더."""
+        def send(b):
+            req = urllib.request.Request(f"{self.host}/api/chat", json.dumps(b).encode("utf-8"),
+                                         {"Content-Type": "application/json"})
+            return json.load(urllib.request.urlopen(req, timeout=self.timeout))
+        try:
+            return send(body)
+        except urllib.error.HTTPError as e:
+            if e.code != 400 or "think" not in body:
+                raise
+            return send({k: v for k, v in body.items() if k != "think"})
 
     def find_sentence(self, raw: List[str], page_nos: List[int], what: str, example: str) -> Optional[Tuple[str, int]]:
         """example(같은 사업 다른 공고의 문장)과 같은 뜻의 문장을 이 공고에서 찾아 (원문 문장, 쪽)."""
