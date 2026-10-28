@@ -162,6 +162,81 @@ def loose_find(pages, sentence: str) -> Optional[tuple]:
     return None
 
 
+# ------------------------------------------------------------------ 값·핵심 표현으로 근거 다시 찾기(v3 ①, docs/10 §2-2)
+RELOCATE_COVER = 0.65      # 형제 문장(숫자 가림)의 글자 중 원문 한 구간과 맞는 비율 하한
+RELOCATE_CORE = 6          # 그 구간에 형제 문장과 그대로 같은 연속 글자가 이만큼은 있어야 한다(핵심 표현)
+_VALUE = re.compile(r"\d[\d,]*(?:\.\d+)?(?:%|만원|억원|원|세|년|개월|회|㎡|인)")
+_ROMAN = re.compile(r"I{1,3}|IV|V")
+
+
+def _dates_of(text: str) -> set:
+    out = set()
+    for m in _TOKEN.finditer(text):
+        y = int(m.group("y"))
+        y = y if y > 999 else 2000 + y if y < 50 else 1900 + y
+        try:
+            out.add(date(y, int(m.group("m")), int(m.group("d"))))
+        except ValueError:
+            pass
+    return out
+
+
+def _values_of(n: str) -> set:
+    """정규화 문장의 값 — 날짜를 뺀 금액·비율·나이·기간·면적(숫자 + 단위)."""
+    return set(_VALUE.findall(_TOKEN.sub(" ", n)))
+
+
+def relocate(pages: List[str], example: str) -> Optional[tuple]:
+    """형제 문장(이 공고 날짜로 맞춘 것)과 **뜻이 같은 원문 구간**을 찾는다 — 표현이 조금 달라도(조사·괄호·앞뒤 수식어)
+    값이 같으면 같은 근거로 본다. 조건: 숫자를 가린 글자의 65% 이상이 한 구간과 맞고, 6글자 이상 그대로 같은 핵심 표현이
+    있고, 형제 문장의 **값(금액·비율·나이·기간)과 날짜가 모두** 그 구간에 있고, 로마 숫자(Ⅰ·Ⅱ 유형 구분)가 같다.
+    → (맞은 비율, 쪽, 원문 정규화 구간) — 가장 잘 맞는 곳. 겹치는 창은 한 곳으로 보고, 서로 다른 곳이 같은 비율로 맞으면서
+    내용이 다르면 고르지 않는다(보류)."""
+    from difflib import SequenceMatcher
+    e = sv.normalize(example)
+    mask = lambda s: re.sub(r"\d", "#", s)                       # noqa: E731
+    em = mask(e)
+    if len(re.sub(r"[#\W]", "", em)) < 10:
+        return None
+    want_values, want_dates = _values_of(e), _dates_of(e)
+    want_roman = sorted(_ROMAN.findall(re.sub(r"[^IVX]", " ", e)))
+    pieces = {em[k:k + 6] for k in range(0, len(em) - 5, 3)}
+    size = int(len(e) * 1.4) + 4
+    places = []                                                  # [쪽, 시작, 끝, 맞은 비율, 구간]
+    for i, t in enumerate(pages, 1):
+        tm = mask(t)
+        if not t or not any(p in tm for p in pieces):
+            continue
+        for start in range(0, max(1, len(t) - size + 1), 3):
+            wm = tm[start:start + size]
+            blocks = [b for b in SequenceMatcher(None, wm, em, autojunk=False).get_matching_blocks() if b.size >= 2]
+            cover = sum(b.size for b in blocks) / len(em) if blocks else 0
+            if cover < RELOCATE_COVER or max(b.size for b in blocks) < RELOCATE_CORE:
+                continue
+            s0, e0 = start + blocks[0].a, start + blocks[-1].a + blocks[-1].size
+            w = t[s0:e0]
+            if not want_values <= _values_of(w) or not want_dates <= _dates_of(w):
+                continue
+            if sorted(_ROMAN.findall(re.sub(r"[^IVX]", " ", w))) != want_roman:
+                continue
+            same = next((p for p in places if p[0] == i and s0 < p[2] and p[1] < e0), None)   # 겹치는 창 = 같은 곳
+            if same is None:
+                places.append([i, s0, e0, cover, w])
+            elif cover > same[3]:
+                same[1:] = [s0, e0, cover, w]
+    if not places:
+        return None
+    places.sort(key=lambda p: -p[3])
+    best = places[0]
+    # 비슷하게 맞는 다른 곳이 '다른 내용'(글자 90% 미만 일치)이면 어느 쪽인지 모른다 — 요약표·본문처럼 같은 문장이
+    # 한두 글자만 달리(의/인) 여러 번 나오는 것은 같은 근거
+    rivals = [p for p in places[1:] if p[3] >= best[3] - 0.05
+              and SequenceMatcher(None, mask(p[4]), mask(best[4]), autojunk=False).ratio() < 0.9]
+    if rivals:
+        return None
+    return best[3], best[0], best[4]
+
+
 @dataclass
 class LLM:
     """LLM 슬롯과 LLM에게 보여 줄 쪽 텍스트(띄어쓰기 유지). 없으면 결정론만."""
@@ -252,6 +327,17 @@ def adapt_quotes(pages, ann: date, siblings: List[dict], key_path, llm: Optional
                 if hit:
                     out[k] = Field(FILLED, hit[1], hit[0], hit[1], f"형제 {s['notice_id']} 문장(숫자·Ⅰ/Ⅱ만 다른 원문 표현)")
                     break
+        if out[k].status == HELD:       # 형제마다 찾아 가장 잘 맞는 곳(형제마다 표현이 달라 한 형제만 맞을 수 있다)
+            hits = []
+            for s in siblings:
+                src = key_path(s).get(k)
+                if isinstance(src, str):
+                    hit = relocate(pages, adapt(src, date_mapping(date.fromisoformat(s["announcement_date"]), ann)))
+                    if hit:
+                        hits.append((hit, s["notice_id"]))
+            if hits:
+                (_, page, text), sid = max(hits, key=lambda h: h[0][0])
+                out[k] = Field(FILLED, text, page, text, f"형제 {sid} 문장과 값·핵심 표현이 같은 원문")
         if out[k].status == HELD and llm is not None and placeholder:
             hit = llm_sentence(pages, llm, placeholder)
             if hit:

@@ -30,12 +30,17 @@ TUNE = [n for n in T.sheet_ids() if n not in TEST]                         # 나
 SINGLE = {"N15", "N18", "N19", "N22"}                                       # 같은 템플릿·같은 종류가 하나뿐 — 표시
 
 CORRECT, HELD, WRONG, OK_ABSENT = "correct", "held", "wrong", "ok_absent"
+ALT = "alt"      # 근거 문장: 정답 시트와 다른 곳이지만 정답 문장의 값(금액·비율·날짜)을 모두 담은 원문 — 같은 근거의 다른 표현
+
+
+LOO = False     # --loo: 형제 = 같은 템플릿의 등록 공고 전부(자기 제외) — 실제 새 공고가 들어올 때와 같은 조건
 
 
 def siblings_for(nid):
-    """형제 정답 시트 — 다듬기용 공고 중 같은 템플릿(자기 자신 제외)."""
+    """형제 정답 시트 — 다듬기용 공고 중 같은 템플릿(자기 자신 제외). --loo면 등록 공고 전부 중에서."""
     def f(template):
-        return [T.gold_sheet(n) for n in TUNE if n != nid and T.gold_sheet(n)["template"] == template]
+        pool = T.sheet_ids() if LOO else TUNE
+        return [T.gold_sheet(n) for n in pool if n != nid and T.gold_sheet(n)["template"] == template]
     return f
 
 
@@ -71,11 +76,32 @@ def _cmp_eq(gold, f):
     return CORRECT if gold == f.value else WRONG
 
 
+def same_place(gold: str, got: str) -> bool:
+    """근거 문장이 정답 시트의 문장과 같은 곳을 가리키는지 — 한쪽이 다른 쪽을 담거나, 글자의 60% 이상이 겹친다
+    (앞뒤로 몇 글자 더/덜 잘린 것은 같은 근거로 본다)."""
+    from difflib import SequenceMatcher
+    a, b = _norm(gold), _norm(got)
+    if not a or not b:
+        return False
+    if a in b or b in a:
+        return True
+    m = sum(x.size for x in SequenceMatcher(None, a, b, autojunk=False).get_matching_blocks())
+    return m / min(len(a), len(b)) >= 0.6
+
+
 def _cmp_quote(gold, f):
-    """문장 빈칸: 원문에서 찾은 근거면 정답(인용 위치 역할), 못 찾으면 보류."""
-    if f.status == X.FILLED:
-        return CORRECT
-    return HELD
+    """문장 빈칸: 못 찾으면 보류. 찾은 근거가 정답 시트 문장과 다른 곳이면 틀림(2026-10-28 — 근거 문장을 값·핵심 표현으로
+    다시 찾기 시작하며 위치까지 본다)."""
+    if f.status != X.FILLED:
+        return HELD
+    if isinstance(gold, str) and isinstance(f.value, str) and not same_place(gold, f.value):
+        gv, fv = _norm(gold), _norm(f.value)
+        values = X._values_of(gv) | {str(d) for d in X._dates_of(gv)}
+        got = X._values_of(fv) | {str(d) for d in X._dates_of(fv)}
+        # 값이 서로 어긋나지 않으면(한쪽이 다른 쪽의 값을 모두 담음 — 예: 정답 '130%·맞벌이 200%', 찾은 곳 '130%') 다른 곳의
+        # 같은 근거. 값이 다르면(70% ↔ 130%) 틀림.
+        return ALT if values and got and (values <= got or got <= values) else WRONG
+    return CORRECT
 
 
 def compare(gold: dict, ext: dict):
@@ -203,7 +229,7 @@ def evaluate(nids, verbose=False, llm_for=None):
         rows = compare(gold, ext)
         per[nid] = dict(template=gold["template"], rows=rows, ext=ext, llm=llm)
         if verbose:
-            bad = [(n, r) for n, r, c in rows if r in (WRONG, HELD)]
+            bad = [(n, r) for n, r, c in rows if r in (WRONG, HELD, ALT)]
             print(f"{nid} {gold['template']}: " + ", ".join(f"{n}={r}" for n, r in bad) if bad else f"{nid} 모두 맞음")
     return per
 
@@ -243,18 +269,23 @@ def main(argv=None):
     ap.add_argument("--judge", action="store_true", help="골든 입력으로 판정 일치율까지(시간이 걸림)")
     ap.add_argument("--limit", type=int, help="계층마다 골든 입력 앞 N건만")
     ap.add_argument("--llm", help="결정론이 못 채운 빈칸을 물어볼 로컬 Ollama 모델(예: ministral-3:3b)")
+    ap.add_argument("--loo", action="store_true",
+                    help="형제를 등록 공고 전부(자기 제외)에서 — 실제 새 공고 조건(다듬기/시험 구분 없는 하나 빼고 맞혀 보기)")
     a = ap.parse_args(argv)
+    global LOO
+    LOO = a.loo
     nids = {"tune": TUNE, "test": TEST, "all": TUNE + TEST}[a.set]
     llm_for = make_llm(a.llm)
     per = evaluate(nids, verbose=a.v, llm_for=llm_for)
     tot, crit, by_t = summarize(per)
     n = sum(tot.values())
-    filled = tot[CORRECT] + tot[WRONG] + tot[OK_ABSENT]
+    filled = tot[CORRECT] + tot[ALT] + tot[WRONG] + tot[OK_ABSENT]
     print(f"[{a.set}] 공고 {len(nids)}건, 빈칸 {n}개 — 맞음 {tot[CORRECT]} · 없음 일치 {tot[OK_ABSENT]} · 보류 {tot[HELD]} · "
-          f"틀림 {tot[WRONG]} | 자동 채움 {filled / n:.0%} · 핵심 빈칸 틀림 {crit[WRONG]}")
+          f"틀림 {tot[WRONG]}" + (f" · 다른 곳·같은 값 {tot[ALT]}" if tot[ALT] else "") + f" | 자동 채움 {filled / n:.0%} · 핵심 빈칸 틀림 {crit[WRONG]}")
     for t, c in sorted(by_t.items()):
         m = sum(c.values())
-        print(f"  {t}: 맞음 {c[CORRECT] + c[OK_ABSENT]}/{m} · 보류 {c[HELD]} · 틀림 {c[WRONG]}")
+        print(f"  {t}: 맞음 {c[CORRECT] + c[OK_ABSENT]}/{m} · 보류 {c[HELD]} · 틀림 {c[WRONG]}"
+              + (f" · 다른 곳·같은 값 {c[ALT]}" if c[ALT] else ""))
     if llm_for:
         slot = next((d["llm"].slot for d in per.values() if d.get("llm")), None)
         if slot:
