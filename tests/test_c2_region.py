@@ -5,6 +5,9 @@
 구리시, 성남시, 과천시, 안양시, 광명시, 부천시, 인천광역시, 김포시, 고양시, 양주시)이 거주지나 [재학 중인 대학
 소재지 / 소득 근거지]인 자 · 2,3순위 이번 공고에서는 모집하지 않음". 신혼부부는 "신청자 본인 또는 배우자
 (예비신혼부부의 경우 대표신청자 또는 예비배우자)가 … 거주지나 소득 근거지인 자".
+
+2026-10-28 결정: **본인 거주지로 판정**한다(소득 근거지·대학 소재지·배우자 지역은 묻지 않는다). 거주지가 목록 안이면 충족,
+밖이면 '지원 불가'가 아니라 수동 확인(원문은 다른 지역 항목으로도 신청할 수 있으므로), 거주지를 모르면 정보 부족.
 """
 
 import copy
@@ -50,48 +53,40 @@ def test_every_listed_area_passes_by_residence(area):
     assert verdict("N10", "청년", residence_area=area) == "ELIGIBLE"
 
 
-@pytest.mark.parametrize("area", ["수원시", "의왕시", "시흥시", "부산광역시", "광주광역시", "광주시"])
-def test_areas_outside_the_list_fail_when_other_paths_are_closed(area):
+@pytest.mark.parametrize("area", ["수원시", "의왕시", "시흥시", "부산광역시", "광주광역시", "광주시", "해당없음"])
+def test_residence_outside_the_list_is_manual_review_not_ineligible(area):
     # 의왕·시흥은 서울 인접처럼 보이지만 이 공고의 연접지역 목록에 없다. 광주시(경기)·광주광역시도 목록 밖.
-    assert verdict("N10", "청년", residence_area=area, income_base_area="해당없음") == "INELIGIBLE"
+    # 원문은 소득 근거지 등으로도 신청할 수 있으므로 거주지만으로 '지원 불가'를 내지 않는다.
+    r = evaluate(base("N10", "청년", residence_area=area), load_notice("N10"), "청년")
+    assert r.verdict == "MANUAL_REVIEW" and r.review == ["N10-region"]
+    assert "소득 근거지(근무지)" in r.review_reasons["N10-region"].detail
 
 
-@pytest.mark.parametrize("nid", ["N9", "N10"])
-def test_student_residence_or_school(nid):
-    assert verdict(nid, "대학생", residence_area="수원시") == "NEEDS_INFO"          # 대학 소재지 모름
-    assert verdict(nid, "대학생", residence_area="수원시", school_area="고양시") == "ELIGIBLE"
-    assert verdict(nid, "대학생", residence_area="수원시", school_area="해당없음") == "INELIGIBLE"
-    assert verdict(nid, "대학생", residence_area="수원시", school_area="대전광역시") == "INELIGIBLE"
-    assert verdict(nid, "대학생") == "NEEDS_INFO"                                  # 지역 전부 모름
+@pytest.mark.parametrize("nid,layer", [("N9", "대학생"), ("N10", "대학생"), ("N10", "청년"), ("N10", "신혼부부"),
+                                       ("N10", "한부모")])
+def test_only_own_residence_is_judged(nid, layer):
+    other = dict(school_area="서울특별시", income_base_area="서울특별시", spouse_residence_area="서울특별시",
+                 spouse_income_base_area="서울특별시")
+    assert verdict(nid, layer, residence_area="서울특별시") == "ELIGIBLE"
+    assert verdict(nid, layer, residence_area="수원시", **other) == "MANUAL_REVIEW"   # 다른 지역 항목은 쓰지 않는다
+    assert verdict(nid, layer, **other) == "NEEDS_INFO"                              # 거주지 모름
+    assert load_notice(nid).layers[layer].inputs & set(REGION_FIELDS) == {"residence_area"}
 
 
-def test_youth_residence_or_income_base():
-    assert verdict("N10", "청년", residence_area="수원시", income_base_area="서울특별시") == "ELIGIBLE"
-    assert verdict("N10", "청년", residence_area="수원시") == "NEEDS_INFO"
+def test_review_detail_names_the_other_paths_of_each_layer():
+    n10 = load_notice("N10")
+    detail = lambda layer: evaluate(base("N10", layer, residence_area="수원시"), n10, layer) \
+        .review_reasons["N10-region"].detail                                      # noqa: E731
+    assert "재학 중인 대학 소재지" in detail("대학생")
+    assert "배우자 거주지" in detail("신혼부부") and "배우자" not in detail("한부모")
 
 
-def test_newlywed_any_of_self_or_spouse_residence_or_income_base():
-    closed = dict(residence_area="수원시", income_base_area="해당없음")
-    assert verdict("N10", "신혼부부", **closed) == "NEEDS_INFO"                     # 배우자 정보 모름
-    assert verdict("N10", "신혼부부", **closed, spouse_residence_area="서울특별시") == "ELIGIBLE"
-    assert verdict("N10", "신혼부부", **closed, spouse_residence_area="수원시",
-                   spouse_income_base_area="김포시") == "ELIGIBLE"
-    assert verdict("N10", "신혼부부", **closed, spouse_residence_area="수원시",
-                   spouse_income_base_area="해당없음") == "INELIGIBLE"
-
-
-def test_single_parent_uses_own_areas_only():
-    # 한부모는 배우자가 없다 — 배우자 칸 값은 판정에 쓰지 않는다
-    assert verdict("N10", "한부모", residence_area="수원시", income_base_area="해당없음",
-                   spouse_residence_area="서울특별시") == "INELIGIBLE"
-    assert "spouse_residence_area" not in load_notice("N10").layers["한부모"].inputs
-
-
-def test_region_failure_outranks_needs_info_elsewhere():
-    p = dataclasses.replace(base("N10", "청년", residence_area="부산광역시", income_base_area="해당없음"),
-                            monthly_income=None)
+def test_other_failures_still_outrank_region_review():
+    p = dataclasses.replace(base("N10", "청년", residence_area="부산광역시"), monthly_income=None)
     r = evaluate(p, load_notice("N10"), "청년")
-    assert r.verdict == "INELIGIBLE" and "N10-region" in r.failed
+    assert r.verdict == "MANUAL_REVIEW" and "N10-region" in r.review               # 수동 확인 > 정보 부족
+    p = dataclasses.replace(base("N10", "청년", residence_area="부산광역시"), home_ownership="주택보유")
+    assert evaluate(p, load_notice("N10"), "청년").verdict == "INELIGIBLE"         # 불충족 > 수동 확인
 
 
 def test_same_verdicts_as_geumcheon_when_in_seoul():
@@ -128,4 +123,3 @@ def test_loader_rejects_misspelled_region_and_validation_rejects_unknown_area():
 
 def test_region_inputs_only_where_needed():
     assert not set(REGION_FIELDS) & load_notice("N3").layers["청년"].inputs
-    assert {"spouse_residence_area", "spouse_income_base_area"} <= load_notice("N10").layers["신혼부부"].inputs

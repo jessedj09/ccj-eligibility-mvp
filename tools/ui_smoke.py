@@ -105,21 +105,22 @@ def main():
         assert not at.exception, at.exception
         return results(at)
 
-    def region(area, school):
+    def region(area):
         at = fresh("N10", "대학생")
         at.sidebar.selectbox[2].select("P01").run()     # N3 대학생 ELIGIBLE 샘플 — 지역 외 조건은 모두 충족
         find(at, "selectbox", "본인 거주지").select(area).run()
-        find(at, "selectbox", "재학 중").select(school).run()
+        # 2026-10-28: 1순위 지역은 본인 거주지로만 판정 — 대학 소재지는 묻지 않는다
+        assert not [w for w in at.selectbox if w.label.startswith("재학 중")], "대학 소재지 질문이 나옴"
         at.button[0].click().run()
         assert not at.exception, at.exception
         return results(at)
 
-    r_seoul, r_out, r_school = region("서울특별시", "모름"), region("수원시", "해당없음"), region("수원시", "고양시")
-    assert r_seoul[0].startswith("✅") and r_out[0].startswith("❌") and r_school[0].startswith("✅"),         (r_seoul, r_out, r_school)
+    r_seoul, r_out = region("서울특별시"), region("수원시")
+    assert r_seoul[0].startswith("✅") and r_out[0].startswith("🔍"), (r_seoul, r_out)
     at = fresh("N3", "대학생")
     assert not [w for w in at.selectbox if w.label.startswith("본인 거주지")], "지역이 필요 없는 공고에 지역 질문이 나옴"
-    print("5) N10 대학생 지역: 서울 →", r_seoul[0][:2], "/ 수원·대학 없음 →", r_out[0][:2], "/ 수원·고양 대학 →", r_school[0][:2],
-          "| N3에는 지역 질문 없음")
+    print("5) N10 대학생 지역(거주지로 판정): 서울 →", r_seoul[0][:2], "/ 수원 → ", r_out[0][:2],
+          "(수동 확인 — 대학 소재지로도 가능) | N3에는 지역 질문 없음")
 
     def c3(nid, layer, picks, regions=None, age=None):
         at = fresh(nid, layer)

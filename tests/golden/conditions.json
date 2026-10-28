@@ -1120,10 +1120,10 @@
   },
   {
    "id": "N9-region",
-   "field": "residence_area/school_area",
+   "field": "residence_area",
    "required": true,
    "source_ref": "공고문 p.6 순위",
-   "note": "거주지 또는 재학 중인(다음 학기 입·복학 예정 포함) 대학 캠퍼스 소재지가 서울특별시 또는 연접 13개 시인지 (이 공고는 1순위만 모집)",
+   "note": "거주지가 서울특별시 또는 연접 13개 시인지(밖이면 수동 확인 — 원문은 거주지나 재학 중인 대학 소재지 중 하나; 이 공고는 1순위만 모집)",
    "timing": "NOW"
   }
  ],
@@ -1178,10 +1178,10 @@
   },
   {
    "id": "N10-region",
-   "field": "residence_area/school_area",
+   "field": "residence_area",
    "required": true,
    "source_ref": "공고문 p.6 순위",
-   "note": "거주지 또는 재학 중인(다음 학기 입·복학 예정 포함) 대학 캠퍼스 소재지가 서울특별시 또는 연접 13개 시인지 (이 공고는 1순위만 모집)",
+   "note": "거주지가 서울특별시 또는 연접 13개 시인지(밖이면 수동 확인 — 원문은 거주지나 재학 중인 대학 소재지 중 하나; 이 공고는 1순위만 모집)",
    "timing": "NOW"
   }
  ],
@@ -1244,10 +1244,10 @@
   },
   {
    "id": "N10-region",
-   "field": "residence_area/income_base_area",
+   "field": "residence_area",
    "required": true,
    "source_ref": "공고문 p.8 순위",
-   "note": "거주지 또는 소득 근거지(사업자등록증 소재지, 실제 근무지 증빙 시 근무지)가 서울특별시 또는 연접 13개 시인지 (이 공고는 1순위만 모집)",
+   "note": "거주지가 서울특별시 또는 연접 13개 시인지(밖이면 수동 확인 — 원문은 거주지나 소득 근거지(사업자등록증 소재지, 실제 근무지 증빙 시 근무지) 중 하나; 이 공고는 1순위만 모집)",
    "timing": "NOW"
   }
  ],
@@ -1310,10 +1310,10 @@
   },
   {
    "id": "N10-region",
-   "field": "residence_area/income_base_area/spouse_residence_area/spouse_income_base_area",
+   "field": "residence_area",
    "required": true,
    "source_ref": "공고문 p.10 순위",
-   "note": "본인 또는 배우자(예비배우자)의 거주지나 소득 근거지 중 하나가 서울특별시 또는 연접 13개 시인지 (이 공고는 1순위만 모집)",
+   "note": "본인 거주지가 서울특별시 또는 연접 13개 시인지(밖이면 수동 확인 — 원문은 본인 또는 배우자(예비배우자)의 거주지나 소득 근거지 중 하나; 이 공고는 1순위만 모집)",
    "timing": "NOW"
   }
  ],
@@ -1376,10 +1376,10 @@
   },
   {
    "id": "N10-region",
-   "field": "residence_area/income_base_area",
+   "field": "residence_area",
    "required": true,
    "source_ref": "공고문 p.10 순위",
-   "note": "본인의 거주지나 소득 근거지가 서울특별시 또는 연접 13개 시인지(한부모는 배우자가 없어 본인 기준; 이 공고는 1순위만 모집)",
+   "note": "본인 거주지가 서울특별시 또는 연접 13개 시인지(밖이면 수동 확인 — 원문은 본인의 거주지나 소득 근거지 중 하나, 한부모는 배우자가 없어 본인 기준; 이 공고는 1순위만 모집)",
    "timing": "NOW"
   }
  ],
