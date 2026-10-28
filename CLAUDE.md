@@ -155,8 +155,9 @@ Engine**이다.
   보류는 그 사용자의 결론이 실제로 갈릴 때만. 구조: 조건 부품 사전(583개 조건 → 유형 16) · 값 검증 + 근거 위치 · 사용자 단위 확정 ·
   조항 장부 · 등급제(검증됨·자동 확정은 배지 없음). 저장 = Neon(PostgreSQL) + git. 구현 순서 ①~⑥(docs/10 §5).
   ①-1 완료: `sheet_extract.relocate`(값·핵심 표현이 같은 원문 구간을 근거로), 평가 `eval_extraction --loo`(실제 새 공고 조건)·
-  근거 위치 검사(`same_place`, ALT=다른 곳·같은 값) — loo 보류 22→11, 틀림 0, 자동 채움 95%. `tests/test_v3_relocate.py`.
-- pytest: 총 **860개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 17단계).
+  근거 위치 검사(`same_place`, ALT=다른 곳·같은 값). ①-2: 표현 사전(`phrasebook` — 같은 판정식의 다른 공고 원문 표현), 근거 없는
+  조건 보류, 평가 정답 누출(gen_c1 OVERRIDES) 제거 — loo 보류 22→7, 틀림 0, 자동 채움 97%. `tests/test_v3_relocate.py`.
+- pytest: 총 **863개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 17단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

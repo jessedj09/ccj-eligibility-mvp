@@ -217,7 +217,10 @@ def build(t):
             c["id"] = c["id"].replace(t["template"] + "-", t["nid"] + "-", 1)
             # 표현이 다른 인용문: 대상 공고의 원문 문구로 바꾼다. 파라미터 시트(tools/templates.py)는 공고 ID 없이
             # 조건 접미사(예: "R5", "S-child6")로 넘긴다.
-            override = (t.get("overrides") or {}).get(c["id"].split("-", 1)[1]) or OVERRIDES.get((t["nid"], c["id"]))
+            # 호출하는 쪽이 문구를 넘기면(초안·평가 — templates.build) 그것만 쓴다. 등록용 실행(TARGETS)만 OVERRIDES를 쓴다 —
+            # 공고 번호로 찾으면 초안 평가에 등록 정답이 새어 들어간다(2026-10-28 발견)
+            override = ((t["overrides"] or {}).get(c["id"].split("-", 1)[1]) if "overrides" in t
+                        else OVERRIDES.get((t["nid"], c["id"])))
             if override:
                 c["source"]["quote"] = list(override)
             elif c["id"].endswith(("-duration", "-child6")):

@@ -10,6 +10,7 @@
     ext = extract(pages, siblings)     # → {"template", "announcement_date", "params", "fields": {이름: Field}, ...}
     report = gate(ext, pdf, pages)     # 시트로 규칙을 만들어 인용문 대조(찾지 못한 인용문 = 그 조건 보류)
 """
+import json
 import re
 import sys
 from dataclasses import asdict, dataclass
@@ -201,7 +202,7 @@ def relocate(pages: List[str], example: str) -> Optional[tuple]:
     want_values, want_dates = _values_of(e), _dates_of(e)
     want_roman = sorted(_ROMAN.findall(re.sub(r"[^IVX]", " ", e)))
     pieces = {em[k:k + 6] for k in range(0, len(em) - 5, 3)}
-    size = int(len(e) * 1.4) + 4
+    size = int(len(e) * 2) + 10          # 중간에 끼어든 괄호 설명(예: '(전 배우자였던 사람과 재혼하는 경우 …)')까지 담게
     places = []                                                  # [쪽, 시작, 끝, 맞은 비율, 구간]
     for i, t in enumerate(pages, 1):
         tm = mask(t)
@@ -732,6 +733,86 @@ def _llm_overrides(ext: Dict, doc: Dict, missing: List[str], pages, llm: LLM) ->
     return out
 
 
+def _check_key(c: Dict) -> str:
+    """조건의 판정식(공고 번호 접두어를 뗀 것) — 같으면 같은 조건이다."""
+    return re.sub(r'"N\d+-|"DRAFT-|"NEW-', '"X-', json.dumps(c["check"], ensure_ascii=False, sort_keys=True))
+
+
+def phrasebook(suffix: str, check_key: str, exclude: str = "") -> List[str]:
+    """표현 사전(v3 ①-2): 같은 조건(같은 조건 접미사·같은 판정식)을 다른 등록 공고들은 원문에서 어떻게 적었나 — 그 인용문들.
+    exclude: 평가할 때 자기 공고의 등록 표현을 빼려고(정답 누출 방지)."""
+    from rule_data import notice_ids
+    out = []
+    for n in notice_ids():
+        if n == exclude:
+            continue
+        for ld in sv.notice_doc(n)["layers"].values():
+            for c in ld["conditions"]:
+                if c["id"].split("-", 1)[1] == suffix and _check_key(c) == check_key:
+                    for q in c["source"]["quote"]:
+                        t = q["text"] if isinstance(q, dict) else q
+                        if t not in out:
+                            out.append(t)
+    return out
+
+
+def _find_quote(pages, text: str) -> Optional[str]:
+    """원문에 그 문장이 있으면 원문 표현 — 그대로 → 숫자만 다름 → 값·핵심 표현이 같은 구간."""
+    if on_page(pages, sv.normalize(text)):
+        return text
+    hit = loose_find(pages, text)
+    if hit:
+        return hit[1]
+    hit = relocate(pages, text)
+    return hit[2] if hit else None
+
+
+def _relocated_overrides(doc: Dict, missing: List[str], pages, nid: str = "") -> Dict[str, list]:
+    """행복주택(결정론, v3 ①): 템플릿 문구가 이 공고에 없는 조건 → 그 문구를 ① 값·핵심 표현이 같은 원문 구간으로,
+    ② 안 되면 표현 사전(같은 조건의 다른 공고 원문 표현)에서 이 공고에 있는 것으로 바꾼 인용문 목록(조건 접미사 → 문장들).
+    못 찾은 문구는 그대로 두어 보류로 남긴다."""
+    out = {}
+    for m in missing:
+        mm = MISSING_QUOTE.match(m)
+        if not mm or mm.group("layer") not in doc["layers"]:
+            continue
+        cond = next((c for c in doc["layers"][mm.group("layer")]["conditions"] if c["id"] == mm.group("cid")), None)
+        if cond is None:
+            continue
+        suffix = mm.group("cid").split("-", 1)[1]
+        found = _find_quote(pages, mm.group("quote"))
+        if found is None:
+            book = [t for t in phrasebook(suffix, _check_key(cond), exclude=nid) if t != mm.group("quote")]
+            found = next((f for f in (_find_quote(pages, t) for t in book) if f), None)
+        if found is None:
+            continue
+        quotes = out.get(suffix) or [q["text"] if isinstance(q, dict) else q for q in cond["source"]["quote"]]
+        # 생성 스크립트가 못 찾은 문구를 목록에서 이미 뺐으면(날짜 문구 등) 찾은 문장을 덧붙인다
+        out[suffix] = [found if q == mm.group("quote") else q for q in quotes] if mm.group("quote") in quotes \
+            else quotes + [found]
+    return out
+
+
+NO_EVIDENCE = "(근거 문장 없음)"
+
+
+def _build(ext: Dict, nid: str, pdf, pages: List[str]):
+    """시트로 규칙을 만들고, 찾지 못한 인용문에 **근거 문장이 하나도 없는 조건**도 더한다 — 생성 스크립트가 날짜가 든 템플릿
+    문구를 빼고 나면 인용문 목록이 비는 일이 있다(2026-10-28 발견: N8 한부모 6세 이하 자녀). 근거 없는 조건은 보류."""
+    doc, missing = T.build(to_sheet(ext, nid), pdf, pages)
+
+    def walk(layer, conds):
+        for c in conds:
+            if c.get("tracks"):
+                for t in c["tracks"]:
+                    walk(layer, t["conditions"])
+            elif not c.get("source", {}).get("quote"):     # 등록 규칙에는 0개(도출 설명만 있는 조건도 원문 문장은 있다)
+                missing.append(f"{layer}/{c['id']}: '{NO_EVIDENCE}'")
+    for layer, ld in doc["layers"].items():
+        walk(layer, ld["conditions"])
+    return doc, missing
+
+
 def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW", llm: Optional[LLM] = None) -> Dict:
     """추출 시트로 규칙을 만들어 본다. 결과:
     - held: 보류된 빈칸, critical_held: 그중 판정에 직접 쓰이는 것(있으면 이 공고는 자동 판정하지 않는다 — P2 규칙)
@@ -747,15 +828,20 @@ def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW", llm: Optional[LLM] 
         out["blocked"] = "사업 유형(템플릿)을 정하지 못함"
         return out
     try:
-        out["doc"], out["missing"] = T.build(to_sheet(ext, nid), pdf, pages)
+        out["doc"], out["missing"] = _build(ext, nid, pdf, pages)
     except (KeyError, TypeError, ValueError) as e:     # 필수 빈칸이 보류라 규칙을 만들 수 없음
         out["blocked"] = f"규칙을 만들 수 없음: {type(e).__name__} {e}"
         return out
+    if ext["template"] == "lh.happy_housing" and out["missing"]:
+        ov = _relocated_overrides(out["doc"], out["missing"], pages, nid)
+        if ov:
+            ext["fields"]["overrides"] = Field(FILLED, ov, how=f"값·핵심 표현이 같은 원문 — 표현이 다른 조건 {len(ov)}개")
+            out["doc"], out["missing"] = _build(ext, nid, pdf, pages)
     if llm is not None and ext["template"] == "lh.happy_housing" and out["missing"]:
         ov = _llm_overrides(ext, out["doc"], out["missing"], pages, llm)
         if ov:
             ext["fields"]["overrides"] = Field(FILLED, ov, how=f"LLM({llm.slot.name}) — 표현이 다른 조건 {len(ov)}개")
-            out["doc"], out["missing"] = T.build(to_sheet(ext, nid), pdf, pages)
+            out["doc"], out["missing"] = _build(ext, nid, pdf, pages)
     # P2 선행 안전장치: 기준표 연도(인용문에 금액 없는 조건), 템플릿에 없는 새 제한 문구
     kind = ext["fields"].get("kind").value if isinstance(ext["fields"].get("kind"), Field) else None
     out["stale"] = reference_guard(out["doc"], pages, ext["template"], kind)

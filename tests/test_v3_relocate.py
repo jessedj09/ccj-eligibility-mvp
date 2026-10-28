@@ -65,10 +65,47 @@ def loo():
         E.LOO = False
 
 
-def test_leave_one_out_has_no_wrong_fields_and_fills_95_percent(loo):
+def test_leave_one_out_has_no_wrong_fields_and_fills_97_percent(loo):
     tot, crit, by_t = E.summarize(loo)
     n = sum(tot.values())
     assert tot[E.WRONG] == 0 and crit[E.WRONG] == 0
-    assert (tot[E.CORRECT] + tot[E.ALT] + tot[E.OK_ABSENT]) / n >= 0.94
-    assert tot[E.HELD] <= 11                                         # 2026-10-28: 22 → 11 (근거 다시 찾기)
+    assert (tot[E.CORRECT] + tot[E.ALT] + tot[E.OK_ABSENT]) / n >= 0.96
+    assert tot[E.HELD] <= 7                    # 2026-10-28: 22 → 11(근거 다시 찾기) → 7(표현 사전·근거 없는 조건 보강)
     assert by_t["sh.newlywed"][E.HELD] <= 2 and by_t["sh.jeonse2"][E.HELD] == 0
+    assert by_t["lh.happy_housing"][E.HELD] <= 3                   # 남은 것: 1순위 지역 2(⑤), 주거약자 1
+
+
+def test_phrasebook_finds_same_condition_written_differently():
+    # N5 대학생·청년 무주택(본인 기준): 템플릿 "… 주택 소유여부는 신청자 본인에 한하여 검증합니다"가 N5에는 없고,
+    # N5는 "'무주택자'란 … 세대 내 다른 구성원이 주택을 소유해도 신청 가능함"으로 적었다 — 같은 판정식의 N9 표현으로 찾는다
+    cond = next(c for c in sv.notice_doc("N5")["layers"]["청년"]["conditions"] if c["id"] == "N5-R5")
+    book = X.phrasebook("R5", X._check_key(cond), exclude="N5")
+    assert any("세대내다른구성원이주택을소유해도" in sv.normalize(t) for t in book)
+    assert book == [t for t in X.phrasebook("R5", X._check_key(cond)) if t in book]       # exclude는 빼기만 한다
+    found = [X._find_quote(sv.pdf_pages("N5"), t) for t in book]
+    assert any(f and "무주택자" in sv.normalize(f) for f in found)
+
+
+def test_draft_evaluation_does_not_see_registered_overrides():
+    """초안·평가(templates.build)에는 등록 정답 문구(gen_c1 OVERRIDES)가 공고 번호로 새어 들어가지 않는다."""
+    sheet = dict(T.gold_sheet("N5"), params=dict(T.gold_sheet("N5")["params"], overrides={}))
+    doc, missing = T.build(sheet, sv.pdf_path("N5"), sv.pdf_pages("N5"))
+    assert any("N5-R5" in m for m in missing)                       # 정답 문구 없이는 템플릿 문구를 못 찾는다
+
+
+def test_condition_without_any_quote_is_held():
+    """근거 문장이 하나도 없는 조건(생성 스크립트가 날짜 문구를 빼고 나면 생길 수 있음)은 찾지 못한 인용문으로 — 보류."""
+    import copy
+    real = T.build
+    def emptied(sheet, pdf, pages=None):
+        doc, missing = real(sheet, pdf, pages)
+        doc = copy.deepcopy(doc)
+        next(iter(doc["layers"].values()))["conditions"][0]["source"]["quote"] = []
+        return doc, missing
+    T.build = emptied
+    try:
+        ext = X.extract(sv.pdf_pages("N12"), E.siblings_for("N12"))
+        g = X.gate(ext, sv.pdf_path("N12"), sv.pdf_pages("N12"), "N12")
+    finally:
+        T.build = real
+    assert any(X.NO_EVIDENCE in m for m in g["missing"])

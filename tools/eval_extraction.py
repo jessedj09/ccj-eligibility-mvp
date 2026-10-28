@@ -104,7 +104,24 @@ def _cmp_quote(gold, f):
     return CORRECT
 
 
-def compare(gold: dict, ext: dict):
+def _cmp_overrides(gold, f, doc=None):
+    """행복주택 '표현이 다른 조건' 문구: 정답 시트의 조건마다 — 바꾼 문장이 있으면 그 문장이, 없으면(템플릿 문구가 이 공고에
+    그대로 있음) 만든 규칙의 그 조건 인용문이 정답 문장과 같은 곳이어야 맞음(2026-10-28 — 위치까지 본다)."""
+    filled = f is not None and f.status == X.FILLED
+    if not gold:
+        return CORRECT if filled else OK_ABSENT
+    for suffix, want in gold.items():
+        got = (f.value.get(suffix) if filled else None) or (
+            [q["text"] if isinstance(q, dict) else q for ld in doc["layers"].values() for c in ld["conditions"]
+             if c["id"].split("-", 1)[1] == suffix for q in c["source"]["quote"]] if doc else [])
+        if not got:
+            return HELD
+        if not any(q in want or any(same_place(w, q) for w in want) for q in got):
+            return HELD if not filled or suffix not in f.value else WRONG
+    return CORRECT
+
+
+def compare(gold: dict, ext: dict, doc=None):
     """→ [(빈칸 이름, 결과, critical)]"""
     rows = [("announcement_date", _cmp_eq(gold["announcement_date"], ext["announcement_date"]), True)]
     if ext["template"] != gold["template"]:
@@ -132,10 +149,7 @@ def compare(gold: dict, ext: dict):
                 else:
                     rows.append((f"{name}.{k}", _cmp_quote(gk, fk), False))
         elif name == "overrides":
-            if f is not None and f.status == X.FILLED:
-                rows.append((name, CORRECT, False))       # LLM이 찾은 원문 문장(원문·주제 확인됨)
-            else:
-                rows.append((name, HELD if gv else OK_ABSENT, False))
+            rows.append((name, _cmp_overrides(gv, f, doc), False))
         elif name == "region":
             if f is None or f.status == X.ABSENT:
                 rows.append((name, WRONG if gv else OK_ABSENT, True))
@@ -226,8 +240,10 @@ def evaluate(nids, verbose=False, llm_for=None):
         gold = T.gold_sheet(nid)
         llm = llm_for(nid) if llm_for else None
         ext = X.extract(sv.pdf_pages(nid), siblings_for(nid), llm)
-        rows = compare(gold, ext)
-        per[nid] = dict(template=gold["template"], rows=rows, ext=ext, llm=llm)
+        # 행복주택: 표현이 다른 조건의 문구는 규칙을 만들어 볼 때(검증 관문) 채운다 — 비교 전에 관문을 거친다
+        g = X.gate(ext, sv.pdf_path(nid), sv.pdf_pages(nid), nid, llm) if gold["template"] == "lh.happy_housing" else None
+        rows = compare(gold, ext, g["doc"] if g else None)
+        per[nid] = dict(template=gold["template"], rows=rows, ext=ext, llm=llm, gate=g)
         if verbose:
             bad = [(n, r) for n, r, c in rows if r in (WRONG, HELD, ALT)]
             print(f"{nid} {gold['template']}: " + ", ".join(f"{n}={r}" for n, r in bad) if bad else f"{nid} 모두 맞음")
@@ -249,7 +265,7 @@ def summarize(per):
 def judge_all(per, limit=None, verbose=False):
     total = Counter()
     for nid, d in per.items():
-        g = X.gate(d["ext"], sv.pdf_path(nid), sv.pdf_pages(nid), nid, d.get("llm"))
+        g = d.get("gate") or X.gate(d["ext"], sv.pdf_path(nid), sv.pdf_pages(nid), nid, d.get("llm"))
         c, notes = judgment_agreement(nid, g, limit)
         d["judge"], d["gate"] = c, g
         total += c
