@@ -49,6 +49,8 @@ Engine**이다.
 - **C2**: 지역 모델. 1순위 지역만 모집하는 N9 서울가좌(대학생)·N10 서울오류(4계층) 추가. 프로필 지역 필드 5개
   (`residence_area`·`school_area`·`income_base_area`·`spouse_residence_area`·`spouse_income_base_area`), 값은
   `rules/reference/regions.json` 표준 이름(서울·인천 광역, 경기 시·군, 그 밖 시도) 또는 "해당없음", 모름은 None.
+  **2026-10-28 결정: 1순위 지역은 본인 거주지로만 판정**(`gen_c1_notices.region_check`) — 거주지가 목록 안이면 충족, 밖이면
+  '지원 불가'가 아니라 수동 확인(원문은 소득 근거지·대학 소재지·배우자 지역으로도 가능), 모르면 정보 부족. 그 밖 지역 항목은 묻지 않음.
   지역 `in` 목록의 오타는 로드 시 거부. 조건이 읽는 필드는 `RuleCondition.inputs`/`LayerRuleSet.inputs`에 기록되고,
   화면은 그 계층이 쓰는 지역 질문만 묻는다. 검증 `tests/test_c2_region.py`(같은 날 같은 템플릿인 N6과 판정 동등).
 - **C3**: 행복주택 새 계층 4개 — 고령자(N6·N9·N10), 산업단지근로자(N6), 주거급여수급자(N10), 지역전략산업종사자(N5).
@@ -149,7 +151,15 @@ Engine**이다.
   형제가 되어 초안이 자기 정답을 봄), 덮어쓰기 거부. 등록 후 `tools/draft_compare.py <스냅샷>`이 그 공고의 골든 입력으로 초안·등록
   판정을 화면 표시 기준으로 비교(같음 / 초안이 더 조심 / **위험: 초안이 확정인데 다름 — 0건이어야, 있으면 종료코드 1** / 초안 판정 없음).
   `tests/test_b2_compare.py`.
-- pytest: 총 **852개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 17단계).
+- **자동 판정 v3(2026-10-28~, `docs/10-auto-judgment-v3.md`)**: 실서비스 방향 — 미등록 공고도 **룰 엔진 자동 판정이 기본**,
+  보류는 그 사용자의 결론이 실제로 갈릴 때만. 구조: 조건 부품 사전(583개 조건 → 유형 16) · 값 검증 + 근거 위치 · 사용자 단위 확정 ·
+  조항 장부 · 등급제(검증됨·자동 확정은 배지 없음). 저장 = Neon(PostgreSQL) + git. 구현 순서 ①~⑥(docs/10 §5).
+  ①-1 완료: `sheet_extract.relocate`(값·핵심 표현이 같은 원문 구간을 근거로), 평가 `eval_extraction --loo`(실제 새 공고 조건)·
+  근거 위치 검사(`same_place`, ALT=다른 곳·같은 값). ①-2: 표현 사전(`phrasebook` — 같은 판정식의 다른 공고 원문 표현), 근거 없는
+  조건 보류, 평가 정답 누출(gen_c1 OVERRIDES) 제거 — loo 보류 22→7, 틀림 0, 자동 채움 97%. `tests/test_v3_relocate.py`.
+  ②-1 조항 장부 `tools/clause_ledger.py`: 조건처럼 보이는 문장을 근거 / 형제 공고에도(등록 결과가 정답 표시) / 무관 범주 / **미분류**로 —
+  등록 26건 미분류 120(합격 사업 공고 0~5), 끼워 넣은 새 조건 4/4 검출. 검토 목록 `docs/clause-ledger-review.md`. `tests/test_v3_ledger.py`.
+- pytest: 총 **873개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 17단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

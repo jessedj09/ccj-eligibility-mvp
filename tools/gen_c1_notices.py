@@ -62,7 +62,24 @@ ORI_LIST = "연접지역(의정부시,남양주시,구리시,하남시,성남시
 
 
 def region_cond(fields, quotes, note):
+    """fields: 원문이 인정하는 지역 항목(거주지·소득 근거지·대학 소재지·배우자 …, 원문 순서). 판정은 본인 거주지로만 한다
+    (region_check — 2026-10-28 결정)."""
     return {"fields": fields, "quote": quotes, "note": note}
+
+
+# 2026-10-28 결정: 1순위 지역은 **본인 거주지로 판정**한다 — 소득 근거지·대학 소재지·배우자 지역은 묻지 않는다.
+# 원문은 '거주지나 …' 중 하나만 지역 안이면 되므로, 거주지가 지역 밖이면 '지원 불가'가 아니라 수동 확인(틀린 불가를 내지 않는다).
+OTHER_PATHS = {"school_area": "재학 중인 대학 소재지", "income_base_area": "소득 근거지(근무지)",
+               "spouse_residence_area": "배우자 거주지", "spouse_income_base_area": "배우자 소득 근거지"}
+
+
+def region_check(fields):
+    others = "·".join(OTHER_PATHS[f] for f in fields if f != "residence_area")
+    return {"any": [{"in": [{"var": "residence_area"}, SEOUL_ADJ]},
+                    {"ne": [{"var": "residence_area"}, ""],       # 거주지를 입력했고 목록 밖이면(모르면 정보 부족)
+                     "review_if_true": {"code": "SELF_REPORT_UNVERIFIED",
+                                        "detail": f"거주지가 서울특별시·연접 13개 시 밖입니다. 원문은 {others}가 이 지역이어도 "
+                                                  "신청할 수 있습니다 — 해당되는지 직접 확인하세요."}}]}
 
 
 TARGETS += [
@@ -74,8 +91,8 @@ TARGETS += [
              ["residence_area", "school_area"],
              ["해당 주택건설지역(서울특별시) 또는 " + GAJWA_LIST + "이 거주지나 재학 중인 대학 소재지인 자",
               "2,3순위 이번 공고에서는 모집하지 않음"],
-             "거주지 또는 재학 중인(다음 학기 입·복학 예정 포함) 대학 캠퍼스 소재지가 서울특별시 또는 연접 13개 시인지 "
-             "(이 공고는 1순위만 모집)")}),
+             "거주지가 서울특별시 또는 연접 13개 시인지(밖이면 수동 확인 — 원문은 거주지나 재학 중인 대학 소재지 중 "
+             "하나; 이 공고는 1순위만 모집)")}),
     dict(nid="N10", pdf="sample_lh/서울오류행복주택예비입주자모집공고문(2026.05.15).pdf",
          title="서울오류 행복주택", ann="2026-05-15", template="N3",
          layers=["대학생", "청년", "신혼부부", "한부모"], marriage=None, child="2019-05-16",
@@ -90,26 +107,26 @@ TARGETS += [
                  ["residence_area", "school_area"],
                  ["해당 주택건설지역(서울특별시) 또는 " + ORI_LIST + "이 거주지나 재학 중인 대학 소재지인 자",
                   "2순위,3순위 이번 공고에서는 모집하지 않음"],
-                 "거주지 또는 재학 중인(다음 학기 입·복학 예정 포함) 대학 캠퍼스 소재지가 서울특별시 또는 연접 13개 시인지 "
-                 "(이 공고는 1순위만 모집)"),
+                 "거주지가 서울특별시 또는 연접 13개 시인지(밖이면 수동 확인 — 원문은 거주지나 재학 중인 대학 소재지 중 "
+                 "하나; 이 공고는 1순위만 모집)"),
              "청년": region_cond(
                  ["residence_area", "income_base_area"],
                  ["해당 주택건설지역(서울특별시) 또는 " + ORI_LIST + "이 거주지나 소득 근거지인 자",
                   "2순위,3순위 이번 공고에서는 모집하지 않음"],
-                 "거주지 또는 소득 근거지(사업자등록증 소재지, 실제 근무지 증빙 시 근무지)가 서울특별시 또는 연접 13개 시인지 "
-                 "(이 공고는 1순위만 모집)"),
+                 "거주지가 서울특별시 또는 연접 13개 시인지(밖이면 수동 확인 — 원문은 거주지나 소득 근거지(사업자등록증 "
+                 "소재지, 실제 근무지 증빙 시 근무지) 중 하나; 이 공고는 1순위만 모집)"),
              "신혼부부": region_cond(
                  ["residence_area", "income_base_area", "spouse_residence_area", "spouse_income_base_area"],
                  ["신청자 본인 또는 배우자(예비신혼부부의 경우 대표신청자 또는 예비배우자)가 해당 주택 건설지역(서울특별시) 또는 "
                   + ORI_LIST + "이 거주지나 소득 근거지인 자", "2순위,3순위 이번 공고에서는 모집하지 않음"],
-                 "본인 또는 배우자(예비배우자)의 거주지나 소득 근거지 중 하나가 서울특별시 또는 연접 13개 시인지 "
-                 "(이 공고는 1순위만 모집)"),
+                 "본인 거주지가 서울특별시 또는 연접 13개 시인지(밖이면 수동 확인 — 원문은 본인 또는 배우자(예비배우자)의 "
+                 "거주지나 소득 근거지 중 하나; 이 공고는 1순위만 모집)"),
              "한부모": region_cond(
                  ["residence_area", "income_base_area"],
                  ["신청자 본인 또는 배우자(예비신혼부부의 경우 대표신청자 또는 예비배우자)가 해당 주택 건설지역(서울특별시) 또는 "
                   + ORI_LIST + "이 거주지나 소득 근거지인 자", "2순위,3순위 이번 공고에서는 모집하지 않음"],
-                 "본인의 거주지나 소득 근거지가 서울특별시 또는 연접 13개 시인지(한부모는 배우자가 없어 본인 기준; "
-                 "이 공고는 1순위만 모집)"),
+                 "본인 거주지가 서울특별시 또는 연접 13개 시인지(밖이면 수동 확인 — 원문은 본인의 거주지나 소득 근거지 중 "
+                 "하나, 한부모는 배우자가 없어 본인 기준; 이 공고는 1순위만 모집)"),
          }),
 ]
 
@@ -200,7 +217,10 @@ def build(t):
             c["id"] = c["id"].replace(t["template"] + "-", t["nid"] + "-", 1)
             # 표현이 다른 인용문: 대상 공고의 원문 문구로 바꾼다. 파라미터 시트(tools/templates.py)는 공고 ID 없이
             # 조건 접미사(예: "R5", "S-child6")로 넘긴다.
-            override = (t.get("overrides") or {}).get(c["id"].split("-", 1)[1]) or OVERRIDES.get((t["nid"], c["id"]))
+            # 호출하는 쪽이 문구를 넘기면(초안·평가 — templates.build) 그것만 쓴다. 등록용 실행(TARGETS)만 OVERRIDES를 쓴다 —
+            # 공고 번호로 찾으면 초안 평가에 등록 정답이 새어 들어간다(2026-10-28 발견)
+            override = ((t["overrides"] or {}).get(c["id"].split("-", 1)[1]) if "overrides" in t
+                        else OVERRIDES.get((t["nid"], c["id"])))
             if override:
                 c["source"]["quote"] = list(override)
             elif c["id"].endswith(("-duration", "-child6")):
@@ -220,11 +240,11 @@ def build(t):
             conds.append(c)
         if t.get("region", {}).get(layer):
             rc = t["region"][layer]
-            cond = {"id": f"{t['nid']}-region", "field": "/".join(rc["fields"]), "required": True,
+            cond = {"id": f"{t['nid']}-region", "field": "residence_area", "required": True,
                     "source": relocate({"page": anchor, "clause": "순위", "quote": rc["quote"]}, pages, anchor,
                                        f"{layer}/region", missing),
                     "note": rc["note"],
-                    "check": {"any": [{"in": [{"var": f}, SEOUL_ADJ]} for f in rc["fields"]]}}
+                    "check": region_check(rc["fields"])}
             conds.append(cond)
         doc["layers"][layer] = {"conditions": conds}
     for name, layer in sorted(used_tables):
