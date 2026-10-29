@@ -39,16 +39,20 @@ CONDLIKE = re.compile(r"(인자|한자|된자|는자|인사람|한사람|는사�
 STRONG = re.compile(r"(만신청|에한하여신청|신청할수없|신청불가|신청이불가|신청제한|거주하는자|거주자만|이상거주|이내인자|이하인자|"
                     r"이상인자|미만인자|소유하지않은자|해당하지않는자)")
 COMMON = re.compile(r"(외국인|재외국민|중복신청|중복당첨|중복으로|말소|거주불명|행방불명|가출|무효처리|부정당첨|불법전대|"
-                    r"1세대1주택|1주택만|1주택형만|1주택단지만)")
-DEFINITION = re.compile(r"(이란|란,|말함|말한다|의미|산정|산출|가액은|공시지가|평가하|기준으로하며|기준으로합니다|포함됩니다|포함한다|포함함)")
+                    r"1세대1주택|1주택만|1주택형만|1주택단지만|타[가-힣]{0,8}공고|다른공고|동일유형|동일한유형)")
+DEFINITION = re.compile(r"(이란|란,|말함|말한다|의미|산정|산출|가액은|공시지가|평가하|기준으로하며|기준으로합니다|포함됩니다|포함한다|포함함|"
+                        r"재산|정자료)")
+RANK = re.compile(r"\d순위")
+# 모든 공고에 붙는 일반 안내(자격 요건 전반·개인정보) — 강한 제한 표현이 들어 있어도 새 조건이 아니다
+BOILERPLATE = re.compile(r"(관계법령등에서정한|입주자격을유지|민감정보|본인정보제공|개인정보수집)")
 ENUM = re.compile(r"^([①-⑳]|\d+\)|\d(?=[「가-힣])|[가-하][.)]|\(\d+\)|-)")
 UNRELATED = {
-    "서류": r"(서류|제출|발급|증명서|등본|초본|확인서|사본|증빙|동의서|원본)",
+    "서류": r"(서류|제출|발급|증명서|등본|초본|확인서|사본|증빙|동의서|원본|개인정보|마이데이터|주민등록번호|등록번호|서명|날인)",
     "절차": r"(인터넷|방문접수|신청서|접수|청약센터|로그인|공동인증|홈페이지|모바일|앱|신청방법|신청기간|삭제)",
-    "계약·임대": r"(계약|입주지정|임대기간|재계약|임대료|보증금|월임대|전환|관리비|퇴거|명도|갱신)",
+    "계약·임대": r"(계약|입주지정|임대기간|재계약|임대료|보증금|월임대|전환|관리비|퇴거|명도|갱신|임대조건|입주청소|키불출)",
     "선정·순위": r"(감점|가점|배점|순번|추첨|선정방법|동점|예비입주자|예비자|당첨|순위별|배정|선정순서)",
     "안내": r"(주택관리번호|www|문의|콜센터|유의|참조|참고|바랍니다|안내|열람|게시|점심시간|공개시간|사전공개|시설물|승강기|"
-            r"사다리차|일조권|조망권|철거|하자)",
+            r"사다리차|일조권|조망권|철거|하자|혜택|관계법령|에어컨|실외기|소음|주택목록|공급주택|시세의)",
 }
 UNRELATED = {k: re.compile(v) for k, v in UNRELATED.items()}
 UNCLASSIFIED = "미분류"
@@ -173,6 +177,10 @@ def classify(units: Sequence[Tuple[int, str]], doc: Dict, known: Known) -> List[
             label = "형제 공고에도"
         elif COMMON.search(u):
             label = "무관:공통 제한"
+        elif BOILERPLATE.search(u):
+            label = "무관:일반 안내"
+        elif RANK.search(u) and "모집하지않" not in u:     # 순위 정의(경쟁 순서 — 자격 아님). '그 순위만 모집'은 제한 문구 점검이 잡는다
+            label = "무관:선정·순위"
         elif DEFINITION.search(u) and not STRONG.search(u):
             label = "무관:정의"
         else:
@@ -182,13 +190,23 @@ def classify(units: Sequence[Tuple[int, str]], doc: Dict, known: Known) -> List[
     return out
 
 
-def siblings_of(nid: str) -> List[str]:
-    """등록 공고의 형제 = 같은 템플릿(행복주택은 템플릿 공고 N1~N3 포함)의 다른 등록 공고."""
+@lru_cache(maxsize=None)
+def _templates() -> Dict[str, str]:
     import templates as T
-    from rule_data import notice_ids
     tpl = {n: T.gold_sheet(n)["template"] for n in T.sheet_ids()}
     tpl.update({n: "lh.happy_housing" for n in ("N1", "N2", "N3")})
-    return [n for n in notice_ids() if n != nid and tpl.get(n) == tpl.get(nid)]
+    return tpl
+
+
+def template_siblings(template: Optional[str], exclude: str = "") -> List[str]:
+    """그 템플릿(사업)의 등록 공고들(행복주택은 템플릿 공고 N1~N3 포함) — exclude는 빼고(평가용)."""
+    from rule_data import notice_ids
+    return [n for n in notice_ids() if n != exclude and template and _templates().get(n) == template]
+
+
+def siblings_of(nid: str) -> List[str]:
+    """등록 공고의 형제 = 같은 템플릿의 다른 등록 공고."""
+    return template_siblings(_templates().get(nid), exclude=nid)
 
 
 def ledger_for_registered(nid: str) -> List[Tuple[int, str, str]]:

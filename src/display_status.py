@@ -40,3 +40,13 @@ DISPLAY = {
 
 def display(verdict: str) -> Display:
     return DISPLAY[verdict]
+
+
+# 모든 판정 결과에 붙는 공통 문구(PRD v3 5절 — '참고용 판정' 표현은 쓰지 않는다)
+COMMON_NOTE = "판정 근거는 조건별로 표시한 공고문 원문입니다. 최종 자격은 공고 기관의 서류 심사로 확정됩니다."
+
+
+def display_checks(n: int) -> Display:
+    """자동 분석 공고에서 그 사용자의 결론이 확실하지 않은 곳에 따라 갈릴 때(v3 사용자 단위 확정, src/grading.py)."""
+    return Display(HOLD_GROUP, "🔍", f"원문 확인 {n}건",
+                   "다른 조건으로는 결론이 정해지지 않았습니다. 아래 표시한 곳만 공고문 원문에서 확인하면 결과가 확정됩니다.")

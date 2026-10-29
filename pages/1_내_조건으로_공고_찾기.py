@@ -21,6 +21,7 @@ from notices_data import ALL_NOTICES  # noqa: E402
 from rule_data import REGION_NONE, region_groups  # noqa: E402
 from schedule import CLOSED, KST, OPEN, UPCOMING, load_schedules, now_kst, statuses  # noqa: E402
 import whatif  # noqa: E402
+from display_status import COMMON_NOTE  # noqa: E402
 
 st.set_page_config(page_title="내 조건으로 공고 찾기", page_icon="🔎", layout="wide")
 st.title("🔎 내 조건으로 공고 찾기")
@@ -240,6 +241,7 @@ if st.session_state.get("m_judged"):
             for note in n.meta.get("notes", []):
                 st.caption(f"📌 {note}")
 
+    st.caption(COMMON_NOTE)
     for verdict, title in (("ELIGIBLE", "✅ 지원 가능"), ("NEEDS_INFO", "🟡 보류 — ⚠️ 추가 정보 필요(더 입력하면 판정)"),
                            ("MANUAL_REVIEW", "🟡 보류 — 🔍 수동 확인 필요(원문·기관 확인)"), ("INELIGIBLE", "❌ 지원 불가")):
         if not by[verdict]:

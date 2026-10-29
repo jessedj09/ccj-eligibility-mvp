@@ -13,7 +13,6 @@
 - 등록 도구(tools/notice_intake.py --draft)는 `only=None`으로 모든 사업의 초안을 만든다 — 추출 내역(fields)·시트(sheet)·
   찾지 못한 인용문(missing)을 등록 작업의 출발점으로 쓴다(판정에는 쓰지 않음).
 """
-import dataclasses
 import os
 import re
 import sys
@@ -54,6 +53,7 @@ class Draft:
     sheet: Optional[Dict] = None                            # 파라미터 시트 초안(보류 빈칸은 자리표시 값)
     missing: List[str] = field(default_factory=list)        # 원문에서 찾지 못한 인용문(기준표 연도 포함) — 그 조건은 보류
     doc: Optional[Dict] = None                              # 초안 규칙 문서(JSON) — 만들 수 있었을 때
+    unclassified: List[tuple] = field(default_factory=list)  # 조항 장부의 미분류 문장 (쪽, 문장) — 규칙이 모르는 조건일 수 있음(v3 ②)
 
 
 FIELD_KEYS = {"status", "value", "page", "quote", "how"}
@@ -70,12 +70,18 @@ def field_rows(fields: Dict, prefix: str = "") -> List[Tuple[str, Dict]]:
     return out
 
 
-def _siblings(template):
-    return [T.gold_sheet(n) for n in T.sheet_ids() if T.gold_sheet(n)["template"] == template]
+def _siblings_except(exclude: str = ""):
+    def f(template):
+        return [T.gold_sheet(n) for n in T.sheet_ids() if n != exclude and T.gold_sheet(n)["template"] == template]
+    return f
 
 
-def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None) -> Draft:
-    """only: 초안을 만들 템플릿(None = 전부 — 등록 도구용). pages: 이미 읽은 쪽 텍스트(없으면 data에서 읽는다)."""
+_siblings = _siblings_except()
+
+
+def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exclude: str = "") -> Draft:
+    """only: 초안을 만들 템플릿(None = 전부 — 등록 도구용). pages: 이미 읽은 쪽 텍스트(없으면 data에서 읽는다).
+    exclude: 형제에서 뺄 등록 공고(평가 — 등록 공고를 '처음 보는 공고'처럼 만들 때. 실제 사용에서는 비움)."""
     if pages is None:
         try:
             pages = sv.extract_pages_bytes(data, label="<초안>", cache=False)
@@ -83,7 +89,7 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None) -> 
             return Draft(UNREADABLE, str(e))
     if not any(p.strip() for p in pages):
         return Draft(UNREADABLE, "글자를 읽을 수 없는 PDF입니다(스캔 이미지일 수 있음).")
-    ext = X.extract(pages, _siblings)
+    ext = X.extract(pages, _siblings_except(exclude))
     ann = ext["announcement_date"].value if ext["announcement_date"].status == X.FILLED else None
     rep = X.field_report(ext)
     base = dict(template=ext["template"], program=ext["program"], announcement_date=ann,
@@ -97,10 +103,11 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None) -> 
         with os.fdopen(fd, "wb") as f:
             f.write(data)
         g = X.gate(ext, Path(tmp), pages, DRAFT_ID)
+        unclassified = _unclassified(Path(tmp), g["doc"], ext["template"], exclude) if g["doc"] else []
     finally:
         os.remove(tmp)
     base.update(held_fields=g["held"], missing=g["missing"], stale=g["stale"], restrictions=g["restrictions"],
-                sheet=X.to_sheet(ext, DRAFT_ID), doc=g["doc"])
+                sheet=X.to_sheet(ext, DRAFT_ID), doc=g["doc"], unclassified=unclassified)
     if g["blocked"] or g["critical_held"]:
         reason = g["blocked"] or "판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다: " + ", ".join(g["critical_held"])
         return Draft(BLOCKED, reason, **base)
@@ -111,21 +118,19 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None) -> 
     return Draft(OK, "", notice=notice, held_conditions=held, **base)
 
 
+def _unclassified(pdf: Path, doc: Dict, template: Optional[str], exclude: str = "") -> List[tuple]:
+    """조항 장부(v3 ②): 규칙 근거·형제 공고·무관 범주 어디에도 없는 조건형 문장 (쪽, 문장)."""
+    import clause_ledger as CL
+    rows = CL.ledger_for_draft(pdf, doc, CL.template_siblings(template, exclude))
+    return [(p, u) for p, u, label in rows if label == CL.UNCLASSIFIED]
+
+
 def evaluate_draft(d: Draft, profile, layer: str):
-    """초안 규칙으로 판정 → (엔진 결과, 안내). 판정은 엔진 그대로, 보류 대상·새 제한 문구가 있으면 '지원 가능'을 낮춘
-    결과(verdict만 바꾼 복사본)를 돌려준다 — 화면은 이 결과로 근거를 그대로 그린다."""
-    if d.status != OK:
-        raise ValueError("판정할 수 있는 초안이 아닙니다")
-    r = evaluate(profile, d.notice, layer)
-    affected = d.held_conditions.get(layer, set())
-    v = X.adjust_verdict(r, affected, bool(d.restrictions))
-    notes = [NOTE]
-    if v != r.verdict:
-        if affected:
-            notes.append("원문에서 확인하지 못한 조건이 판정에 쓰여 '수동 확인'으로 표시했습니다.")
-        if d.restrictions:
-            notes.append("규칙에 없는 지역·모집 제한 문구가 있습니다: " + d.restrictions[0][1][:40])
-    return dataclasses.replace(r, verdict=v), notes
+    """초안 규칙으로 판정 → (엔진 결과, 안내). 판정은 엔진 그대로, 그 사용자의 결론이 확실하지 않은 값·문장에 따라 갈리면
+    '수동 확인'으로 낮춘 결과(verdict만 바꾼 복사본)와 원문에서 확인할 곳(grading.judge)."""
+    import grading
+    r, checks = grading.judge(d, profile, layer)
+    return r, [NOTE] + [c.text for c in checks]
 
 
 def judge(d: Draft, profile, layer: str) -> Tuple[str, List[str]]:
@@ -145,7 +150,8 @@ def to_snapshot(d: Draft, sha256: str, source: str = "", created: str = "") -> D
             "status": d.status, "reason": d.reason, "template": d.template, "program": d.program,
             "announcement_date": d.announcement_date, "held_fields": d.held_fields,
             "held_conditions": {layer: sorted(ids) for layer, ids in d.held_conditions.items()},
-            "restrictions": [list(r) for r in d.restrictions], "stale": d.stale, "missing": d.missing, "doc": d.doc}
+            "restrictions": [list(r) for r in d.restrictions], "stale": d.stale, "missing": d.missing, "doc": d.doc,
+            "unclassified": [list(u) for u in d.unclassified]}
 
 
 def from_snapshot(s: Dict) -> Draft:
@@ -156,4 +162,4 @@ def from_snapshot(s: Dict) -> Draft:
                  notice=build_notice(s["doc"]) if s["status"] == OK else None,
                  held_conditions={layer: set(ids) for layer, ids in s["held_conditions"].items()},
                  stale=s["stale"], restrictions=[tuple(r) for r in s["restrictions"]], held_fields=s["held_fields"],
-                 missing=s["missing"], doc=s["doc"])
+                 missing=s["missing"], doc=s["doc"], unclassified=[tuple(u) for u in s.get("unclassified", [])])

@@ -15,6 +15,7 @@ import streamlit as st
 
 KEY = "operator_on"
 ENV = "CCJ_OPERATOR_PASSWORD"
+PUBLIC_ENV = "CCJ_AUTO_JUDGE_PUBLIC"
 
 
 def configured_password() -> Optional[str]:
@@ -23,6 +24,18 @@ def configured_password() -> Optional[str]:
     except Exception:   # secrets 파일이 없으면 접근 자체가 예외(Streamlit 버전마다 종류가 다름)
         value = None
     return value or os.environ.get(ENV) or None
+
+
+def auto_judge_public() -> bool:
+    """자동 판정(v3 — 미등록 공고를 룰 엔진으로 자동 판정)을 일반 사용자에게 여는 스위치. 기본은 꺼짐(운영자만) — 베타 공개 기준
+    (PRD v3 13절)을 충족하면 secrets `auto_judge_public = true` 또는 환경변수 CCJ_AUTO_JUDGE_PUBLIC=1로 켠다."""
+    try:
+        value = st.secrets.get("auto_judge_public")
+    except Exception:
+        value = None
+    if value is None:
+        value = os.environ.get(PUBLIC_ENV, "")
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
 
 
 def check(entered: str, expected: Optional[str]) -> bool:
