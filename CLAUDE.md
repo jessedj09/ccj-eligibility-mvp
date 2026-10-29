@@ -159,7 +159,12 @@ Engine**이다.
   조건 보류, 평가 정답 누출(gen_c1 OVERRIDES) 제거 — loo 보류 22→7, 틀림 0, 자동 채움 97%. `tests/test_v3_relocate.py`.
   ②-1 조항 장부 `tools/clause_ledger.py`: 조건처럼 보이는 문장을 근거 / 형제 공고에도(등록 결과가 정답 표시) / 무관 범주 / **미분류**로 —
   등록 26건 미분류 120(합격 사업 공고 0~5), 끼워 넣은 새 조건 4/4 검출. 검토 목록 `docs/clause-ledger-review.md`. `tests/test_v3_ledger.py`.
-- pytest: 총 **873개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 17단계).
+  ③-1 등급·사용자 단위 확정 `src/grading.py`: 계층 등급(자동 확정/일부 확인), 결론이 갈리는 사용자만 보류('원문 확인 N건' + 쪽·조건),
+  계층 구성 빈칸이 보류면 없는 계층을 '해당 없음'으로 단정하지 않음(`grading.offered`). 초안에 조항 장부 연결(`Draft.unclassified`),
+  평가용 `make_draft(exclude=)`. 화면: 자동 판정 **공개 스위치**(secrets `auto_judge_public`/`CCJ_AUTO_JUDGE_PUBLIC`, 기본 꺼짐),
+  공통 문구 `display_status.COMMON_NOTE`, 화면 점검 18단계. 평가 `tools/eval_v3.py`(`docs/eval-v3.md`): 위험 0, 같음 65.6%,
+  사용자 단위 보류 10.1%, 판정 없음 24.2%. `tests/test_v3_grading.py`.
+- pytest: 총 **884개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

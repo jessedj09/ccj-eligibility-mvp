@@ -371,6 +371,27 @@ def main():
     assert draft_shown[0] == reg_shown[0], (draft_shown[0], reg_shown[0])
     print("17) 운영자 미리보기(A2): ?operator 없으면 숨김·틀린 비밀번호 거절 | 초안 판정 = 등록 규칙 판정:", draft_shown[0][:40])
 
+    # 18) 자동 판정 공개(v3 ③): 스위치를 켜면 일반 사용자도 미등록 공고를 배지 없이 판정, 모든 결과에 공통 문구
+    from display_status import COMMON_NOTE
+    os.environ[operator_mode.PUBLIC_ENV] = "1"
+    try:
+        at = AppTest.from_file(str(ROOT / "tools" / "ui_fixture_draft.py"), default_timeout=120)
+        at.session_state["fixture_pdf"] = str(pdf_path("N12"))
+        at.run()
+        at.sidebar.radio(key="pick_mode").set_value("공고문 PDF 올리기").run()
+        assert not at.exception, at.exception
+        assert not any("검증 전 초안" in w.value for w in at.warning), "공개 자동 판정에는 '검증 전' 배지가 없어야 한다"
+        assert any("공고문 원문에서 조건을 읽어 판정합니다" in c.value for c in at.caption)
+        find(at, "button", "판정하기").click().run()
+        assert not at.exception, at.exception
+        public_shown = [e.value for kind in (at.success, at.error, at.warning) for e in kind]
+        assert public_shown and public_shown[0] == reg_shown[0], (public_shown, reg_shown[0])
+        assert any(c.value == COMMON_NOTE for c in at.caption), "모든 결과에 공통 문구"
+        assert not any(c.value.startswith("🟠") for c in at.caption), "일반 사용자에게 운영자 안내가 보이면 안 된다"
+    finally:
+        os.environ.pop(operator_mode.PUBLIC_ENV, None)
+    print("18) 자동 판정 공개(v3): 배지 없이 판정 = 등록 규칙 판정, 공통 문구 표시 |", public_shown[0][:40])
+
     ok, ng = scenario(413_000_000), scenario(413_000_001)
     assert ok and ok[0].startswith("✅") and ng and ng[0].startswith("❌"), (ok, ng)
     print("4) 자녀 가산 경계 413,000,000 →", ok[0], "/ 413,000,001 →", ng[0])

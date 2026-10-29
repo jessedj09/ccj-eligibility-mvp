@@ -86,6 +86,15 @@ def render_draft(d, ident: Identification = None) -> None:
     render_draft_details(d)
 
 
+def render_auto(d, ident: Identification = None) -> None:
+    """자동 판정(v3)을 일반 사용자에게 열었을 때 본문 맨 위 안내 — 검증된 공고와 같이 배지 없이(PRD v3 5절)."""
+    rows = [f"📄 올린 공고문: **{d.program}** · 공고일 {d.announcement_date} — 공고문 원문에서 조건을 읽어 판정합니다."]
+    if ident is not None and ident.windows:
+        rows.append("청약 접수기간: " + " / ".join(
+            f"{w['start'].replace('T', ' ')} ~ {w['end'].replace('T', ' ')} (p.{w['page']})" for w in ident.windows[:3]))
+    st.caption("  \n".join(rows))
+
+
 def render_draft_refused(d) -> None:
     """운영자 미리보기: 초안 판정을 할 수 없는 이유(판정하지 않음)."""
     st.caption(f"🔧 운영자 미리보기: 초안 판정을 하지 않습니다 — {d.reason}")
