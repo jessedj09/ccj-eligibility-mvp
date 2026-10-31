@@ -7,7 +7,7 @@ import {
   ApiError, evaluate, getForm, listNotices, upload,
   type Form, type NoticeSummary, type Result, type Target, type UnsupportedLayer, type UploadResult,
 } from "@/lib/api";
-import { revealOnNarrow } from "@/lib/reveal";
+import { reveal, revealOnNarrow } from "@/lib/reveal";
 
 type Picked = { target: Target; title: string; layers: string[]; unsupported: UnsupportedLayer[] };
 
@@ -78,8 +78,8 @@ export default function Home() {
   const errorRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => revealOnNarrow(formRef.current), [form]);
-  useEffect(() => revealOnNarrow(resultRef.current), [result]);
-  useEffect(() => revealOnNarrow(errorRef.current), [error]);
+  useEffect(() => reveal(resultRef.current), [result]);
+  useEffect(() => reveal(errorRef.current), [error]);
 
   useEffect(() => {
     if (mode === "list" && notices.length === 0)
