@@ -7,7 +7,9 @@
 - GET  /health                     상태 확인
 - GET  /notices?at=…               공고 목록 + 계층 + 접수 상태(at: 기준 시각, 기본 지금·한국 시간)
 - POST /upload                     공고문 PDF 올리기(multipart `file`) → 식별 + (미등록이면) 자동 분석 — 판정할 수 있으면 계층 목록
-- POST /evaluate                   공고·계층 하나 판정 — {"notice_id" | "sha256"(올린 공고), "layer", "profile": HouseholdProfile 항목}
+- GET  /form?layer=…&notice_id=…|sha256=…   그 공고·계층에서 묻는 입력 양식(src/form_spec.py) — 화면은 이대로 그린다
+- POST /evaluate                   공고·계층 하나 판정 — {"notice_id" | "sha256"(올린 공고), "layer", "profile": HouseholdProfile 항목
+                                   (age 대신 birth_date를 주면 공고일 기준 만 나이로)}
 - POST /match                      전 공고 판정 — {"profile": 저장 파일 형식(ccj-profile/1), "at"?, "only_open"?}
 
 판정 로직은 갖지 않는다(src/의 엔진·매처·자동 분석을 그대로 호출). 서버는 받은 프로필을 저장하지 않는다.
@@ -20,7 +22,7 @@ import os
 import sys
 import threading
 from collections import OrderedDict
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -150,7 +152,9 @@ def upload(file: UploadFile = File(...)):
     if ident.status in (REGISTERED, SAME_NOTICE_OTHER_FILE):
         n = ALL_NOTICES[ident.notice_id]
         body["judge"] = {"by": "registered" if ident.status == REGISTERED else "confirm", "notice_id": ident.notice_id,
-                         "title": n.title, "layers": list(n.layers)}
+                         "title": n.title, "layers": list(n.layers),
+                         "unsupported_layers": [{"name": u["name"], "note": u["note"], "page": u.get("page")}
+                                                for u in n.meta.get("unsupported_layers", [])]}
         return body
     d = None
     if ident.status == UNREGISTERED and auto_public():
@@ -168,7 +172,19 @@ def upload(file: UploadFile = File(...)):
     return body
 
 
-def _profile(raw: Dict[str, Any]):
+def _profile(raw: Dict[str, Any], notice=None):
+    """요청의 profile → HouseholdProfile. birth_date(YYYY-MM-DD)를 주면 공고일 기준 만 나이로 바꾼다(생일 경계 하루 차이까지 —
+    화면이 나이를 계산하지 않게). age와 함께 주면 422."""
+    raw = dict(raw)
+    if "birth_date" in raw:
+        if "age" in raw or notice is None:
+            raise HTTPException(422, "birth_date와 age 중 하나만 주세요.")
+        try:
+            b = date.fromisoformat(raw.pop("birth_date"))
+        except (TypeError, ValueError):
+            raise HTTPException(422, "birth_date는 'YYYY-MM-DD' 형식이어야 합니다.")
+        ann = notice.announcement_date
+        raw["age"] = ann.year - b.year - ((ann.month, ann.day) < (b.month, b.day))
     try:
         profile = household_from_dict(raw)
     except ProfileFormatError as e:
@@ -188,30 +204,48 @@ def _result_json(result, notice, checks=()) -> Dict[str, Any]:
     return out
 
 
-@app.post("/evaluate")
-def evaluate_one(req: EvaluateRequest):
-    if (req.notice_id is None) == (req.sha256 is None):
+def _target(notice_id: Optional[str], sha256: Optional[str], layer: str):
+    """판정 대상 → (공고 규칙, 자동 분석 초안 또는 None). 등록 공고(notice_id) 또는 올린 공고(sha256) 하나."""
+    if (notice_id is None) == (sha256 is None):
         raise HTTPException(422, "notice_id와 sha256 중 하나만 주세요.")
-    if req.sha256 is not None:
+    if sha256 is not None:
         if not auto_public():
             raise HTTPException(403, "미등록 공고 자동 판정은 아직 공개되지 않았습니다.")
-        d = _draft_for(req.sha256)
+        d = _draft_for(sha256)
         if d is None or d.notice is None:
             raise HTTPException(404, "이 공고의 분석 결과가 없습니다. 공고문을 다시 올려 주세요(/upload).")
-        if req.layer not in d.notice.layers:
-            raise HTTPException(404, f"이 공고에 '{req.layer}' 계층이 없습니다 (있는 계층: {list(d.notice.layers)})")
+        notice, where = d.notice, "이 공고"
+    else:
+        d, notice, where = None, ALL_NOTICES.get(notice_id), notice_id
+        if notice is None:
+            raise HTTPException(404, f"공고가 없습니다: {notice_id}")
+    if layer not in notice.layers:
+        unsupported = {u["name"]: u for u in notice.meta.get("unsupported_layers", [])}
+        if layer in unsupported:
+            raise HTTPException(404, f"'{layer}' 계층은 이 공고에 있지만 아직 판정을 지원하지 않습니다. {unsupported[layer]['note']}")
+        raise HTTPException(404, f"{where}에 '{layer}' 계층이 없습니다 (있는 계층: {list(notice.layers)})")
+    return notice, d
+
+
+@app.get("/form")
+def form(layer: str, notice_id: Optional[str] = None, sha256: Optional[str] = None):
+    """공고·계층 하나를 판정할 때 묻는 입력 양식(src/form_spec.py) — 화면은 이대로 그린다."""
+    import form_spec
+    notice, _ = _target(notice_id, sha256, layer)
+    return form_spec.form_for(notice, layer)
+
+
+@app.post("/evaluate")
+def evaluate_one(req: EvaluateRequest):
+    notice, d = _target(req.notice_id, req.sha256, req.layer)
+    profile = _profile(req.profile, notice)
+    if d is not None:
         import grading
-        result, checks = grading.judge(d, _profile(req.profile), req.layer)
-        get_store().count("judged")
-        return _result_json(result, d.notice, checks)
-    notice = ALL_NOTICES.get(req.notice_id)
-    if notice is None:
-        raise HTTPException(404, f"공고가 없습니다: {req.notice_id}")
-    if req.layer not in notice.layers:
-        raise HTTPException(404, f"{req.notice_id}에 '{req.layer}' 계층이 없습니다 (있는 계층: {list(notice.layers)})")
-    result = evaluate(_profile(req.profile), notice, req.layer)
+        result, checks = grading.judge(d, profile, req.layer)
+    else:
+        result, checks = evaluate(profile, notice, req.layer), []
     get_store().count("judged")
-    return _result_json(result, notice)
+    return _result_json(result, notice, checks)
 
 
 @app.post("/match")

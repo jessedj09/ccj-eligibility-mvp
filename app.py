@@ -25,6 +25,7 @@ from explainability import explain
 from profiles_data import PROFILES
 from schedule import load_schedules, status as schedule_status
 from display_status import COMMON_NOTE, display, display_checks
+from form_spec import C4_AMOUNTS, C4_BOOLS, C4_CHOICES, CHOICE_FIELDS, REGION_LABELS
 from notice_identify import REGISTERED, SAME_NOTICE_OTHER_FILE, UNREGISTERED, identify_pdf
 from upload_view import render_auto, render_draft, render_draft_refused, render_identified, render_not_judgeable
 from operator_mode import auto_judge_public, sidebar_gate
@@ -314,14 +315,7 @@ with col2:
                "영향이 없습니다(우선공급 배점에는 영향 가능).")
 
 # 지역 — 선택한 공고·계층의 조건이 지역 필드를 읽을 때만 묻는다(예: 1순위 지역만 모집하는 공고)
-REGION_LABELS = {
-    "residence_area": "본인 거주지(주민등록상)",
-    "school_area": "재학 중(또는 다음 학기 입·복학 예정)인 대학 캠퍼스 소재지",
-    "income_base_area": "본인 소득 근거지(사업자등록증 소재지, 실제 근무지 증빙 시 근무지)",
-    "spouse_residence_area": "배우자(예비신혼은 예비배우자) 거주지",
-    "spouse_income_base_area": "배우자(예비신혼은 예비배우자) 소득 근거지",
-    "workplace_area": "근무처(산업단지·경제자유구역) 소재지",
-}
+# 항목 이름·선택지는 src/form_spec.py 한 곳에 둔다(공개 화면 Next.js도 판정 API /form으로 같은 정의를 받는다)
 region_fields = [f for f in REGION_LABELS if f in notice.layers[layer].inputs]
 regions = {}
 if region_fields:
@@ -338,18 +332,6 @@ if region_fields:
         regions[f] = None if choice == "모름" else choice
 
 # 계층 전용 선택 항목 — 선택한 계층의 조건이 읽을 때만 묻는다(C3: 산업단지근로자·주거급여수급자·지역전략산업종사자)
-CHOICE_FIELDS = {
-    "industrial_workplace": ("근무처 유형(입주예정 포함)",
-                             ["산업단지 입주기업", "산업단지 교육·연구기관", "경제자유구역 입주 중소기업", "해당없음"]),
-    "industrial_affiliation": ("그 근무처 소속 여부",
-                               ["소속", "비소속 1년 이상 근무(예정)", "비소속 1년 미만"]),
-    "housing_benefit_status": ("주거급여(「주거급여법」) 수급 여부", ["수급자", "수급권자", "해당없음"]),
-    "regional_industry_type": ("지역전략산업종사자 유형(부천)",
-                               ["콘텐츠산업 종사자", "전문예술법인·단체 종사자", "등록 예술인", "부천시 추천자", "해당없음"]),
-    "housing_weak_type": ("주거약자 유형(신청자 본인) — 65세 이상은 나이로 판단",
-                          ["장애인", "국가유공자(상이 1~7급)", "보훈보상대상자(상이 1~7급)", "5·18민주화운동부상자(장해 1~14급)",
-                           "고엽제후유의증환자(경도 이상)", "국가유공자에 준하는 군경(상이 1~7급)", "해당없음"]),
-}
 choice_fields = [f for f in CHOICE_FIELDS if f in notice.layers[layer].inputs]
 choices = {}
 if choice_fields:
@@ -362,25 +344,6 @@ if choice_fields:
         st.caption("콘텐츠산업 종사자·부천시 추천자는 신청 후 부천시가 자격을 확인하므로 '수동 확인'으로 표시됩니다.")
 
 # C4(매입임대 등): 복지 자격·부모 정보·취업 여부 — 순위·유형 판정에 쓰는 항목
-WELFARE_OPTIONS = ["생계·의료·주거급여 수급자", "교육급여만 수급", "차상위계층", "해당없음"]
-C4_CHOICES = {
-    "welfare_status": ("본인(가구) 복지 자격", WELFARE_OPTIONS),
-    "parent_welfare_status": ("부모의 복지 자격", WELFARE_OPTIONS),
-}
-C4_BOOLS = {
-    "is_supported_single_parent": "지원대상 한부모가족(본인 이름으로 한부모가족 증명서 발급 가능)",
-    "registered_with_parents": "부모와 같은 주민등록표에 등재돼 있음",
-    "is_employed": "현재 취업 중",
-    "owned_home_in_5y": "신청자·배우자(예비배우자)가 공고일 기준 최근 5년 안에 주택을 소유한 적 있음",
-    "disabled_spouse_qualifies": "배우자가 지적·정신장애인 또는 장애 정도가 심한 뇌병변장애인",
-    "supports_elderly_parent_1y": "만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 1년 이상 부양 — 부모와 그 배우자도 무주택",
-    "veteran_priority_notified": "국가보훈부로부터 장기전세 우선공급 대상자로 통보받음(국가유공자·유족 등)",
-}
-C4_AMOUNTS = {
-    "parents_monthly_income": "부모 월평균소득 합계(원)",
-    "parents_total_assets": "부모 총자산 합계(원)",
-    "parents_car_value": "부모 보유 자동차 중 가장 높은 차량가액(원, 없으면 0)",
-}
 c4_fields = [f for f in list(C4_CHOICES) + list(C4_BOOLS) + ["parents_count"] + list(C4_AMOUNTS)
              if f in notice.layers[layer].inputs]
 if c4_fields:

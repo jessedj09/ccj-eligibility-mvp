@@ -94,6 +94,9 @@ class Job:
 
 
 def database_url() -> Optional[str]:
+    """CCJ_STORE=off면 없음(화면 점검·로컬 시험이 운영 DB에 쓰지 않게)."""
+    if os.environ.get("CCJ_STORE", "").strip().lower() == "off":
+        return None
     url = os.environ.get(ENV, "").strip()
     if url:
         return url

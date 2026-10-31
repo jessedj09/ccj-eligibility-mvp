@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* 한글 화면 — 운영체제 기본 한글 글꼴(외부 글꼴을 내려받지 않음). 밝은 화면 하나로 시작(다크 모드는 이후). */
+@theme {
+  --font-sans: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  word-break: keep-all;
+}

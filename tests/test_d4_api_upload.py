@@ -58,8 +58,8 @@ def test_registered_upload_points_to_verified_rules(n12):
     assert r.status_code == 200, r.text
     j = r.json()
     assert j["identification"]["status"] == ni.REGISTERED
-    assert j["judge"] == {"by": "registered", "notice_id": "N12", "title": load_notice("N12").title,
-                          "layers": list(load_notice("N12").layers)}
+    assert {k: j["judge"][k] for k in ("by", "notice_id", "title", "layers")} == {
+        "by": "registered", "notice_id": "N12", "title": load_notice("N12").title, "layers": list(load_notice("N12").layers)}
 
 
 def test_rejects_non_pdf_and_too_large(monkeypatch):
