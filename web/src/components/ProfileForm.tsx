@@ -108,6 +108,37 @@ export function toProfile(form: Form, values: Values): { profile: Record<string,
   return { profile, errors };
 }
 
+/** toProfile의 반대 — 항목 값(불러온 저장 파일 등) → 입력란 값. 없는 항목·null은 모름(또는 기본값). */
+export function valuesFrom(form: Form, profile: Record<string, unknown>): Values {
+  const v = initialValues(form);
+  for (const f of form.fields) {
+    const x = profile[f.name];
+    if (x === undefined || x === null) continue;
+    switch (f.type) {
+      case "children": {
+        const dates = Array.isArray(x) ? x.map(String) : [];
+        v[f.name] = { has: dates.length > 0, dates } satisfies ChildrenValue;
+        break;
+      }
+      case "tri":
+        v[f.name] = x === true ? "yes" : x === false ? "no" : UNKNOWN;
+        break;
+      case "bool":
+        v[f.name] = Boolean(x);
+        break;
+      case "car":
+        v[f.name] = x === "확인불가" ? { unknown: true, amount: "" } : { unknown: false, amount: String(x) };
+        break;
+      case "age":
+        v[f.name] = { mode: "age", birth: "", age: String(x) } satisfies AgeValue;
+        break;
+      default:
+        v[f.name] = String(x);
+    }
+  }
+  return v;
+}
+
 const input =
   "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600";
 
@@ -268,11 +299,8 @@ export default function ProfileForm({ form, values, onChange }: { form: Form; va
           ))}
         </ul>
       )}
-      {form.sections.filter((s) => bySection[s]?.length).map((s) => (
-        <section key={s}>
-          <h3 className="mb-3 border-b border-slate-200 pb-1 text-base font-semibold text-slate-800">
-            {form.section_titles[s] ?? s}
-          </h3>
+      {form.sections.filter((s) => bySection[s]?.length).map((s) => {
+        const grid = (
           <div className="grid grid-cols-2 gap-x-6 gap-y-5">
             {bySection[s].filter((f) => visible(f, values)).map((f) => (
               <div key={f.name} className={f.type === "children" ? "col-span-2" : ""} data-field={f.name}>
@@ -284,8 +312,21 @@ export default function ProfileForm({ form, values, onChange }: { form: Form; va
               </div>
             ))}
           </div>
-        </section>
-      ))}
+        );
+        const title = form.section_titles[s] ?? s;
+        // 해당하는 사람만 답하는 구역은 접어 둔다(찾기 양식의 '추가 정보')
+        return form.collapsed?.includes(s) ? (
+          <details key={s} className="rounded-md border border-slate-200 p-3" data-section={s}>
+            <summary className="cursor-pointer text-base font-semibold text-slate-800">{title}</summary>
+            <div className="mt-4">{grid}</div>
+          </details>
+        ) : (
+          <section key={s} data-section={s}>
+            <h3 className="mb-3 border-b border-slate-200 pb-1 text-base font-semibold text-slate-800">{title}</h3>
+            {grid}
+          </section>
+        );
+      })}
     </div>
   );
 }

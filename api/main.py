@@ -10,7 +10,10 @@
 - GET  /form?layer=…&notice_id=…|sha256=…   그 공고·계층에서 묻는 입력 양식(src/form_spec.py) — 화면은 이대로 그린다
 - POST /evaluate                   공고·계층 하나 판정 — {"notice_id" | "sha256"(올린 공고), "layer", "profile": HouseholdProfile 항목
                                    (age 대신 birth_date를 주면 공고일 기준 만 나이로)}
+- GET  /match/form                 '내 조건으로 공고 찾기' 입력 양식(src/form_spec.py master_form — 항목 이름 'master.x'는 저장 파일의 master)
 - POST /match                      전 공고 판정 — {"profile": 저장 파일 형식(ccj-profile/1), "at"?, "only_open"?}
+                                   (+ 화면 3상태·접수 일정·조건 하나만 부족한 공고와 금액 한도)
+- POST /whatif                     시나리오(혼인신고·예비신혼·거주지 이전·세대 분리) 전후 비교 — src/whatif.py
 
 판정 로직은 갖지 않는다(src/의 엔진·매처·자동 분석을 그대로 호출). 서버는 받은 프로필을 저장하지 않는다.
 올린 PDF는 LH·SH 공고로 식별되고 후속 작업(보강·검토)이 필요할 때만 공유 저장소에 잠시 둔다(src/analysis.py).
@@ -39,8 +42,9 @@ from notice_identify import REGISTERED, SAME_NOTICE_OTHER_FILE, UNREGISTERED, id
 from notices_data import ALL_NOTICES  # noqa: E402
 from profile_io import ProfileFormatError, household_from_dict, master_from_dict  # noqa: E402
 from rule_engine import evaluate, validate_profile  # noqa: E402
-from schedule import KST, load_schedules, now_kst, statuses  # noqa: E402
+from schedule import CLOSED, KST, OPEN, UPCOMING, load_schedules, now_kst, statuses  # noqa: E402
 from store import get_store  # noqa: E402
+import whatif  # noqa: E402
 
 app = FastAPI(title="공공임대 자격 판정 API", version="1",
               description="LH·SH 공고문 기반 결정론적 자격 판정. 신청 자격(필수요건)만 판정하며 순위·가점·당첨은 포함하지 않습니다.")
@@ -65,6 +69,21 @@ class MatchRequest(BaseModel):
     profile: Dict[str, Any]
     at: Optional[datetime] = None
     only_open: bool = False
+
+
+SCENARIOS = {"marry": "혼인신고를 하면", "prenuptial": "예비신혼부부로 신청하면", "move": "거주지를 옮기면",
+             "separate": "세대를 분리하면"}
+
+
+class WhatIfRequest(MatchRequest):
+    scenario: str                              # SCENARIOS의 키
+    marriage_date: Optional[date] = None       # marry — 없으면 오늘(한국 시간)
+    spouse_income: Optional[int] = None        # marry·prenuptial — 배우자 소득·자산·자동차(모르면 null)
+    spouse_assets: Optional[int] = None
+    spouse_car: Optional[int] = None
+    spouse_has_home: bool = False
+    dual_income: bool = False
+    region: Optional[str] = None               # move — 옮길 거주지(지역 표준 이름)
 
 
 def _at(at: Optional[datetime]) -> datetime:
@@ -248,26 +267,105 @@ def evaluate_one(req: EvaluateRequest):
     return _result_json(result, notice, checks)
 
 
-@app.post("/match")
-def match(req: MatchRequest):
+@app.get("/match/form")
+def match_form():
+    """'내 조건으로 공고 찾기' 입력 양식(src/form_spec.py) — 화면은 이대로 그리고, 'master.' 항목은 저장 파일의 master에 넣는다."""
+    import form_spec
+    return form_spec.master_form()
+
+
+def _master(raw: Dict[str, Any]):
     try:
-        master = master_from_dict(req.profile)
+        return master_from_dict(raw)
     except ProfileFormatError as e:
         raise HTTPException(422, str(e))
-    at = _at(req.at)
-    stat = statuses(list(ALL_NOTICES), at)
+
+
+def _match_all(master):
     try:
-        matches = match_all(master, ALL_NOTICES)
+        return match_all(master, ALL_NOTICES)
     except (TypeError, ValueError) as e:      # 항목 값의 형식 오류(예: 가구원수에 문자열)
         raise HTTPException(422, f"프로필 값 오류: {e}")
+
+
+def _window_json(w) -> Dict[str, Any]:
+    return {"label": w.label, "start": w.start.isoformat(), "end": w.end.isoformat()}
+
+
+def _match_json(x, stat, sched) -> Dict[str, Any]:
+    n, nid = x.notice, x.notice.notice_id
+    shown = display(x.verdict)
+    s = sched.get(nid)
+    return {"notice_id": nid, "title": n.title, "layer": x.layer, "verdict": x.verdict,
+            "issuer": n.meta.get("issuer"), "program": n.meta.get("program"),
+            "announcement_date": n.announcement_date.isoformat(),
+            "display": {"group": shown.group, "title": shown.title, "icon": shown.icon, "todo": shown.todo},
+            "eligible_tracks": list(x.result.eligible_tracks), "schedule": _status_json(stat[nid]),
+            "windows": [_window_json(w) for w in s.windows] if s else [], "schedule_note": s.note if s else None,
+            "explanation": _explanation_json(explain(x.result, n))}
+
+
+def _near_json(nm) -> Dict[str, Any]:
+    x = nm.match
+    return {"notice_id": x.notice.notice_id, "title": x.notice.title, "layer": x.layer, "condition": nm.description,
+            "after": nm.after, "thresholds": [{"field": t.field, "label": t.label, "scope": t.scope, "current": t.current,
+                                               "limit": t.limit, "review_limit": t.review_limit, "gap": t.gap}
+                                              for t in nm.thresholds]}
+
+
+@app.post("/match")
+def match(req: MatchRequest):
+    """전 공고 판정. matches는 판정 순서(충족 → 수동 확인 → 정보 부족 → 불충족)·공고일 늦은 순 — 화면이 접수 상태로 다시 묶는다.
+    near_misses: 지원 불가 중 걸린 조건이 하나뿐인 것(금액 한도가 있으면 그 한도, src/whatif.py)."""
+    master = _master(req.profile)
+    at = _at(req.at)
+    stat = statuses(list(ALL_NOTICES), at)
+    matches = _match_all(master)
     if req.only_open:
         matches = [x for x in matches if stat[x.notice.notice_id].applicable]
     counts: Dict[str, int] = {}
     for x in matches:
         counts[x.verdict] = counts.get(x.verdict, 0) + 1
-    return {"at": at.isoformat(), "only_open": req.only_open, "counts": counts,
-            "missing_inputs": missing_inputs(matches),
-            "matches": [{"notice_id": x.notice.notice_id, "title": x.notice.title, "layer": x.layer,
-                         "verdict": x.verdict, "eligible_tracks": list(x.result.eligible_tracks),
-                         "schedule": _status_json(stat[x.notice.notice_id]),
-                         "explanation": _explanation_json(explain(x.result, x.notice))} for x in matches]}
+    sched = load_schedules()
+    return {"at": at.isoformat(), "only_open": req.only_open, "counts": counts, "notices_total": len(ALL_NOTICES),
+            "schedule_counts": {c: sum(1 for s in stat.values() if s.code == c) for c in (OPEN, UPCOMING, CLOSED)},
+            "missing_inputs": missing_inputs(matches), "common_note": COMMON_NOTE, "whatif_caveat": whatif.CAVEAT,
+            "matches": [_match_json(x, stat, sched) for x in matches],
+            "near_misses": [_near_json(nm) for nm in whatif.near_misses(master, matches)]}
+
+
+@app.post("/whatif")
+def what_if(req: WhatIfRequest):
+    """시나리오로 바꿔 전 공고를 다시 판정하고 전후를 비교한다(화면 3상태별 개수, 새로 지원 가능·빠지는 공고). 판정은 같은 엔진."""
+    import form_spec
+    master = _master(req.profile)
+    if req.scenario in ("marry", "prenuptial"):
+        prenuptial = req.scenario == "prenuptial"
+        when = None if prenuptial else (req.marriage_date or now_kst().date())
+        change = lambda m: whatif.marry(m, when, req.spouse_income, req.spouse_assets, req.spouse_car,  # noqa: E731
+                                        req.spouse_has_home, req.dual_income, prenuptial=prenuptial)
+    elif req.scenario == "move":
+        if req.region not in form_spec.region_options()[1:]:
+            raise HTTPException(422, f"옮길 거주지를 지역 표준 이름으로 주세요: {req.region!r}")
+        change = lambda m: whatif.move(m, req.region)  # noqa: E731
+    elif req.scenario == "separate":
+        change = whatif.separate_household
+    else:
+        raise HTTPException(422, f"알 수 없는 시나리오: {req.scenario!r} (가능: {list(SCENARIOS)})")
+    _match_all(master)                          # 형식 오류는 422로
+    at = _at(req.at)
+    stat = statuses(list(ALL_NOTICES), at)
+    keep = (lambda x: stat[x.notice.notice_id].applicable) if req.only_open else None
+    res = whatif.run_scenario(SCENARIOS[req.scenario], master, change, ALL_NOTICES, keep=keep)
+    after = {(y.notice.notice_id, y.layer): y for y in match_all(change(master), ALL_NOTICES)}
+
+    def lost(x):
+        y = after[(x.notice.notice_id, x.layer)]
+        why = explain(y.result, y.notice)
+        return {"notice_id": x.notice.notice_id, "title": x.notice.title, "layer": x.layer,
+                "reason": why.failed[0].description if why.failed else why.headline}
+
+    return {"scenario": req.scenario, "name": res.name, "at": at.isoformat(), "only_open": req.only_open,
+            "caveat": whatif.CAVEAT, "before": res.before, "after": res.after,
+            "gained": [{"notice_id": x.notice.notice_id, "title": x.notice.title, "layer": x.layer} for x in res.gained],
+            "lost": [lost(x) for x in res.lost]}

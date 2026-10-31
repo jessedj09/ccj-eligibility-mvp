@@ -46,11 +46,12 @@ export type Field = {
 };
 
 export type Form = {
-  announcement_date: string;
-  layer: string;
+  announcement_date: string | null; // 찾기 양식(/match/form)은 공고·계층이 없다
+  layer: string | null;
   notes: string[];
   sections: string[];
   section_titles: Record<string, string>;
+  collapsed?: string[];
   region_options: string[];
   region_groups: Record<string, string[]>;
   unknown: string;
@@ -89,6 +90,84 @@ export type NoticeSummary = {
 };
 
 export type Target = { notice_id: string } | { sha256: string };
+
+/** 내 조건 저장 파일(ccj-profile/1) — 판정 API /match·/whatif 요청 본문과 같은 형식. 서버는 저장하지 않는다. */
+export type ProfileFile = { schema: "ccj-profile/1"; master: Record<string, unknown>; common: Record<string, unknown> };
+
+export type ScheduleStatus = {
+  code: "OPEN" | "UPCOMING" | "CLOSED" | "UNKNOWN";
+  text: string;
+  applicable: boolean;
+  window: { label: string; start: string; end: string } | null;
+};
+
+export type Explanation = Omit<Result, "display" | "checks" | "common_note">;
+
+export type MatchItem = {
+  notice_id: string;
+  title: string;
+  layer: string;
+  verdict: Result["verdict"];
+  issuer: string | null;
+  program: string | null;
+  announcement_date: string;
+  display: Result["display"];
+  eligible_tracks: string[];
+  schedule: ScheduleStatus;
+  windows: { label: string; start: string; end: string }[];
+  schedule_note: string | null;
+  explanation: Explanation;
+};
+
+export type Threshold = {
+  field: string;
+  label: string;
+  scope: string;
+  current: number;
+  limit: number;
+  review_limit: number | null;
+  gap: number;
+};
+
+export type NearMiss = { notice_id: string; title: string; layer: string; condition: string; after: string; thresholds: Threshold[] };
+
+export type MatchResult = {
+  at: string;
+  only_open: boolean;
+  counts: Partial<Record<Result["verdict"], number>>;
+  notices_total: number;
+  schedule_counts: { OPEN: number; UPCOMING: number; CLOSED: number };
+  missing_inputs: Record<string, number>;
+  common_note: string;
+  whatif_caveat: string;
+  matches: MatchItem[];
+  near_misses: NearMiss[];
+};
+
+export type Scenario = "marry" | "prenuptial" | "move" | "separate";
+
+export type WhatIfParams = {
+  marriage_date?: string | null;
+  spouse_income?: number | null;
+  spouse_assets?: number | null;
+  spouse_car?: number | null;
+  spouse_has_home?: boolean;
+  dual_income?: boolean;
+  region?: string | null;
+};
+
+type Counts3 = { ELIGIBLE: number; HOLD: number; INELIGIBLE: number };
+type NoticeRef = { notice_id: string; title: string; layer: string };
+
+export type WhatIfResult = {
+  scenario: Scenario;
+  name: string;
+  caveat: string;
+  before: Counts3;
+  after: Counts3;
+  gained: NoticeRef[];
+  lost: (NoticeRef & { reason: string })[];
+};
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -133,4 +212,23 @@ export function evaluate(target: Target, layer: string, profile: Record<string, 
 export async function listNotices(): Promise<NoticeSummary[]> {
   const j = await call<{ notices: NoticeSummary[] }>("/notices");
   return j.notices;
+}
+
+export function getMatchForm(): Promise<Form> {
+  return call("/match/form");
+}
+
+const post = (body: unknown): RequestInit => ({
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+export function match(profile: ProfileFile, at: string | null, onlyOpen: boolean): Promise<MatchResult> {
+  return call("/match", post({ profile, at, only_open: onlyOpen }));
+}
+
+export function whatIf(profile: ProfileFile, scenario: Scenario, params: WhatIfParams, at: string | null,
+  onlyOpen: boolean): Promise<WhatIfResult> {
+  return call("/whatif", post({ profile, scenario, ...params, at, only_open: onlyOpen }));
 }

@@ -178,7 +178,10 @@ Engine**이다.
   `src/form_spec.py`, Streamlit도 같은 정의 사용)대로 그리고 `/evaluate` 결과를 보여 준다(생년월일 → 만 나이는 API가). 금액 기본값은 '모름'.
   **입력 항목을 추가·변경하면 `src/form_spec.py`만 고칠 것**(`tests/test_d4_form.py`가 모든 계층 입력을 묻는지 확인). 화면 점검
   `cd web && npx playwright test`(API·화면 직접 띄움, `CCJ_STORE=off`), CI `web` 작업. 용어: '지인 베타'가 아니라 '베타'.
-- pytest: 총 **917개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+  ④-4 2차 `/find`(내 조건으로 공고 찾기): 양식 `form_spec.master_form()`(Streamlit 찾기 화면과 같은 항목 — `master.x`는 저장 파일의 master),
+  API `GET /match/form`·`/match`(+3상태·접수 일정·near_misses)·`POST /whatif`(시나리오 — src/whatif.py 그대로). 저장 파일은 브라우저 안에서만.
+  `tests/test_d4_match.py`, `web/e2e/find.spec.ts`.
+- pytest: 총 **926개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.
