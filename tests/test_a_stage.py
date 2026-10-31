@@ -61,7 +61,7 @@ def test_draft_report_shows_held_critical_field_for_happy_housing():
     r = _report("N10")
     md = ni.to_markdown(r)
     assert r["draft"].status == draft.BLOCKED
-    assert "`region` **(핵심 — 판정에 직접 쓰임)**" in md and "대상 아님" in md
+    assert "`region` **(핵심 — 판정에 직접 쓰임)**" in md and "**대상**" in md      # 행복주택 공개(2026-11-01) — 지역 보류로 막힘
     assert "# tools/gen_c1_notices.py TARGETS" in md and "# tools/gen_c3_layers.py PLAN" in md
     assert "# 보류(원문에서 확인해 고칠 것): region" in md
 

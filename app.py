@@ -37,8 +37,8 @@ REVIEW_BADGE = {
     "RETIRED": ("⚪ 폐기(RETIRED)", "더 이상 쓰지 않는 규칙입니다."),
 }
 
-st.set_page_config(page_title="주거·복지 Eligibility 데모", page_icon="🏠")
-st.title("🏠 주거·복지 Eligibility 판정 데모")
+st.set_page_config(page_title="청약 포청천 — 운영자용", page_icon="⚖️")
+st.title("⚖️ 청약 포청천 — 재판소(운영자용)")
 st.caption(f"LH·SH 공공임대 공고 {len(ALL_NOTICES)}건(행복주택·매입임대·든든전세·미리내집·장기전세 등)의 신청 자격을 "
            "공고문 원문 기준으로 판정합니다 — 판정은 결정론적 Rule Engine이 수행합니다. 공고는 목록에서 고르거나 공고문 PDF를 "
            "올려 고를 수 있습니다. 여러 공고를 한 번에 보려면 왼쪽 메뉴 '내 조건으로 공고 찾기'를 쓰세요. (지원 범위는 하단 안내 참조)")

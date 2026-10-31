@@ -59,8 +59,9 @@ def test_draft_for_passing_programs_judges_like_the_registered_rules(nid):
 
 
 def test_draft_refuses_other_programs_and_bad_files():
-    assert draft.make_draft(sv.pdf_path("N10").read_bytes()).status == draft.UNSUPPORTED     # 행복주택(조건부)
-    assert draft.make_draft(sv.pdf_path("N21").read_bytes()).status == draft.UNSUPPORTED     # 미리내집(불합격)
+    # 2026-11-01 행복주택·SH 신혼·미리내집·장기미임대 공개 — 1순위 지역만 모집하는 공고는 핵심 빈칸(지역)이 보류라 여전히 판정하지 않는다
+    assert draft.make_draft(sv.pdf_path("N10").read_bytes()).status == draft.BLOCKED
+    assert draft.make_draft(sv.pdf_path("N21").read_bytes(), only=("lh.youth_rental",)).status == draft.UNSUPPORTED
     assert draft.make_draft(b"not a pdf").status == draft.UNREADABLE
     with pytest.raises(ValueError):
         draft.judge(draft.Draft(draft.BLOCKED), None, "청년")

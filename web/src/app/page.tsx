@@ -189,6 +189,8 @@ export default function Home() {
   const unsupported = picked?.unsupported.find((u) => u.name === layer);
 
   return (
+    <div className="space-y-5">
+    <h1 className="text-xl font-bold sm:text-2xl">⚖️ 재판소 <span className="text-base font-medium text-slate-500">공고문 올리고 지원 자격 판정</span></h1>
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[22rem_1fr] lg:gap-8">
       <aside className="space-y-4">
         <div className={card}>
@@ -296,6 +298,7 @@ export default function Home() {
           </div>
         )}
       </main>
+    </div>
     </div>
   );
 }

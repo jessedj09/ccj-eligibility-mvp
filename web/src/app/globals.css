@@ -9,3 +9,17 @@ body {
   font-family: var(--font-sans);
   word-break: keep-all;
 }
+
+/* 서버 시동 안내의 모래시계 — 뒤집히며 돈다(움직임 줄이기 설정이면 멈춤) */
+@keyframes hourglass-turn {
+  0%, 15% { transform: rotate(0deg); }
+  45%, 60% { transform: rotate(180deg); }
+  90%, 100% { transform: rotate(360deg); }
+}
+.hourglass {
+  display: inline-block;
+  animation: hourglass-turn 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hourglass { animation: none; }
+}
