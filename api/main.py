@@ -18,7 +18,7 @@
 판정 로직은 갖지 않는다(src/의 엔진·매처·자동 분석을 그대로 호출). 서버는 받은 프로필을 저장하지 않는다.
 올린 PDF는 LH·SH 공고로 식별되고 후속 작업(보강·검토)이 필요할 때만 공유 저장소에 잠시 둔다(src/analysis.py).
 설정(환경변수): DATABASE_URL(공유 저장소 — 없으면 저장 없이 동작), CCJ_AUTO_JUDGE_PUBLIC(미등록 공고 자동 판정 공개, 기본 꺼짐),
-CCJ_CORS_ORIGINS(화면 주소, 쉼표로 여럿 — 기본 http://localhost:3000), CCJ_UPLOAD_PER_HOUR(접속자당 시간당 업로드, 기본 20).
+CCJ_CORS_ORIGINS(화면 주소, 쉼표로 여럿 — 기본 http://localhost:3000), CCJ_UPLOAD_PER_HOUR(접속자당 시간당 업로드 상한, 기본 0 = 제한 없음).
 """
 import dataclasses
 import hashlib
@@ -55,9 +55,9 @@ app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.environ.
 
 PUBLIC_ENV = "CCJ_AUTO_JUDGE_PUBLIC"
 MAX_UPLOAD = 20 * 1024 * 1024
-# 업로드 횟수 제한(C9) — 공고문 분석은 서버를 오래 쓴다(큰 공고 수십 초). 같은 접속자(IP) 기준 한 시간에 UPLOAD_PER_HOUR건.
-# IP는 이 프로세스 메모리에만 잠깐 두고(해시) 저장하지 않는다 — 재시작하면 사라진다. 0이면 제한 없음.
-UPLOAD_PER_HOUR = int(os.environ.get("CCJ_UPLOAD_PER_HOUR", "20"))
+# 업로드 횟수 제한(C9) — 같은 접속자(IP) 기준 한 시간에 UPLOAD_PER_HOUR건. **기본 0 = 제한 없음**(2026-11-01 사용자 결정 — 필요해지면
+# 환경변수로 켠다). IP는 이 프로세스 메모리에만 잠깐 두고(해시) 저장하지 않는다 — 재시작하면 사라진다.
+UPLOAD_PER_HOUR = int(os.environ.get("CCJ_UPLOAD_PER_HOUR", "0"))
 _uploads: Dict[str, list] = {}
 _uploads_lock = threading.Lock()
 KEEP_DRAFTS = 64          # 올린 공고의 분석 결과를 프로세스에 둘 개수(저장소가 없어도 올린 뒤 판정할 수 있게)
