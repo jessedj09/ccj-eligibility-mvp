@@ -38,6 +38,15 @@ UPLOAD_NAME = "upload.pdf"
 NOTE = "검증 전 초안 — 자동으로 읽은 공고입니다. 신청 전 원문을 확인하세요."
 
 
+def passing_programs() -> List[str]:
+    """자동 판정하는 사업(PASSING 템플릿)의 화면 이름 — 판정할 수 없는 공고를 올린 사용자에게 무엇을 지원하는지 알린다."""
+    out = []
+    for t in PASSING:
+        d = T.TEMPLATES[t]
+        out.append(d["program"] if d["program"].startswith(d["issuer"]) else f"{d['issuer']} {d['program']}")
+    return out
+
+
 @dataclass
 class Draft:
     status: str
@@ -99,8 +108,8 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
     base = dict(template=ext["template"], program=ext["program"], announcement_date=ann,
                 fields={"announcement_date": rep["announcement_date"], **rep["fields"]})
     if not ext["template"] or (only is not None and ext["template"] not in only):
-        why = "사업 유형을 알아보지 못했습니다." if not ext["template"] else \
-            f"이 사업({ext['program']})은 아직 자동 초안 판정 대상이 아닙니다(정확도 기준 미달 또는 시험 전)."
+        why = "공고문에서 사업 유형을 알아보지 못했습니다." if not ext["template"] else \
+            f"이 사업({ext['program']})은 아직 자동 판정을 지원하지 않습니다(정확도를 검증하며 차례로 추가합니다)."
         return Draft(UNSUPPORTED, why, **base)
     fd, tmp = tempfile.mkstemp(suffix=".pdf")
     try:

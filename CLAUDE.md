@@ -161,7 +161,7 @@ Engine**이다.
   등록 26건 미분류 120(합격 사업 공고 0~5), 끼워 넣은 새 조건 4/4 검출. 검토 목록 `docs/clause-ledger-review.md`. `tests/test_v3_ledger.py`.
   ③-1 등급·사용자 단위 확정 `src/grading.py`: 계층 등급(자동 확정/일부 확인), 결론이 갈리는 사용자만 보류('원문 확인 N건' + 쪽·조건),
   계층 구성 빈칸이 보류면 없는 계층을 '해당 없음'으로 단정하지 않음(`grading.offered`). 초안에 조항 장부 연결(`Draft.unclassified`),
-  평가용 `make_draft(exclude=)`. 화면: 자동 판정 **공개 스위치**(secrets `auto_judge_public`/`CCJ_AUTO_JUDGE_PUBLIC`, 기본 꺼짐),
+  평가용 `make_draft(exclude=)`. 화면: 자동 판정 **공개 스위치**(secrets `auto_judge_public`/`CCJ_AUTO_JUDGE_PUBLIC`, 코드 기본 꺼짐 — **운영 Render는 2026-11-01 켬**(render.yaml)),
   공통 문구 `display_status.COMMON_NOTE`, 화면 점검 18단계. 평가 `tools/eval_v3.py`(`docs/eval-v3.md`): 위험 0, 같음 65.6%,
   사용자 단위 보류 10.1%, 판정 없음 24.2%. `tests/test_v3_grading.py`.
 - **v3 ④(2026-10-31~) 구조**: 공개 화면 Next.js(Vercel) · 판정 API FastAPI(`api/main.py`, Render 싱가포르, Docker) · DB Neon(AWS 싱가포르) ·

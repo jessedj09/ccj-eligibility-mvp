@@ -15,4 +15,4 @@ services:
       - key: CCJ_CORS_ORIGINS
         sync: false
       - key: CCJ_AUTO_JUDGE_PUBLIC
-        value: "0"             # 베타 공개 기준을 충족하면 1
+        value: "1"             # 미등록 공고 자동 판정 공개(2026-11-01 사용자 결정 — 지원 사업만 판정, 나머지는 이유 안내)

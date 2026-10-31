@@ -180,8 +180,17 @@ def upload(file: UploadFile = File(...)):
         import analysis
         d = analysis.analyze(data, ident, store)
     if d is None or d.notice is None:
+        import draft
         store.count("unjudged")
-        body["judge"] = {"by": "none", "reason": d.reason if d is not None else ident.reason}
+        if d is not None:
+            reason = d.reason
+        elif ident.status == UNREGISTERED:
+            reason = "새 공고 자동 판정은 아직 공개 전입니다."
+        else:
+            reason = ident.reason
+        # 무엇을 할 수 있는지 함께 알린다: 자동 판정하는 사업, 등록 공고는 목록에서 판정
+        body["judge"] = {"by": "none", "reason": reason, "auto_public": auto_public(),
+                         "supported_programs": draft.passing_programs(), "registered": len(ALL_NOTICES)}
         return body
     import grading
     _remember(ident.sha256, d)

@@ -7,7 +7,7 @@ import {
   ApiError, evaluate, getForm, listNotices, upload,
   type Form, type NoticeSummary, type Result, type Target, type UnsupportedLayer, type UploadResult,
 } from "@/lib/api";
-import { revealOnNarrow } from "@/lib/reveal";
+import { reveal, revealOnNarrow } from "@/lib/reveal";
 
 type Picked = { target: Target; title: string; layers: string[]; unsupported: UnsupportedLayer[] };
 
@@ -50,7 +50,17 @@ function Identified({ up, confirmed, onConfirm }: { up: UploadResult; confirmed:
   return (
     <div className="space-y-1 text-sm" data-testid="ident">
       <p className="font-semibold">📄 아직 판정할 수 없는 공고</p>
-      <p className="text-slate-700">{j.reason}</p>
+      <p className="text-slate-700" data-testid="none-reason">{j.reason}</p>
+      {j.supported_programs && j.supported_programs.length > 0 && (
+        <p className="text-xs text-slate-600">
+          새 공고 자동 판정 지원 사업: {j.supported_programs.join(", ")}. 다른 사업은 정확도를 검증하며 차례로 추가합니다.
+        </p>
+      )}
+      {j.registered ? (
+        <p className="text-xs text-slate-600">
+          이미 등록된 공고 {j.registered}건은 위 &lsquo;목록에서 고르기&rsquo;로 판정할 수 있습니다.
+        </p>
+      ) : null}
       {(id.program || id.announcement) && (
         <p className="text-xs text-slate-600">
           {[id.issuer, id.program].filter(Boolean).join(" ")} {id.announcement && `· 공고일 ${id.announcement}`}
@@ -78,8 +88,8 @@ export default function Home() {
   const errorRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => revealOnNarrow(formRef.current), [form]);
-  useEffect(() => revealOnNarrow(resultRef.current), [result]);
-  useEffect(() => revealOnNarrow(errorRef.current), [error]);
+  useEffect(() => reveal(resultRef.current), [result]);
+  useEffect(() => reveal(errorRef.current), [error]);
 
   useEffect(() => {
     if (mode === "list" && notices.length === 0)

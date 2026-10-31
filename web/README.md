@@ -16,7 +16,7 @@ npm run dev                                                      # http://localh
 ```
 
 API 주소는 `NEXT_PUBLIC_API_URL`(기본 `http://127.0.0.1:8000`). API는 `CCJ_CORS_ORIGINS`(기본 `http://localhost:3000`)의 화면만 받는다.
-미등록 공고 자동 판정을 화면에서 보려면 API를 `CCJ_AUTO_JUDGE_PUBLIC=1`로 띄운다(공개 전 기본 꺼짐).
+미등록 공고 자동 판정을 화면에서 보려면 API를 `CCJ_AUTO_JUDGE_PUBLIC=1`로 띄운다(코드 기본 꺼짐, 운영 Render는 켬 — 2026-11-01).
 
 ## 화면 점검
 
@@ -28,7 +28,7 @@ npx playwright test               # API(8765)와 화면(3100)을 직접 띄워 P
 ## 구성
 
 - `src/lib/api.ts` — API 호출과 응답 형식, 서버 시동 감지(잠든 서버의 첫 요청이 늦으면 `ServerWaking`이 안내)
-- `src/lib/reveal.ts` — 휴대폰(1단)에서 새로 나타난 입력란·결과로 스크롤
+- `src/lib/reveal.ts` — 새로 나타난 입력란·결과·오류로 스크롤(휴대폰 1단, 공고 판정 결과·오류는 PC에서도)
 - `src/components/ProfileForm.tsx` — `/form` 양식대로 입력란(모름 → null, 생년월일은 API가 공고일 기준 만 나이로)
 - `src/components/ResultView.tsx` — 3상태 결과·원문 확인할 곳·조건별 근거·순위별 결과·공통 문구
 - `src/components/MatchList.tsx` — 전 공고 결과(3상태 묶음, 접수 중 → 예정 → 마감 순, 공고 카드)

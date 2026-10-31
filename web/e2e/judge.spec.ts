@@ -65,6 +65,7 @@ test("목록에서 공고를 고르고, 나이 기준을 넘기면 지원 불가
   await page.getByRole("spinbutton", { name: "만 나이" }).fill("50");
   await page.getByRole("button", { name: "판정하기" }).click();
   await expect(page.getByTestId("result-title")).toContainText("지원 불가");
+  await expect(page.getByTestId("result-title")).toBeInViewport();   // 긴 입력란 아래에 생긴 결과로 스크롤(PC·휴대폰)
   await expect(page.getByTestId("result")).toContainText("충족하지 못한 조건");
   await expect(page.getByTestId("result")).toContainText("공고문 p.");
 });
