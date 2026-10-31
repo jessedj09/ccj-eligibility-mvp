@@ -140,7 +140,7 @@ export function valuesFrom(form: Form, profile: Record<string, unknown>): Values
 }
 
 const input =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600";
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-base sm:text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600";
 
 function money(s: string): string {
   const d = digits(s);
@@ -301,9 +301,9 @@ export default function ProfileForm({ form, values, onChange }: { form: Form; va
       )}
       {form.sections.filter((s) => bySection[s]?.length).map((s) => {
         const grid = (
-          <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
             {bySection[s].filter((f) => visible(f, values)).map((f) => (
-              <div key={f.name} className={f.type === "children" ? "col-span-2" : ""} data-field={f.name}>
+              <div key={f.name} className={f.type === "children" ? "sm:col-span-2" : ""} data-field={f.name}>
                 <label htmlFor={`f-${f.name}`} className="mb-1 block text-sm font-medium text-slate-800">{f.label}</label>
                 <FieldControl f={f} form={form} value={values[f.name]}
                   set={(v) => onChange({ ...values, [f.name]: v })} />

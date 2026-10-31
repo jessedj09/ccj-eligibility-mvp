@@ -11,7 +11,7 @@ const SCENARIOS: [Scenario, string][] = [
 ];
 
 const input =
-  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600";
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-base sm:text-sm focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600";
 const digits = (s: string) => s.replace(/[^0-9]/g, "");
 const won = (n: number) => `${n.toLocaleString("ko-KR")}원`;
 
@@ -124,14 +124,14 @@ export default function WhatIf({ form, profile, at, onlyOpen, result }: {
                 가정: 본인·배우자(·본인 자녀)로 새 세대를 꾸리고(부모 세대에서 분리) 같은 곳에 삽니다.
                 세대 소득·자산은 본인+배우자, 주택은 둘 중 하나라도 있으면 보유로 봅니다.
               </p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {scenario === "marry" && (
                   <label className="block text-sm">
                     <span className="mb-1 block font-medium text-slate-800">혼인신고일</span>
                     <input type="date" className={input} value={mdate} onChange={(e) => setMdate(e.target.value)} aria-label="혼인신고일" />
                   </label>
                 )}
-                <label className="col-span-2 flex items-center gap-2 text-sm">
+                <label className="flex items-center gap-2 text-sm sm:col-span-2">
                   <input type="checkbox" checked={spUnknown} onChange={(e) => setSpUnknown(e.target.checked)} />
                   배우자 소득·자산 모름
                 </label>
@@ -178,13 +178,13 @@ export default function WhatIf({ form, profile, at, onlyOpen, result }: {
           {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
           {res && (
             <div className="space-y-3" data-testid="whatif-result">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
                 {([["ELIGIBLE", "✅ 지원 가능"], ["HOLD", "🟡 보류"], ["INELIGIBLE", "❌ 지원 불가"]] as const).map(([k, label]) => {
                   const d = res.after[k] - res.before[k];
                   return (
-                    <div key={k} className="rounded-lg border border-slate-200 bg-white p-3">
-                      <p className="text-sm text-slate-600">{label}</p>
-                      <p className="text-2xl font-bold">{res.after[k]}
+                    <div key={k} className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-3">
+                      <p className="text-xs text-slate-600 sm:text-sm">{label}</p>
+                      <p className="text-xl font-bold sm:text-2xl">{res.after[k]}
                         <span className={`ml-2 text-sm ${d > 0 ? "text-green-700" : d < 0 ? "text-red-700" : "text-slate-400"}`}>
                           {d > 0 ? `+${d}` : d}
                         </span>

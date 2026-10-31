@@ -53,7 +53,7 @@ export default function ResultView({ result }: { result: Result }) {
       </div>
       <p className="text-xs text-slate-600">{result.common_note}</p>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Reasons title="충족한 조건" items={result.matched} tone="text-green-800" />
         <Reasons title="충족하지 못한 조건" items={result.failed} tone="text-red-800" />
         <Reasons title="추가로 입력하면 판정할 수 있는 조건" items={result.unknown} tone="text-amber-800" />
@@ -63,24 +63,26 @@ export default function ResultView({ result }: { result: Result }) {
       {result.tracks.length > 0 && (
         <div>
           <h4 className="mb-2 text-sm font-semibold text-slate-800">순위·유형별 결과</h4>
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 text-xs text-slate-500">
-              <tr>
-                <th className="py-1.5 pr-3 font-medium">순위·유형</th>
-                <th className="py-1.5 pr-3 font-medium">결과</th>
-                <th className="py-1.5 font-medium">내용</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.tracks.map((t) => (
-                <tr key={t.track_id} className="border-b border-slate-100 align-top">
-                  <td className="py-1.5 pr-3 whitespace-nowrap">{t.track_id}</td>
-                  <td className="py-1.5 pr-3 whitespace-nowrap">{TRACK_LABEL[t.verdict] ?? t.verdict}</td>
-                  <td className="py-1.5 text-slate-700">{t.label}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-slate-200 text-xs text-slate-500">
+                <tr>
+                  <th className="py-1.5 pr-3 font-medium">순위·유형</th>
+                  <th className="py-1.5 pr-3 font-medium">결과</th>
+                  <th className="py-1.5 font-medium">내용</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {result.tracks.map((t) => (
+                  <tr key={t.track_id} className="border-b border-slate-100 align-top">
+                    <td className="py-1.5 pr-3 whitespace-nowrap">{t.track_id}</td>
+                    <td className="py-1.5 pr-3 whitespace-nowrap">{TRACK_LABEL[t.verdict] ?? t.verdict}</td>
+                    <td className="py-1.5 text-slate-700">{t.label}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="mt-1 text-xs text-slate-500">순위 안의 경쟁·추첨·배점은 판정하지 않습니다.</p>
         </div>
       )}

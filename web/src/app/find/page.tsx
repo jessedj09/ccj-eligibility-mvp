@@ -6,6 +6,7 @@ import MatchList from "@/components/MatchList";
 import ProfileForm, { initialValues, toProfile, valuesFrom, type Values } from "@/components/ProfileForm";
 import WhatIf from "@/components/WhatIf";
 import { ApiError, getMatchForm, match, type Form, type MatchResult, type ProfileFile } from "@/lib/api";
+import { revealOnNarrow } from "@/lib/reveal";
 
 const MASTER = "master.";
 const card = "rounded-lg border border-slate-200 bg-white p-5 shadow-sm";
@@ -42,6 +43,15 @@ export default function Find() {
   const [onlyOpen, setOnlyOpen] = useState(true);
   const [result, setResult] = useState<MatchResult | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const reveal = useRef(false);     // '전체 공고 판정'을 눌렀을 때만 결과로 스크롤(기준일·보기를 바꿀 때는 그대로)
+
+  useEffect(() => {
+    if (result && reveal.current) {
+      reveal.current = false;
+      revealOnNarrow(resultsRef.current);
+    }
+  }, [result]);
 
   useEffect(() => {
     getMatchForm().then((f) => { setForm(f); setValues(initialValues(f)); }).catch((e: ApiError) => setError(e.message));
@@ -72,6 +82,7 @@ export default function Find() {
       setError(errors.join(" "));
       return;
     }
+    reveal.current = true;
     setJudged(toFile(profile));
   }
 
@@ -101,15 +112,15 @@ export default function Find() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">🔎 내 조건으로 공고 찾기</h1>
+        <h1 className="text-xl font-bold sm:text-2xl">🔎 내 조건으로 공고 찾기</h1>
         <p className="mt-1 text-sm text-slate-600">
           한 번 입력하면 보유한 모든 공고의 계층·주택형을 판정합니다. 모르는 항목은 &lsquo;모름&rsquo;으로 두세요 — 그 정보가 필요한 공고는
           &lsquo;추가 정보 필요&rsquo;로 표시되고, 무엇을 더 입력하면 되는지 알려 드립니다.
         </p>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-5 space-y-4">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="space-y-4 lg:col-span-5">
           <div className={card}>
             <div className="flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => fileInput.current?.click()}
@@ -134,10 +145,11 @@ export default function Find() {
           </div>
         </div>
 
-        <div className="col-span-7 space-y-6">
+        <div ref={resultsRef} className="scroll-mt-4 space-y-6 lg:col-span-7">
           {!result ? (
             <div className={`${card} text-sm text-slate-600`}>
-              왼쪽에 조건을 넣고 &lsquo;전체 공고 판정&rsquo;을 누르면 공고별 결과가 여기에 나옵니다.
+              <span className="hidden lg:inline">왼쪽</span><span className="lg:hidden">위</span>에 조건을 넣고 &lsquo;전체 공고 판정&rsquo;을
+              누르면 공고별 결과가 여기에 나옵니다.
             </div>
           ) : (
             <>
@@ -147,7 +159,7 @@ export default function Find() {
                   <label className="flex items-center gap-2">
                     기준일
                     <input type="date" value={day} onChange={(e) => e.target.value && setDay(e.target.value)} aria-label="기준일"
-                      className="rounded-md border border-slate-300 px-2 py-1" />
+                      className="rounded-md border border-slate-300 px-2 py-1 text-base sm:text-sm" />
                   </label>
                   {[[true, "접수 중·예정 공고만"], [false, "전체 공고(마감 포함)"]].map(([v, label]) => (
                     <label key={String(v)} className="flex items-center gap-1">

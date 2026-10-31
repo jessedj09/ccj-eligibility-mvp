@@ -72,12 +72,12 @@ export default function MatchList({ result }: { result: MatchResult }) {
   const need = Object.entries(result.missing_inputs).slice(0, 6);
   return (
     <div className="space-y-5" data-testid="match-result">
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {[["ELIGIBLE", "✅ 지원 가능", n("ELIGIBLE"), "border-green-600"], ["HOLD", "🟡 보류", hold, "border-amber-500"],
           ["INELIGIBLE", "❌ 지원 불가", n("INELIGIBLE"), "border-red-600"]].map(([k, label, v, tone]) => (
-          <div key={k} className={`rounded-lg border-l-4 bg-white p-4 shadow-sm ${tone}`}>
-            <p className="text-sm text-slate-600">{label}</p>
-            <p className="text-3xl font-bold" data-testid={`count-${k}`}>{v}</p>
+          <div key={k} className={`rounded-lg border-l-4 bg-white p-3 shadow-sm sm:p-4 ${tone}`}>
+            <p className="text-xs text-slate-600 sm:text-sm">{label}</p>
+            <p className="text-2xl font-bold sm:text-3xl" data-testid={`count-${k}`}>{v}</p>
           </div>
         ))}
       </div>

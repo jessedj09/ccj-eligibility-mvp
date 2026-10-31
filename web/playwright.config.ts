@@ -1,4 +1,4 @@
-// 공개 화면 점검(④-4) — 판정 API와 Next.js 화면을 함께 띄워 실제 브라우저로 확인한다. PC 브라우저 기준(1440×900).
+// 공개 화면 점검(④-4) — 판정 API와 Next.js 화면을 함께 띄워 실제 브라우저로 확인한다. PC 브라우저와 휴대폰 브라우저.
 // API는 공유 저장소를 쓰지 않는다(CCJ_STORE=off — 운영 DB에 쓰지 않게).
 import { defineConfig, devices } from "@playwright/test";
 
@@ -20,7 +20,11 @@ export default defineConfig({
     timezoneId: "Asia/Seoul",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "pc-chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } }],
+  // PC 브라우저(1440×900)와 휴대폰 브라우저(Pixel 7, 412×915 — 같은 Chromium) 둘 다에서 같은 점검을 돌린다
+  projects: [
+    { name: "pc-chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } },
+    { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
+  ],
   webServer: [
     {
       command: `${python} -m uvicorn api.main:app --port ${API_PORT}`,
