@@ -164,7 +164,12 @@ Engine**이다.
   평가용 `make_draft(exclude=)`. 화면: 자동 판정 **공개 스위치**(secrets `auto_judge_public`/`CCJ_AUTO_JUDGE_PUBLIC`, 기본 꺼짐),
   공통 문구 `display_status.COMMON_NOTE`, 화면 점검 18단계. 평가 `tools/eval_v3.py`(`docs/eval-v3.md`): 위험 0, 같음 65.6%,
   사용자 단위 보류 10.1%, 판정 없음 24.2%. `tests/test_v3_grading.py`.
-- pytest: 총 **884개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+- **v3 ④(2026-10-31~) 구조**: 공개 화면 Next.js(Vercel) · 판정 API FastAPI(`api/main.py`, Render 싱가포르, Docker) · DB Neon(AWS 싱가포르) ·
+  운영자 화면만 Streamlit(운영자 PC). ④-1 공유 저장소 `src/store.py`(테이블 6개, `DATABASE_URL` → 로컬 `.streamlit/secrets.toml` →
+  없으면 NullStore — **판정은 DB 없이도 같다**), 분석 입구 `src/analysis.py`(원문 sha256 + 엔진 판(코드·형제 시트 해시)으로 분석 재사용,
+  LH·SH 공고만 후속 작업·PDF 임시 보관). 표준 PostgreSQL만(Neon 전용 기능 금지). **테스트·화면 점검은 운영 DB를 쓰지 않는다**
+  (conftest·ui_fixture가 NullStore로) — DB 시험은 `TEST_DATABASE_URL`의 임시 스키마(CI postgres 서비스). `tests/test_d4_store.py`.
+- pytest: 총 **895개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

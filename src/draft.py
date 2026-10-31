@@ -34,6 +34,7 @@ from rule_engine import evaluate  # noqa: E402
 PASSING = ("lh.youth_rental", "lh.newlywed_rental", "lh.deundeun", "sh.jeonse", "sh.jeonse2")
 OK, UNSUPPORTED, BLOCKED, UNREADABLE = "ok", "unsupported", "blocked", "unreadable"
 DRAFT_ID = "DRAFT"
+UPLOAD_NAME = "upload.pdf"
 NOTE = "검증 전 초안 — 자동으로 읽은 공고입니다. 신청 전 원문을 확인하세요."
 
 
@@ -103,6 +104,8 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
         with os.fdopen(fd, "wb") as f:
             f.write(data)
         g = X.gate(ext, Path(tmp), pages, DRAFT_ID)
+        if g["doc"]:
+            g["doc"]["source"]["document"] = UPLOAD_NAME   # 임시 파일 이름 대신 — 같은 원문이면 같은 초안(저장·비교)
         unclassified = _unclassified(Path(tmp), g["doc"], ext["template"], exclude) if g["doc"] else []
     finally:
         os.remove(tmp)

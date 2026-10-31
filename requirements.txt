@@ -1,3 +1,4 @@
 pytest>=8.0
 streamlit>=1.38
 pypdf>=4.0          # 테스트(원문 대조 tests/test_source_verify.py, tools/verify_sources.py)에 필요 — 앱 실행에는 불필요
+psycopg[binary]>=3.2  # 공유 저장소(src/store.py, Neon PostgreSQL) — 없거나 DATABASE_URL이 없으면 저장 없이 동작

@@ -65,13 +65,14 @@ def _identify_upload(up):
     return done[up.file_id]
 
 
-def _draft_upload(up):
-    """미등록 공고의 자동 분석(src/draft.py — 합격 사업만, AI 없음). 파일마다 한 번만 만든다."""
-    import draft   # 추출기(tools/)는 자동 판정을 쓸 때만 불러온다 — 공개 화면의 시작 시간·실패 범위를 늘리지 않게
+def _draft_upload(up, ident):
+    """미등록 공고의 자동 분석(src/draft.py — 합격 사업만, AI 없음). 파일마다 한 번만 만든다.
+    같은 공고를 이미 분석했으면 공유 저장소의 결과를 쓴다(src/analysis.py — 저장소가 없어도 결과는 같다)."""
+    import analysis   # 추출기(tools/)는 자동 판정을 쓸 때만 불러온다 — 공개 화면의 시작 시간·실패 범위를 늘리지 않게
     done = st.session_state.setdefault("upload_draft", {})
     if up.file_id not in done:
         with st.spinner("공고문을 자동으로 분석하는 중입니다…"):
-            done[up.file_id] = draft.make_draft(up.getvalue())
+            done[up.file_id] = analysis.analyze(up.getvalue(), ident)
     return done[up.file_id]
 
 
@@ -101,7 +102,7 @@ with st.sidebar:
                 st.stop()
             notice_id = ident.notice_id
         else:
-            d = _draft_upload(up) if (operator or auto_public) and ident.status == UNREGISTERED else None
+            d = _draft_upload(up, ident) if (operator or auto_public) and ident.status == UNREGISTERED else None
             if d is None or d.notice is None:   # 자동 판정을 열지 않았거나 판정 불가(대상 아닌 사업·핵심 빈칸 보류 등)
                 with upload_area:
                     render_not_judgeable(ident)

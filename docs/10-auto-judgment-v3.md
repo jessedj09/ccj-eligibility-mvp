@@ -213,3 +213,19 @@ N20·N26 순위 정의 문장(신생아 가구 1순위·자치구 거주 1·2순
 자동 확정 100%: N4·N6(행복주택), N11·N12(청년매입), N13·N14(LH 신혼), N16·N17(든든전세), N19(SH 신혼), N23·N24(장기전세2).
 판정 없음: N9·N10(행복주택 1순위 지역 — ⑤), N25(장기전세 — 형제 1건이라 규칙 생성 실패, ⑤), N5 주거약자형 계층(계층 누락 안전장치).
 보류가 남은 곳: N15(자녀 출산 시 자산 완화 문장), SH 신혼 N18·N20·N21, 행복주택 N5·N7·N8, 장기전세 N26, 형제 없는 N22.
+
+### ④-1 공유 저장소(Neon) · 분석 입구 (2026-10-31)
+- 구조 결정(2026-10-31): 공개 화면 Next.js(Vercel) · 판정 API FastAPI(`api/main.py` 확장, Render 싱가포르, Docker) · DB Neon(AWS 싱가포르) ·
+  운영자 화면만 Streamlit(운영자 PC). 상세는 `기획서/실서비스_설계개발문서_v1.0.md` §9.
+- `src/store.py`: 테이블 6개(notices·analyses·jobs·pdf_blobs·program_health·usage_daily, 처음 접속 때 `CREATE … IF NOT EXISTS`).
+  설정은 환경변수 `DATABASE_URL` → 없으면 로컬 `.streamlit/secrets.toml`(git 제외) → 없으면 **NullStore(저장 없이 동작)**.
+  질의 실패는 경고만 남기고 기본값, 접속 실패 뒤 60초는 DB 없이(판정을 늦추지 않게). 대기열은 `FOR UPDATE SKIP LOCKED`, 같은 공고·종류의
+  열린 작업은 하나(부분 유일 색인), 실패 3회면 failed(운영자 검토). PDF는 파일 20MB·합계 300MB·14일. 화면과 무관(Streamlit 안 씀).
+- `src/analysis.py` `analyze(pdf, ident)`: 같은 원문(sha256)·같은 **엔진 판**의 분석이 저장돼 있으면 그것, 없으면 분석해 저장.
+  엔진 판 = 분석 코드 파일 6개 + 형제 공고 정답 시트의 해시(손으로 올리는 번호 없음 — 코드나 등록 공고가 바뀌면 다시 분석).
+  후속 작업은 LH·SH 공고만: 핵심 값 보류·보류 값 있음 → enhance(PC 작업기, 로컬 LLM), 미분류 문장 → review, 대상 아닌 사업 → review.
+  작업을 넣을 때만 PDF를 둔다. 화면(app.py)의 초안 만들기가 이것을 부른다.
+- 초안 규칙의 원문 파일 이름을 임시 파일 이름 대신 `upload.pdf`로 — 같은 원문이면 같은 초안(저장본 비교가 가능해짐).
+- 시험 `tests/test_d4_store.py`: DB 없음·닿지 않는 DB에서도 결과 같음, 저장 → 재사용, 판 변경, 실제 PostgreSQL(대기열 중복 없이 가져가기·
+  재시도·PDF 상한·익명 집계)은 `TEST_DATABASE_URL`이 있을 때 임시 스키마에서(CI는 postgres 서비스). 다른 테스트·화면 점검은 운영 DB를
+  쓰지 않는다(conftest·ui_fixture에서 NullStore).
