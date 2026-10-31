@@ -1,12 +1,13 @@
 "use client";
-// 공고 판정(메인) — 공고문 PDF를 올리거나 목록에서 골라 계층을 정하고, 필요한 정보만 넣어 판정한다. PC 브라우저 기준 2단 화면.
-import { useEffect, useState } from "react";
+// 공고 판정(메인) — 공고문 PDF를 올리거나 목록에서 골라 계층을 정하고, 필요한 정보만 넣어 판정한다. PC는 2단, 휴대폰은 1단.
+import { useEffect, useRef, useState } from "react";
 import ProfileForm, { initialValues, toProfile, type Values } from "@/components/ProfileForm";
 import ResultView from "@/components/ResultView";
 import {
   ApiError, evaluate, getForm, listNotices, upload,
   type Form, type NoticeSummary, type Result, type Target, type UnsupportedLayer, type UploadResult,
 } from "@/lib/api";
+import { revealOnNarrow } from "@/lib/reveal";
 
 type Picked = { target: Target; title: string; layers: string[]; unsupported: UnsupportedLayer[] };
 
@@ -72,6 +73,13 @@ export default function Home() {
   const [form, setForm] = useState<Form | null>(null);
   const [values, setValues] = useState<Values>({});
   const [result, setResult] = useState<Result | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => revealOnNarrow(formRef.current), [form]);
+  useEffect(() => revealOnNarrow(resultRef.current), [result]);
+  useEffect(() => revealOnNarrow(errorRef.current), [error]);
 
   useEffect(() => {
     if (mode === "list" && notices.length === 0)
@@ -159,7 +167,7 @@ export default function Home() {
   const unsupported = picked?.unsupported.find((u) => u.name === layer);
 
   return (
-    <div className="grid grid-cols-[22rem_1fr] gap-8">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[22rem_1fr] lg:gap-8">
       <aside className="space-y-4">
         <div className={card}>
           <h2 className="mb-3 text-base font-semibold">1. 공고 고르기</h2>
@@ -185,7 +193,7 @@ export default function Home() {
               {up && <Identified up={up} confirmed={confirmed} onConfirm={onConfirm} />}
             </div>
           ) : (
-            <select className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" defaultValue=""
+            <select className="w-full rounded-md border border-slate-300 px-3 py-2 text-base sm:text-sm" defaultValue=""
               onChange={(e) => onPickNotice(e.target.value)} data-testid="notice-select">
               <option value="" disabled>공고를 고르세요</option>
               {notices.map((n) => (
@@ -217,13 +225,18 @@ export default function Home() {
 
       <main className="space-y-6">
         {busy && <p className="rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-900" role="status">{busy}</p>}
-        {error && <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{error}</p>}
+        {error && <p ref={errorRef} className="scroll-mt-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{error}</p>}
         {!picked && !busy && (
           <div className={`${card} text-sm text-slate-600`}>
-            왼쪽에서 공고문 PDF를 올리거나 목록에서 공고를 고르면, 그 공고의 공급 계층과 필요한 입력 항목이 나옵니다.
+            <span className="hidden lg:inline">왼쪽</span><span className="lg:hidden">위</span>에서 공고문 PDF를 올리거나 목록에서 공고를
+            고르면, 그 공고의 공급 계층과 필요한 입력 항목이 나옵니다.
           </div>
         )}
-        {picked && !layer && <div className={`${card} text-sm text-slate-600`}>왼쪽에서 공급 계층을 고르세요.</div>}
+        {picked && !layer && (
+          <div className={`${card} text-sm text-slate-600`}>
+            <span className="hidden lg:inline">왼쪽</span><span className="lg:hidden">위</span>에서 공급 계층을 고르세요.
+          </div>
+        )}
         {unsupported && (
           <div className={`${card} text-sm`}>
             <b>{unsupported.name}</b> 계층은 이 공고에 있지만{unsupported.page ? ` (공고문 p.${unsupported.page})` : ""} 아직 판정을
@@ -231,22 +244,22 @@ export default function Home() {
           </div>
         )}
         {form && (
-          <div className={card}>
-            <div className="mb-4 flex items-baseline justify-between">
+          <div ref={formRef} className={`${card} scroll-mt-4`}>
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <h2 className="text-base font-semibold">3. 내 정보 — {picked?.title} · {layer}</h2>
               <span className="text-xs text-slate-500">공고일 {form.announcement_date} 기준으로 계산합니다</span>
             </div>
             <ProfileForm form={form} values={values} onChange={setValues} />
             <div className="mt-6 flex justify-end">
               <button type="button" onClick={onJudge} disabled={Boolean(busy)}
-                className="rounded-md bg-blue-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
+                className="w-full rounded-md bg-blue-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50 sm:w-auto">
                 판정하기
               </button>
             </div>
           </div>
         )}
         {result && (
-          <div className={card}>
+          <div ref={resultRef} className={`${card} scroll-mt-4`}>
             <h2 className="mb-4 text-base font-semibold">4. 판정 결과</h2>
             <ResultView result={result} />
           </div>

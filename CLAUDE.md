@@ -181,6 +181,8 @@ Engine**이다.
   ④-4 2차 `/find`(내 조건으로 공고 찾기): 양식 `form_spec.master_form()`(Streamlit 찾기 화면과 같은 항목 — `master.x`는 저장 파일의 master),
   API `GET /match/form`·`/match`(+3상태·접수 일정·near_misses)·`POST /whatif`(시나리오 — src/whatif.py 그대로). 저장 파일은 브라우저 안에서만.
   `tests/test_d4_match.py`, `web/e2e/find.spec.ts`.
+  배포: API Render `ccj-api`(master 자동, 무료 — 15분 쉬면 잠듦) · 화면 Vercel(Root `web`). 화면은 열 때 서버를 깨우고 늦으면 '서버 시동중' 안내.
+  모바일 웹 = 같은 화면 반응형(lg 미만 1단). **화면을 고치면 PC·휴대폰 둘 다 점검**(Playwright pc-chromium·mobile-chromium, `e2e/mobile.spec.ts`).
 - pytest: 총 **926개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →

@@ -175,12 +175,40 @@ export class ApiError extends Error {
   }
 }
 
+// 서버 시동 안내 — 판정 서버(Render 무료 요금제)는 15분 쉬면 잠들고, 그 뒤 첫 요청은 20초~1분 걸린다.
+// 잠들어 있을 수 있을 때(처음이거나 마지막 응답이 14분 넘게 전) 요청이 SLOW_MS보다 오래 걸리면 화면(ServerWaking)이 안내한다.
+// 서버가 깨어 있는데 느린 요청(큰 PDF 올리기 등)에는 안내하지 않는다.
+export const SLOW_MS = 2500;
+const AWAKE_MS = 14 * 60 * 1000;
+let lastResponse = 0;
+let waiting = 0;
+const listeners = new Set<(waking: boolean) => void>();
+
+export function onWaking(fn: (waking: boolean) => void): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
+function setWaiting(delta: number) {
+  waiting += delta;
+  listeners.forEach((fn) => fn(waiting > 0));
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
+  let flagged = false;
+  const timer = Date.now() - lastResponse > AWAKE_MS
+    ? setTimeout(() => { flagged = true; setWaiting(1); }, SLOW_MS) : undefined;
   try {
     res = await fetch(API_BASE + path, init);
+    lastResponse = Date.now();
   } catch {
     throw new ApiError(0, `판정 서버(${API_BASE})에 연결할 수 없습니다. 서버가 켜져 있는지 확인하세요.`);
+  } finally {
+    clearTimeout(timer);
+    if (flagged) setWaiting(-1);
   }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -231,4 +259,9 @@ export function match(profile: ProfileFile, at: string | null, onlyOpen: boolean
 export function whatIf(profile: ProfileFile, scenario: Scenario, params: WhatIfParams, at: string | null,
   onlyOpen: boolean): Promise<WhatIfResult> {
   return call("/whatif", post({ profile, scenario, ...params, at, only_open: onlyOpen }));
+}
+
+/** 화면을 열자마자 서버를 깨운다 — 사용자가 입력하는 동안 시동이 끝나게. 실패해도 조용히 둔다(실제 요청이 오류를 보인다). */
+export function wake(): void {
+  call("/health").catch(() => {});
 }

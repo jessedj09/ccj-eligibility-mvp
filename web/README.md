@@ -1,7 +1,7 @@
 # 공개 화면 (Next.js) — v3 ④-4
 
 LH·SH 공고 자격 판정 서비스의 공개 화면. **판정 로직은 없다** — 판정 API(`../api/main.py`)가 준 양식(`/form`)대로 그리고,
-결과(`/evaluate`·`/match`·`/whatif`)를 보여 주기만 한다. PC 브라우저 화면을 먼저 만들고, 모바일 웹은 그다음 단계(2026-10-31 결정).
+결과(`/evaluate`·`/match`·`/whatif`)를 보여 주기만 한다. PC 브라우저 화면을 먼저 만들고(2026-10-31), 같은 화면을 휴대폰 브라우저에 맞췄다(2026-11-01, 반응형 — lg 미만 1단).
 
 ## 로컬에서 띄우기 (PC)
 
@@ -22,12 +22,13 @@ API 주소는 `NEXT_PUBLIC_API_URL`(기본 `http://127.0.0.1:8000`). API는 `CCJ
 
 ```bash
 npx playwright install chromium   # 처음 한 번
-npx playwright test               # API(8765)와 화면(3100)을 직접 띄워 PC 브라우저(1440×900)로 확인
+npx playwright test               # API(8765)와 화면(3100)을 직접 띄워 PC(1440×900)·휴대폰(Pixel 7) 브라우저로 확인
 ```
 
 ## 구성
 
-- `src/lib/api.ts` — API 호출과 응답 형식
+- `src/lib/api.ts` — API 호출과 응답 형식, 서버 시동 감지(잠든 서버의 첫 요청이 늦으면 `ServerWaking`이 안내)
+- `src/lib/reveal.ts` — 휴대폰(1단)에서 새로 나타난 입력란·결과로 스크롤
 - `src/components/ProfileForm.tsx` — `/form` 양식대로 입력란(모름 → null, 생년월일은 API가 공고일 기준 만 나이로)
 - `src/components/ResultView.tsx` — 3상태 결과·원문 확인할 곳·조건별 근거·순위별 결과·공통 문구
 - `src/components/MatchList.tsx` — 전 공고 결과(3상태 묶음, 접수 중 → 예정 → 마감 순, 공고 카드)
