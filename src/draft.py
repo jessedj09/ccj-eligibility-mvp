@@ -38,6 +38,16 @@ UPLOAD_NAME = "upload.pdf"
 NOTE = "검증 전 초안 — 자동으로 읽은 공고입니다. 신청 전 원문을 확인하세요."
 
 
+def unsupported_reason(program: Optional[str]) -> str:
+    """판정하지 않는 사업의 안내 — 분양은 다음 단계(⑥), 임대는 정확도를 검증하며 차례로."""
+    import notice_candidates as nc
+    if not program:
+        return "공고문에서 사업 유형을 알아보지 못했습니다."
+    if nc.is_sale(program):
+        return f"분양 공고({program})는 아직 자동 판정을 지원하지 않습니다. 지금은 임대 공고만 판정합니다(분양은 다음 단계에서 추가)."
+    return f"이 사업({program})은 아직 자동 판정을 지원하지 않습니다(정확도를 검증하며 차례로 추가합니다)."
+
+
 def passing_programs() -> List[str]:
     """자동 판정하는 사업(PASSING 템플릿)의 화면 이름 — 판정할 수 없는 공고를 올린 사용자에게 무엇을 지원하는지 알린다."""
     out = []
@@ -108,9 +118,7 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
     base = dict(template=ext["template"], program=ext["program"], announcement_date=ann,
                 fields={"announcement_date": rep["announcement_date"], **rep["fields"]})
     if not ext["template"] or (only is not None and ext["template"] not in only):
-        why = "공고문에서 사업 유형을 알아보지 못했습니다." if not ext["template"] else \
-            f"이 사업({ext['program']})은 아직 자동 판정을 지원하지 않습니다(정확도를 검증하며 차례로 추가합니다)."
-        return Draft(UNSUPPORTED, why, **base)
+        return Draft(UNSUPPORTED, unsupported_reason(ext["program"] if ext["template"] else None), **base)
     fd, tmp = tempfile.mkstemp(suffix=".pdf")
     try:
         with os.fdopen(fd, "wb") as f:

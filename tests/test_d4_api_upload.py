@@ -16,6 +16,7 @@ from display_status import COMMON_NOTE
 from profile_io import HOUSEHOLD_FIELDS, _dump
 from rule_data import load_notice
 from rule_engine import evaluate
+from store import NullStore
 
 pytest.importorskip("fastapi")
 pytest.importorskip("multipart")
@@ -108,7 +109,7 @@ def test_evaluate_reads_analysis_from_store_after_restart(n12, unregistered, mon
     snap = draft.to_snapshot(api._drafts[sha], sha)
     api._drafts.clear()
 
-    class Saved:
+    class Saved(NullStore):
         def latest_analysis(self, s, version):
             return snap if (s, version) == (sha, analysis.analysis_version()) else None
 
@@ -144,3 +145,45 @@ def test_held_condition_check_reaches_the_api(n12, unregistered, monkeypatch):
     j = client.post("/evaluate", json={"sha256": sha, "layer": "청년", "profile": _body(p)}).json()
     assert j["verdict"] == "MANUAL_REVIEW" and j["display"]["title"].endswith("원문 확인 1건")
     assert j["checks"][0]["kind"] == "held" and j["checks"][0]["page"] == home["source"]["page"]
+
+
+class Memory(NullStore):
+    """식별 캐시·사업 멈춤만 흉내 내는 저장소(A2·A3)."""
+    def __init__(self, demoted=()):
+        self.idents, self.demoted, self.reads = {}, frozenset(demoted), 0
+
+    def save_ident(self, sha, version, data):
+        self.idents[(sha, version)] = data
+        return True
+
+    def get_ident(self, sha, version):
+        self.reads += 1
+        return self.idents.get((sha, version))
+
+    def demoted_programs(self):
+        return self.demoted
+
+
+def test_identification_is_reused_from_store(n12, unregistered, monkeypatch):
+    """같은 파일을 다시 올리면 저장해 둔 식별 결과를 쓴다 — PDF를 다시 읽지 않는다(A2)."""
+    mem = Memory()
+    monkeypatch.setattr(api, "get_store", lambda: mem)
+    first = _post(n12).json()
+    assert len(mem.idents) == 1
+    monkeypatch.setattr(api, "identify_pdf", lambda data: pytest.fail("PDF를 다시 읽었다"))
+    again = _post(n12).json()
+    assert again["identification"] == first["identification"]
+
+
+def test_paused_program_is_not_judged(n12, unregistered, monkeypatch):
+    """비교에서 위험이 나와 멈춘 사업은 자동 분석이 끝나도 판정하지 않고 이유를 보인다(A3)."""
+    monkeypatch.setenv(api.PUBLIC_ENV, "1")
+    mem = Memory()
+    monkeypatch.setattr(api, "get_store", lambda: mem)
+    assert _post(n12).json()["judge"]["by"] == "analysis"          # 판정해 오던 사업을
+    mem.demoted = frozenset({"lh.youth_rental"})                   # 멈추면
+    j = _post(n12).json()
+    assert j["judge"]["by"] == "none" and "정확도 점검 중" in j["judge"]["reason"]
+    p = next(p for _, _, p in gc.cases(only=[("N12", "청년")]))
+    r = client.post("/evaluate", json={"sha256": j["sha256"], "layer": "청년", "profile": _body(p)})
+    assert r.status_code == 403 and "정확도 점검 중" in r.json()["detail"]

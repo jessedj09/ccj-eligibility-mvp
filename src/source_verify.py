@@ -13,6 +13,8 @@ PDF 텍스트는 글자 사이에 공백이 끼므로 모든 공백을 제거하
 
 import hashlib
 import json
+import threading
+from collections import OrderedDict
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -72,6 +74,13 @@ def _cache_key(data: bytes) -> str:
         f"{pypdf.__version__}|{code}".encode("utf-8")).hexdigest()[:16]
 
 
+# 업로드 파일(cache=False)의 추출 텍스트는 디스크에 두지 않고 메모리에만 잠깐 둔다 — 한 업로드에서 식별·분석이 같은 PDF를
+# 두 번 읽지 않게(큰 공고는 한 번 읽는 데 수십 초). 최근 몇 건만, 프로세스가 끝나면 사라진다.
+RECENT_MAX = 4
+_recent: "OrderedDict[str, List[str]]" = OrderedDict()
+_recent_lock = threading.Lock()
+
+
 def extract_pages(path) -> List[str]:
     """PDF 전 쪽의 정규화 텍스트. 생성 스크립트(tools/gen_*.py)도 이 함수를 쓴다."""
     return extract_pages_bytes(Path(path).read_bytes(), str(path))
@@ -83,8 +92,14 @@ def extract_pages_bytes(data: bytes, label: str = "<업로드>", cache: bool = T
     import io
     import logging
     import os
-    cache_file = PDF_CACHE / f"{_cache_key(data)}.json"
+    key = _cache_key(data)
+    cache_file = PDF_CACHE / f"{key}.json"
     use_cache = cache and os.environ.get("CCJ_NO_PDF_CACHE") != "1"
+    if not cache:
+        with _recent_lock:
+            if key in _recent:
+                _recent.move_to_end(key)
+                return list(_recent[key])
     if use_cache and cache_file.exists():
         try:
             hit = json.loads(cache_file.read_text(encoding="utf-8"))
@@ -117,6 +132,11 @@ def extract_pages_bytes(data: bytes, label: str = "<업로드>", cache: bool = T
             tmp.replace(cache_file)
         except OSError:
             pass                       # 캐시는 선택 사항 — 못 써도 결과는 같다
+    if not cache and not failures:
+        with _recent_lock:
+            _recent[key] = list(pages)
+            while len(_recent) > RECENT_MAX:
+                _recent.popitem(last=False)
     return pages
 
 

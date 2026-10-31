@@ -5,7 +5,7 @@
 """
 import streamlit as st
 
-from notice_identify import REGISTERED, SAME_NOTICE_OTHER_FILE, UNREADABLE, Identification
+from notice_identify import NOT_NOTICE, REGISTERED, SAME_NOTICE_OTHER_FILE, UNREADABLE, Identification
 from rule_data import load_notice
 
 NOT_JUDGED = ("검증된 규칙이 없는 공고는 판정하지 않습니다 — 확인되지 않은 조건으로 틀린 '지원 가능'을 보여 주지 않기 위해서입니다.")
@@ -37,7 +37,7 @@ def render_not_judgeable(ident: Identification) -> None:
     """미등록·읽을 수 없는 공고 — 판정하지 않고 안내만."""
     st.subheader("📄 아직 판정할 수 없는 공고")
     st.info(f"{ident.reason} {NOT_JUDGED}")
-    if ident.status == UNREADABLE:
+    if ident.status in (UNREADABLE, NOT_NOTICE):
         return
     render_candidates(ident)
     st.caption("이 공고의 등록을 원하면 공고명과 공고일을 운영자에게 알려 주세요. 등록되면 같은 파일을 올렸을 때 바로 판정됩니다.")

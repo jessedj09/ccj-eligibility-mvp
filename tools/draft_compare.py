@@ -13,6 +13,7 @@
 - **위험** — 초안이 확정(지원 가능·지원 불가·해당 없음)인데 등록과 다름. 특히 '틀린 지원 가능'. 0건이어야 공개(C1) 근거가 된다.
 - 초안 판정 없음 — 초안이 판정할 수 없는 상태(사업 미지원·핵심 빈칸 보류 등). 화면은 판정하지 않는다.
 위험이 1건이라도 있으면 종료코드 1.
+--record: 결과를 공유 저장소의 사업별 정확도(program_health)에 더한다 — 위험이 있으면 그 사업의 자동 판정이 바로 멈춘다(A3).
 """
 import argparse
 import json
@@ -86,6 +87,16 @@ def danger_count(res: Dict) -> int:
     return sum(c[k] for c in res["counts"].values() for k in DANGER)
 
 
+def record(res: Dict, store) -> Optional[str]:
+    """비교 결과를 사업(초안 템플릿)별 정확도에 더한다. 초안이 판정하지 못한 공고(템플릿 없음)는 기록하지 않는다."""
+    d = res["draft"]
+    if d.status != draft.OK or not d.template:
+        return None
+    total = lambda k: sum(c[k] for c in res["counts"].values())  # noqa: E731
+    store.record_comparison(d.template, same=total(SAME), cautious=total(CAUTIOUS), danger=danger_count(res))
+    return d.template
+
+
 def to_markdown(res: Dict) -> str:
     d, s = res["draft"], res["snapshot"]
     total = Counter()
@@ -136,6 +147,7 @@ def main(argv=None):
     ap.add_argument("--nid", help="비교할 등록 공고 ID(없으면 원문 지문으로 찾는다)")
     ap.add_argument("--limit", type=int, help="계층마다 골든 입력 앞 N건만(빠른 확인용)")
     ap.add_argument("--out", help="결과를 저장할 .md 경로(없으면 화면에 출력)")
+    ap.add_argument("--record", action="store_true", help="결과를 공유 저장소의 사업별 정확도에 더한다(위험이면 자동 판정 멈춤)")
     a = ap.parse_args(argv)
     res = compare(json.loads(Path(a.snapshot).read_text(encoding="utf-8")), a.nid, a.limit)
     md = to_markdown(res)
@@ -144,6 +156,10 @@ def main(argv=None):
         print("비교 결과:", a.out)
     else:
         print(md)
+    if a.record:
+        from store import get_store
+        program = record(res, get_store())
+        print(f"사업별 정확도에 기록: {program}" if program else "기록하지 않음(초안 판정 없음)")
     return 1 if danger_count(res) else 0
 
 

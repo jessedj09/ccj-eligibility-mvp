@@ -60,7 +60,12 @@ python tools/notice_intake.py "sample_sh/새공고.pdf" --draft --save-draft
 # ② 아래 3절 체크리스트대로 등록(골든 GROUPS까지)
 # ③ 같은 가상 신청자로 두 판정을 비교 → 결과도 같은 폴더에 남긴다
 python tools/draft_compare.py docs/draft-checks/<분석 키>.draft.json --out docs/draft-checks/<분석 키>.md
+# ④ (운영) 결과를 사업별 정확도에 더한다 — 위험이면 그 사업의 자동 판정이 바로 멈춘다(A3). 상태: python tools/program_health.py
+python tools/draft_compare.py docs/draft-checks/<분석 키>.draft.json --record
 ```
+
+같은 사업 공고를 여럿 얼릴 때는 등록하기 **전에 모두** 얼린다(하나를 등록하면 나머지의 형제가 된다). 분석 키가 겹치면
+`--save-draft docs/draft-checks/<이름>.draft.json`으로 이름을 준다.
 
 - **순서가 중요하다**: 등록하면 그 공고가 같은 사업의 형제가 되어, 그 뒤에 만든 초안은 자기 정답을 보고 만들어진다.
   그래서 스냅샷은 덮어쓰지 않는다(이미 있으면 저장 거부). 이미 등록된 공고로 만들면 경고한다(도구 점검용으로만).

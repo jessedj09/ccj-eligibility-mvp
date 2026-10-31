@@ -11,6 +11,18 @@ import { reveal, revealOnNarrow } from "@/lib/reveal";
 
 type Picked = { target: Target; title: string; layers: string[]; unsupported: UnsupportedLayer[] };
 
+const READING = "공고문을 읽고 분석하는 중입니다…";
+
+/** 기다린 시간(초) — 큰 공고문은 읽는 데 오래 걸려 멈춘 것처럼 보이지 않게. */
+function Elapsed() {
+  const [s, setS] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setS((x) => x + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return <span className="tabular-nums">{s}초</span>;
+}
+
 const card = "rounded-lg border border-slate-200 bg-white p-4 shadow-sm";
 
 function Identified({ up, confirmed, onConfirm }: { up: UploadResult; confirmed: boolean; onConfirm: (v: boolean) => void }) {
@@ -109,7 +121,7 @@ export default function Home() {
     reset();
     setUp(null);
     setConfirmed(false);
-    setBusy("공고문을 읽고 분석하는 중입니다…");
+    setBusy(READING);
     try {
       const r = await upload(file);
       setUp(r);
@@ -234,7 +246,16 @@ export default function Home() {
       </aside>
 
       <main className="space-y-6">
-        {busy && <p className="rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-900" role="status">{busy}</p>}
+        {busy && (
+          <p className="rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-900" role="status" data-testid="busy">
+            {busy}
+            {busy === READING && (
+              <>
+                {" "}<Elapsed /> — 처음 올리는 큰 공고는 1~2분 걸릴 수 있습니다. 같은 공고를 다시 올리면 바로 나옵니다.
+              </>
+            )}
+          </p>
+        )}
         {error && <p ref={errorRef} className="scroll-mt-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{error}</p>}
         {!picked && !busy && (
           <div className={`${card} text-sm text-slate-600`}>

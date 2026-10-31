@@ -9,6 +9,7 @@
 - 후속 작업: 결정론이 못 채운 값이 있으면 enhance(PC 작업기가 로컬 LLM으로 보강), 규칙이 모르는 문장·대상 아닌 LH·SH 사업이면
   review(운영자). 작업을 넣을 때만 PDF를 잠시 둔다 — **LH·SH 공고로 식별된 것만**(개인 문서 보관 방지).
 """
+import dataclasses
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -69,6 +70,10 @@ def analyze(data: bytes, ident=None, store=None) -> draft.Draft:
         except (KeyError, ValueError, TypeError):
             pass                            # 형식이 맞지 않는 저장본은 무시하고 다시 분석
     d = draft.make_draft(data)
+    # 자동 분석이 사업을 못 알아봤어도 식별(notice_candidates — 사업 이름표가 더 넓다)이 알아본 사업이면 그 이름으로 안내
+    known = getattr(ident, "program", None)
+    if d.status == draft.UNSUPPORTED and not d.template and known:
+        d = dataclasses.replace(d, program=known, reason=draft.unsupported_reason(known))
     issuer = getattr(ident, "issuer", None)
     store.save_notice(sha, issuer=issuer, program=d.program or getattr(ident, "program", None),
                       announcement_date=d.announcement_date or getattr(ident, "announcement", None))

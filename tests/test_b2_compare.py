@@ -99,3 +99,27 @@ def test_save_snapshot_never_overwrites(tmp_path):
     first = out.read_text(encoding="utf-8")
     assert json.loads(first)["format"] == draft.SNAPSHOT_FORMAT
     assert ni.save_snapshot(r, str(out)) is None and out.read_text(encoding="utf-8") == first
+
+
+class Health:
+    """사업별 정확도 기록만 받는 가짜 저장소."""
+    def __init__(self):
+        self.rows = []
+
+    def record_comparison(self, program, same=0, cautious=0, danger=0):
+        self.rows.append((program, same, cautious, danger))
+        return True
+
+
+def test_record_adds_counts_per_program(n12_snapshot):
+    """--record: 비교 결과를 그 초안의 사업(템플릿)별로 더한다 — 위험이면 저장소가 그 사업을 멈춘다(A3)."""
+    h = Health()
+    res = dc.compare(n12_snapshot, limit=50)
+    assert dc.record(res, h) == "lh.youth_rental"
+    program, same, cautious, danger = h.rows[0]
+    assert program == "lh.youth_rental" and danger == 0 and same == sum(c[dc.SAME] for c in res["counts"].values())
+    snap = copy.deepcopy(n12_snapshot)
+    conds = snap["doc"]["layers"]["청년"]["conditions"]
+    conds.remove(next(c for c in conds if c["id"].endswith("-age")))
+    dc.record(dc.compare(snap, limit=LIMIT), h)
+    assert h.rows[1][3] > 0                                            # 위험이 기록된다

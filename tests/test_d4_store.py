@@ -186,3 +186,30 @@ def test_db_usage_counts_without_personal_data(db):
     cols = db._run(lambda c: c.execute(
         "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema()").fetchall())
     assert not {"ip", "profile", "name", "birth"} & {c[0] for c in cols}
+
+
+@needs_db
+def test_db_identification_cache(db):
+    """식별 결과는 같은 파일·같은 식별 판일 때만 다시 쓴다(A2)."""
+    data = {"status": "UNREGISTERED", "program": "행복주택", "windows": [{"start": "2026-11-10T10:00"}]}
+    assert db.save_ident("s1", "i1-a", data) and db.get_ident("s1", "i1-a") == data
+    assert db.get_ident("s1", "i1-b") is None
+    assert db.save_ident("s1", "i1-a", {"status": "다른 값"}) and db.get_ident("s1", "i1-a") == data   # 처음 것 유지
+
+
+@needs_db
+def test_db_program_health_demotes_on_danger(db):
+    """비교에서 위험이 1건이라도 나오면 그 사업을 바로 멈추고, 다시 켜는 것은 운영자만(A3)."""
+    assert db.record_comparison("lh.youth_rental", same=5, cautious=1) and db.demoted_programs() == frozenset()
+    assert db.record_comparison("lh.youth_rental", same=2, danger=1)
+    assert db.demoted_programs() == {"lh.youth_rental"}
+    row = db.program_health()[0]
+    assert (row["compared"], row["same"], row["cautious"], row["danger"]) == (9, 7, 1, 1)
+    assert db.record_comparison("lh.youth_rental", same=3) and db.demoted_programs() == {"lh.youth_rental"}  # 저절로 풀리지 않음
+    assert db.set_demoted("lh.youth_rental", False) and db.demoted_programs() == frozenset()
+    assert db.set_demoted("sh.jeonse", True) and db.demoted_programs() == {"sh.jeonse"}
+
+
+def test_null_store_has_no_cache_and_pauses_nothing():
+    s = S.NullStore()
+    assert s.get_ident("x", "v") is None and s.demoted_programs() == frozenset() and s.program_health() == []
