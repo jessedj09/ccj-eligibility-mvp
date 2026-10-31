@@ -23,7 +23,7 @@ export type Judge =
   | ({ by: "registered" } & RegisteredJudge)
   | ({ by: "confirm" } & RegisteredJudge)
   | { by: "analysis"; program: string; announcement_date: string; layers: string[]; grades: Record<string, string> }
-  | { by: "none"; reason: string };
+  | { by: "none"; reason: string; auto_public?: boolean; supported_programs?: string[]; registered?: number };
 
 export type UploadResult = { sha256: string; identification: Identification; judge: Judge };
 

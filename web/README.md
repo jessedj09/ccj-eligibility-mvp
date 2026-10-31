@@ -16,7 +16,7 @@ npm run dev                                                      # http://localh
 ```
 
 API 주소는 `NEXT_PUBLIC_API_URL`(기본 `http://127.0.0.1:8000`). API는 `CCJ_CORS_ORIGINS`(기본 `http://localhost:3000`)의 화면만 받는다.
-미등록 공고 자동 판정을 화면에서 보려면 API를 `CCJ_AUTO_JUDGE_PUBLIC=1`로 띄운다(공개 전 기본 꺼짐).
+미등록 공고 자동 판정을 화면에서 보려면 API를 `CCJ_AUTO_JUDGE_PUBLIC=1`로 띄운다(코드 기본 꺼짐, 운영 Render는 켬 — 2026-11-01).
 
 ## 화면 점검
 

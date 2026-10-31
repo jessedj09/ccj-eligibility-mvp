@@ -72,6 +72,8 @@ def test_unregistered_is_not_judged_until_public(n12, unregistered, monkeypatch)
     monkeypatch.delenv(api.PUBLIC_ENV, raising=False)
     j = _post(n12).json()
     assert j["judge"]["by"] == "none" and j["identification"]["status"] == ni.UNREGISTERED
+    assert "공개 전" in j["judge"]["reason"] and j["judge"]["auto_public"] is False
+    assert "LH 청년매입임대" in j["judge"]["supported_programs"] and j["judge"]["registered"] == len(api.ALL_NOTICES)
     p = next(p for _, _, p in gc.cases(only=[("N12", "청년")]))
     r = client.post("/evaluate", json={"sha256": j["sha256"], "layer": "청년", "profile": _body(p)})
     assert r.status_code == 403
