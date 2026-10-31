@@ -13,7 +13,7 @@
 10) 주거약자용 주택형(C5a): 변형 계층에만 주거약자 유형 질문
 11) 장기전세2(C5b): 5년 무소유 질문은 그 사업에만
 12) 전체 공고 찾기 페이지(D): 범위가 갈리는 입력(본인 무주택·세대 주택 보유)으로 청년 계층이 신청 가능, 든든전세는 아님
-13) 접수 상태(D2): 기준일 2026.10.14.이면 접수 중인 공고만 보이고, 2026.10.22.이면(전부 마감) 안내가 나온다
+13) 접수 상태(D2): 기준일 2026.10.14.이면 접수 중·예정 공고만 보이고, 2026.11.13.이면(전부 마감) 안내가 나온다
 14) 내 조건 불러오기(D2b): 저장 파일 내용을 입력란에 채우면 그 프로필을 직접 판정한 것과 결과 수가 같다
 15) 공고 업로드(P0): 'PDF 올리기'를 고르면 판정 전에 업로드를 기다리고, 식별 결과(미등록·읽을 수 없음·다른 파일·등록)를
     그대로 그린다(AppTest는 파일 업로드를 흉내 낼 수 없어 식별 결과를 직접 넣는다). 판정 결과는 지원 가능/보류(원인)/지원 불가로 보인다
@@ -252,7 +252,8 @@ def main():
     assert gained - lost == num(scn[0].delta), (gained, lost, scn[0].delta)
     print("16) What-if: 한 조건 부족", len(near), "건(한도", len(limits), "개) | 세대 분리 → 새로 가능", gained, "· 빠짐", lost)
 
-    # 13) 접수 상태(D2) — 2026.10.14. 12:00에 접수 중: N4(~10.14)·N8·N18·N19(10.13~15)·N17(10.14~16)
+    # 13) 접수 상태(D2) — 2026.10.14. 12:00에 접수 중: N4(~10.14)·N8·N18·N19(10.13~15)·N17(10.14~16),
+    #     접수 예정: N27·N28(11월 접수 — B단계 등록). 2026.11.13.이면 보유 공고 전부 마감
     at.radio(key="m_view").set_value("접수 중·예정 공고만").run()
     at.date_input(key="m_at").set_value(date(2026, 10, 14)).run()
     assert not at.exception, at.exception
@@ -260,13 +261,15 @@ def main():
     labels = [e.label for e in at.expander if " | " in e.label]
     lines = [c.value for c in at.caption if c.value.split(" ")[0] in ("🟢", "🗓️", "⚫")]
     total = sum(int(m.value) for m in list(at.metric)[:3])
-    expect = sum(len(ALL_NOTICES[n].layers) for n in ("N4", "N8", "N17", "N18", "N19"))
+    opened, upcoming = ("N4", "N8", "N17", "N18", "N19"), ("N27", "N28")
+    expect = sum(len(ALL_NOTICES[n].layers) for n in opened + upcoming)
     assert total == expect, (total, expect)
-    assert all(x.startswith("🟢") for x in labels + lines) and labels + lines, (labels, lines)
-    at.date_input(key="m_at").set_value(date(2026, 10, 22)).run()
+    assert all(x.startswith(("🟢", "🗓️")) for x in labels + lines) and labels + lines, (labels, lines)
+    assert any(x.startswith("🗓️") for x in labels + lines), "접수 예정 공고(N27·N28)도 보인다"
+    at.date_input(key="m_at").set_value(date(2026, 11, 13)).run()
     assert any("접수 중이거나 접수 예정인 공고가 없습니다" in i.value for i in at.info)
     assert sum(int(m.value) for m in list(at.metric)[:3]) == 0
-    print("13) 접수 상태(D2): 10.14. 접수 중 공고 5건의 계층", total, "개만 표시 / 10.22. 전부 마감 안내")
+    print("13) 접수 상태(D2): 10.14. 접수 중 5건·예정 2건의 계층", total, "개만 표시 / 11.13. 전부 마감 안내")
 
     # 14) 불러오기(D2b) — 파일 업로드 대신 불러오기가 하는 일(widget_state → session_state)을 그대로 재현한다
     from matcher import MasterProfile, match_all
