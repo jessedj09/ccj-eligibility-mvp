@@ -172,7 +172,9 @@ Engine**이다.
   ④-2 API `POST /upload`(식별 → registered/confirm/analysis/none, 자동 분석은 `CCJ_AUTO_JUDGE_PUBLIC`일 때만), `/evaluate`에 `sha256`
   (올린 공고 — 메모리 → 저장소), 응답에 `display`·`checks`·`common_note`. 배포 `Dockerfile`(+`tools/warm_cache.py`)·`render.yaml`,
   CI `docker` 작업이 이미지를 띄워 확인. **API에 기능을 더하면 화면(Streamlit)과 같은 판정인지 테스트로 맞출 것.** `tests/test_d4_api_upload.py`.
-- pytest: 총 **902개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+  ④-3 PC 보강 작업기 `tools/worker.py`(enhance 작업 → `make_draft(slot=)`로 재분석, 나아졌을 때만 저장, 자동 확정이면 PDF 삭제·아니면 review,
+  Ollama 꺼짐이면 안 가져감, `--once`/`--status`). 실측: 지금 남는 보류는 LLM 경로 밖이라 나아짐 없음(⑤에서 경로 확대). `tests/test_d4_worker.py`.
+- pytest: 총 **911개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.
