@@ -34,5 +34,6 @@ npx playwright test               # API(8765)와 화면(3100)을 직접 띄워 P
 - `src/components/MatchList.tsx` — 전 공고 결과(3상태 묶음, 접수 중 → 예정 → 마감 순, 공고 카드)
 - `src/components/WhatIf.tsx` — 조건 하나만 부족한 공고(금액 한도)·시나리오 비교
 - `src/app/page.tsx` — 공고 판정(PDF 올리기 / 목록에서 고르기 → 계층 → 입력 → 판정)
+- `src/app/about/page.tsx` — 이용 안내(판정 범위·한계·개인정보 처리·올린 공고문 처리·이용 제한)
 - `src/app/find/page.tsx` — 내 조건으로 공고 찾기(`/match/form` 양식 → `/match` → What-if). 내 조건 파일(ccj-profile/1) 저장·불러오기는
   브라우저 안에서만(서버에 보내는 것은 판정 요청뿐, 저장하지 않음)

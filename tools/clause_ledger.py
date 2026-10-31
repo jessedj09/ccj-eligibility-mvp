@@ -44,7 +44,14 @@ DEFINITION = re.compile(r"(이란|란,|말함|말한다|의미|산정|산출|가
                         r"재산|정자료)")
 RANK = re.compile(r"\d순위")
 # 모든 공고에 붙는 일반 안내(자격 요건 전반·개인정보) — 강한 제한 표현이 들어 있어도 새 조건이 아니다
-BOILERPLATE = re.compile(r"(관계법령등에서정한|입주자격을유지|민감정보|본인정보제공|개인정보수집)")
+BOILERPLATE = re.compile(r"(관계법령등에서정한|입주자격을유지|민감정보|본인정보제공|개인정보수집|"
+                         # 공고 첫머리의 공급 계층 소개("…은 공고일 현재 다음 중 하나에 해당하는 사람에게 공급") — 계층마다 조건이 따로 있다
+                         r"다음중하나(?:의계층)?에해당하는(?:사람|자)에게공급)")
+# '■우선공급대상자' 절 — 일반공급 요건을 갖춘 사람 중 지역·배점으로 먼저 뽑는 몫. 판정은 일반공급 자격 기준이라 그 절의 지역요건 등은
+# 새 자격 조건이 아니다(B단계 2026-11-01: 새 공고의 '과천시에 거주하는 자'가 미분류로 남아 지원 가능을 모두 보류로 낮췄다).
+PRIORITY_HEAD = re.compile(r"^■[^■]{0,6}우선공급")
+# 접수 방법의 '현장 방문 신청 불가'는 강한 표현이지만 자격이 아니라 절차(N28 p.13) — 이 표현만 빼고 강한 제한을 본다
+VISIT_ONLY = re.compile(r"(?:현장방문|방문|현장)(?:신청|접수)(?:불가|할수없)")
 ENUM = re.compile(r"^([①-⑳]|\d+\)|\d(?=[「가-힣])|[가-하][.)]|\(\d+\)|-)")
 UNRELATED = {
     "서류": r"(서류|제출|발급|증명서|등본|초본|확인서|사본|증빙|동의서|원본|개인정보|마이데이터|주민등록번호|등록번호|서명|날인)",
@@ -53,6 +60,10 @@ UNRELATED = {
     "선정·순위": r"(감점|가점|배점|순번|추첨|선정방법|동점|예비입주자|예비자|당첨|순위별|배정|선정순서)",
     "안내": r"(주택관리번호|www|문의|콜센터|유의|참조|참고|바랍니다|안내|열람|게시|점심시간|공개시간|사전공개|시설물|승강기|"
             r"사다리차|일조권|조망권|철거|하자|혜택|관계법령|에어컨|실외기|소음|주택목록|공급주택|시세의)",
+    # 단지 시설·설계 안내(B단계 2026-11-01 — 건설형 공고 뒤쪽의 주차장·마감재·조명 문장이 '제외'·'불가'로 조건처럼 보였다)
+    "시설·단지": r"(주차장|주차대수|마감재|마감은|석재|도장|조명|스피커|발코니|천장|벽부형|미술작품|어린이집|관리사무소|"
+                 r"편의시설|부대복리시설|주민공동시설|커뮤니티|성능등급|교통편|지하철|경전철|GTX|단지내|단지계획|주동|세대내|"
+                 r"설치되며|설치됩니다|설치하여|인테리어)",
 }
 UNRELATED = {k: re.compile(v) for k, v in UNRELATED.items()}
 UNCLASSIFIED = "미분류"
@@ -160,8 +171,10 @@ class Known:
 def classify(units: Sequence[Tuple[int, str]], doc: Dict, known: Known) -> List[Tuple[int, str, str]]:
     """→ [(쪽, 문장, 분류)] — 조건처럼 보이지 않는 문장은 뺀다."""
     quotes, values = evidence_of(doc)
-    out, parent = [], None
+    out, parent, priority = [], None, False
     for page, u in units:
+        if u.startswith("■"):                 # 절이 바뀐다 — 우선공급 절인지
+            priority = bool(PRIORITY_HEAD.match(u))
         is_evidence = any(q in u or u in q for q in quotes) or any(v in u for v in values)
         if is_evidence:
             parent = page
@@ -184,8 +197,10 @@ def classify(units: Sequence[Tuple[int, str]], doc: Dict, known: Known) -> List[
         elif DEFINITION.search(u) and not STRONG.search(u):
             label = "무관:정의"
         else:
-            cat = None if STRONG.search(u) else next((k for k, rx in UNRELATED.items() if rx.search(u)), None)
+            cat = None if STRONG.search(VISIT_ONLY.sub("", u)) else next((k for k, rx in UNRELATED.items() if rx.search(u)), None)
             label = f"무관:{cat}" if cat else UNCLASSIFIED
+            if label == UNCLASSIFIED and priority and "모집하지않" not in u:
+                label = "무관:우선공급"
         out.append((page, u, label))
     return out
 

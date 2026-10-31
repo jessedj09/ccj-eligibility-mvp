@@ -560,7 +560,10 @@ def _happy_housing(pages, ann, sib, program, title_text, llm=None):
         Field(ABSENT, None, how="혼인 기준일 리터럴 없음 — 공고일에서 LH 관행으로 도출")
     lit_c, hit = None, None
     for i, t in enumerate(pages, 1):
-        for mm in re.finditer(r"(\d{4})\.(\d{1,2})\.(\d{1,2})\.?이후출생", t):
+        # "2019.10.2.이후출생" / "6세이하자녀(출생일2019.10.29.이후)"(N27 p.1)
+        for mm in re.finditer(r"(\d{4})\.(\d{1,2})\.(\d{1,2})\.?이후출생|출생일(\d{4})\.(\d{1,2})\.(\d{1,2})\.?이후", t):
+            if mm.group(1) is None:                        # 둘째 표기 — 같은 모양(연·월·일 그룹)으로 맞춘다
+                mm = re.match(r"출생일(\d{4})\.(\d{1,2})\.(\d{1,2})\.?이후", mm.group(0))
             d = _near_convention((i, mm.group(0), mm), ann, 7)
             if d:
                 lit_c, hit = d, (i, mm.group(0))
@@ -597,7 +600,8 @@ DISABLED = "「장애인복지법」 제2조제2항에 해당하는 장애인"
 
 
 def _happy_weak(pages, layers, heads) -> Field:
-    hit = find_text(pages, r"신혼부부·한부모가족[가-힣의 ]{0,12}요건을모두갖추고아래주거약?자의요건을갖춘(?:사람|자)")
+    # 가운뎃점 없이 쓴 공고도 있다(N28 p.9 "3-1.신혼부부한부모가족공급대상자의요건을…")
+    hit = find_text(pages, r"신혼부부[·ㆍ.]?한부모가족[가-힣의 ]{0,12}요건을모두갖추고아래주거약?자의요건을갖춘(?:사람|자)")
     if hit and {"신혼부부", "한부모"} <= set(layers):
         quotes = [hit[1]]
         if on_page(pages, DISABLED):

@@ -223,9 +223,12 @@ PLAN = {
     "N10": {"고령자": dict(builder="elderly", args=dict(home_quote=ELDER_HOME), anchor="고령자", hint=11),
             "주거급여수급자": dict(builder="housing_benefit", args=dict(home_quote="현재 무주택세대구성원인 주거급여수급자"),
                             anchor="주거급여수급자", hint=12)},
+    "N27": {"고령자": dict(builder="elderly", args=dict(home_quote=ELDER_HOME), anchor="고령자", hint=15),
+            "주거급여수급자": dict(builder="housing_benefit", args=dict(home_quote="현재 무주택세대구성원인 주거급여수급자"),
+                            anchor="주거급여수급자", hint=17)},
 }
 # 주거약자용 주택: C1·C2에서 미지원 목록에 빠뜨린 공고(주택형 축 — C5)
-HOUSING_WEAK = {"N6": 8, "N10": 12}
+HOUSING_WEAK = {"N6": 8, "N10": 12, "N27": 3}
 TABLE_SPECS = {
     "elderly_terms": dict(label="고령자 계층 출생자녀 가산 소득·자산 기준: 가구원수×출생자녀수 (결합표)",
                           columns=["size", "child"], rows=ELDERLY_ROWS),

@@ -61,3 +61,31 @@ def test_units_cache_round_trip(tmp_path, monkeypatch):
     monkeypatch.setattr(CL, "CACHE", tmp_path)
     first = CL.units_of_pdf(sv.pdf_path("N11"))
     assert list(tmp_path.glob("*.json")) and CL.units_of_pdf(sv.pdf_path("N11")) == first
+
+
+def test_priority_section_is_not_a_new_condition():
+    """'■우선공급대상자' 절의 지역요건은 일반공급 자격이 아니다 — 같은 문장이 일반공급 절에 있으면 그대로 미분류(새 조건 후보)."""
+    units = [(8, "■우선공급대상자입주자모집공고일(2026.10.28.)현재일반공급대상자의요건을모두갖추고아래지역요건을갖춘자"),
+             (8, "•지역요건행복주택이위치하는과천시에거주하는자"),
+             (9, "■일반공급대상자입주자모집공고일(2026.10.28.)현재무주택자로서아래의요건을모두갖춘자"),
+             (9, "•지역요건행복주택이위치하는과천시에거주하는자")]
+    doc = {"layers": {"청년": {"conditions": []}}, "tables": {}}
+    rows = [(page, label) for page, u, label in CL.classify(units, doc, CL.Known([])) if u.startswith("•지역요건")]
+    assert rows == [(8, "무관:우선공급"), (9, CL.UNCLASSIFIED)]
+
+
+def test_facility_notes_and_layer_intro_are_unrelated():
+    doc = {"layers": {"청년": {"conditions": []}}, "tables": {}}
+    units = [(40, "•본단지의지하주차장은각동과직접연결되는주동통합형이며전세대가위치에관계없이공동으로이용하여야하며"),
+             (1, "•과천지식정보타운S12블록행복주택은입주자모집공고일(2026.10.28.)현재다음중하나에해당하는사람에게공급됩니다."),
+             (5, "•서울특별시에2년이상거주하는자만신청할수있습니다")]
+    labels = [label for _, _, label in CL.classify(units, doc, CL.Known([]))]
+    assert labels[0].startswith("무관") and labels[1].startswith("무관") and labels[2] == CL.UNCLASSIFIED
+
+
+def test_visit_only_procedure_is_not_a_condition_but_other_strong_words_are():
+    doc = {"layers": {"청년": {"conditions": []}}, "tables": {}}
+    units = [(13, "*해당일제외현장방문신청불가교통편지하철(의정부경전철)어룡역1번출구약50M"),
+             (13, "*현장방문신청불가하며서울특별시거주자만신청가능")]
+    labels = [label for _, _, label in CL.classify(units, doc, CL.Known([]))]
+    assert labels[0].startswith("무관") and labels[1] == CL.UNCLASSIFIED

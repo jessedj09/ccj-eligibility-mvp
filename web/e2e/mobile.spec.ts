@@ -57,3 +57,12 @@ test("서버가 늦게 깨어나면 '서버 시동중' 안내를 보이고, 응�
   await page.getByTestId("notice-select").selectOption("N12");
   await expect(page.getByTestId("server-waking")).toHaveCount(0);
 });
+
+test("이용 안내: 판정 범위·한계·개인정보 처리를 보이고, 화면 아래에서 갈 수 있다", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "이용 안내·개인정보 처리" }).click();
+  await expect(page.getByRole("heading", { name: "이용 안내" })).toBeVisible();
+  await expect(page.getByText("입력한 조건(나이·소득·자산 등)은 저장하지 않습니다.")).toBeVisible();
+  await expect(page.getByText("최종 자격은 공고 기관(LH·SH)의 서류 심사로 확정")).toBeVisible();
+  await noSideScroll(page);
+});

@@ -34,6 +34,7 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         CCJ_STORE: "off",
+        CCJ_UPLOAD_PER_HOUR: "0", // 화면 점검은 같은 PC에서 여러 번 올린다 — 업로드 횟수 제한은 API 시험이 따로 본다
         CCJ_CORS_ORIGINS: `http://127.0.0.1:${WEB_PORT},http://localhost:${WEB_PORT}`,
         PYTHONIOENCODING: "utf-8",
       },

@@ -7,12 +7,15 @@
   (다시 내려받기·정정·재게시)일 수 있다. 정정 공고면 조건이 바뀌었을 수 있으므로 사용자가 확인한 뒤에만 판정한다.
 - UNREGISTERED: 등록 공고가 아니다 → 판정하지 않고 공고일·접수기간·사업 유형 후보만 보인다.
 - UNREADABLE: PDF가 아니거나 글자를 읽을 수 없다(스캔 이미지 등).
+- NOT_NOTICE: 글자는 읽히지만 입주자모집공고문이 아니다(당첨자 명단·안내문 등 — 앞쪽에 모집 공고 표현이 없음).
 
 식별에 쓰는 값은 등록 규칙 데이터(공고일·사업·제목·원문 sha256)뿐이라 배포 서버에서 등록 PDF를 다시 읽지 않는다.
 업로드 파일은 디스크에 남기지 않는다.
 """
 import hashlib
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from functools import lru_cache
+from pathlib import Path
 from datetime import date
 from typing import Dict, List, Optional
 
@@ -20,8 +23,8 @@ import notice_candidates as nc
 import source_verify as sv
 from rule_data import load_notice, notice_ids
 
-REGISTERED, SAME_NOTICE_OTHER_FILE, UNREGISTERED, UNREADABLE = (
-    "REGISTERED", "SAME_NOTICE_OTHER_FILE", "UNREGISTERED", "UNREADABLE")
+REGISTERED, SAME_NOTICE_OTHER_FILE, UNREGISTERED, UNREADABLE, NOT_NOTICE = (
+    "REGISTERED", "SAME_NOTICE_OTHER_FILE", "UNREGISTERED", "UNREADABLE", "NOT_NOTICE")
 
 
 @dataclass
@@ -55,6 +58,10 @@ def identify_pages(sha: str, pages: List[str]) -> Identification:
     if not any(p.strip() for p in pages):
         return Identification(UNREADABLE, sha256=sha, pages=len(pages),
                               reason="글자를 읽을 수 없는 PDF입니다(스캔 이미지일 수 있음). 글자가 선택되는 PDF로 올려 주세요.")
+    if not nc.looks_like_notice(pages):
+        return Identification(NOT_NOTICE, sha256=sha, pages=len(pages),
+                              reason="입주자모집공고문이 아닌 것 같습니다(당첨자 명단·안내문 등). LH 청약플러스·SH 인터넷청약에서 "
+                                     "내려받은 입주자모집공고문 PDF를 올려 주세요.")
     issuer, program = nc.classify(pages)
     anns = nc.announcement_candidates(pages)
     ann = anns[0]["date"] if anns else None
@@ -84,14 +91,42 @@ def identify_pages(sha: str, pages: List[str]) -> Identification:
     return Identification(UNREGISTERED, reason="아직 등록되지 않은 공고입니다.", **base)
 
 
-def identify_pdf(data: bytes) -> Identification:
-    sha = hashlib.sha256(data).hexdigest()
+def registered_ident(sha: str) -> Optional[Identification]:
+    """지문이 등록 공고의 원문과 같으면 그 공고 — PDF를 읽지 않는다."""
     for nid in notice_ids():
         if sv.notice_doc(nid)["source"]["sha256"] == sha:
             n = load_notice(nid)
             return Identification(REGISTERED, nid, reason=f"등록 공고 {nid}({n.title})의 원문과 같은 파일입니다.",
                                   sha256=sha, issuer=n.meta.get("issuer"), program=n.meta.get("program"),
                                   announcement=str(n.announcement_date))
+    return None
+
+
+@lru_cache(maxsize=1)
+def ident_version() -> str:
+    """식별 결과의 판 — 식별 코드(이 모듈·notice_candidates)와 등록 공고(번호·원문 지문)가 바뀌면 달라진다.
+    저장해 둔 식별 결과(공유 저장소 identifications)는 같은 판일 때만 다시 쓴다."""
+    h = hashlib.sha256()
+    for mod in (__file__, nc.__file__):
+        h.update(Path(mod).read_bytes())
+    for nid in notice_ids():
+        h.update(f"{nid}:{sv.notice_doc(nid)['source']['sha256']}".encode())
+    return "i1-" + h.hexdigest()[:12]
+
+
+def to_dict(ident: Identification) -> Dict:
+    return asdict(ident)
+
+
+def from_dict(d: Dict) -> Identification:
+    return Identification(**d)
+
+
+def identify_pdf(data: bytes) -> Identification:
+    sha = hashlib.sha256(data).hexdigest()
+    hit = registered_ident(sha)
+    if hit is not None:
+        return hit
     try:
         pages = sv.extract_pages_bytes(data, label="<업로드>", cache=False)
     except ValueError:

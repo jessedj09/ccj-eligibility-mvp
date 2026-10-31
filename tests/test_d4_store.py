@@ -186,3 +186,55 @@ def test_db_usage_counts_without_personal_data(db):
     cols = db._run(lambda c: c.execute(
         "SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema()").fetchall())
     assert not {"ip", "profile", "name", "birth"} & {c[0] for c in cols}
+
+
+@needs_db
+def test_db_identification_cache(db):
+    """식별 결과는 같은 파일·같은 식별 판일 때만 다시 쓴다(A2)."""
+    data = {"status": "UNREGISTERED", "program": "행복주택", "windows": [{"start": "2026-11-10T10:00"}]}
+    assert db.save_ident("s1", "i1-a", data) and db.get_ident("s1", "i1-a") == data
+    assert db.get_ident("s1", "i1-b") is None
+    assert db.save_ident("s1", "i1-a", {"status": "다른 값"}) and db.get_ident("s1", "i1-a") == data   # 처음 것 유지
+
+
+@needs_db
+def test_db_program_health_demotes_on_danger(db):
+    """비교에서 위험이 1건이라도 나오면 그 사업을 바로 멈추고, 다시 켜는 것은 운영자만(A3)."""
+    assert db.record_comparison("lh.youth_rental", same=5, cautious=1) and db.demoted_programs() == frozenset()
+    assert db.record_comparison("lh.youth_rental", same=2, danger=1)
+    assert db.demoted_programs() == {"lh.youth_rental"}
+    row = db.program_health()[0]
+    assert (row["compared"], row["same"], row["cautious"], row["danger"]) == (9, 7, 1, 1)
+    assert db.record_comparison("lh.youth_rental", same=3) and db.demoted_programs() == {"lh.youth_rental"}  # 저절로 풀리지 않음
+    assert db.set_demoted("lh.youth_rental", False) and db.demoted_programs() == frozenset()
+    assert db.set_demoted("sh.jeonse", True) and db.demoted_programs() == {"sh.jeonse"}
+
+
+def test_null_store_has_no_cache_and_pauses_nothing():
+    s = S.NullStore()
+    assert s.get_ident("x", "v") is None and s.demoted_programs() == frozenset() and s.program_health() == []
+
+
+@needs_db
+def test_db_operator_review_queue(db):
+    """운영자 검토 화면(C8): 작업 목록(공고 정보·PDF 여부), 운영자가 끝내기, 최근 분석, 이용 집계."""
+    db.save_notice("r1", issuer="LH", program="행복주택", announcement_date="2026-10-28")
+    db.save_notice("r2", issuer="SH", program="토지임대부 분양주택")
+    assert db.enqueue("r1", "review", priority=3) and db.enqueue("r2", "review", priority=1)
+    db.put_pdf("r1", b"%PDF-1 test")
+    jobs = db.list_jobs(kind="review", status="pending")
+    assert [j["sha256"] for j in jobs] == ["r1", "r2"] and jobs[0]["has_pdf"] and not jobs[1]["has_pdf"]
+    assert jobs[0]["program"] == "행복주택"
+    assert db.close_job(jobs[1]["id"], "failed", "분양 — 다음 단계")
+    assert [j["sha256"] for j in db.list_jobs(status="pending")] == ["r1"]
+    assert db.list_jobs(status="failed")[0]["error"] == "분양 — 다음 단계"
+    db.save_analysis("r1", "v-old", {"status": "unsupported", "reason": "이유"})
+    db.save_analysis("r1", "v-new", {"status": "ok", "reason": ""})
+    assert db.latest_snapshot("r1")["status"] == "ok" and db.latest_snapshot("없음") is None
+    db.count("uploads", 2)
+    assert db.usage(3)[0]["uploads"] == 2
+
+
+def test_null_store_review_queue_is_empty():
+    s = S.NullStore()
+    assert s.list_jobs() == [] and s.usage() == [] and s.latest_snapshot("x") is None and s.close_job(1, "done") is False

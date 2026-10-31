@@ -18,9 +18,10 @@
 판정 로직은 갖지 않는다(src/의 엔진·매처·자동 분석을 그대로 호출). 서버는 받은 프로필을 저장하지 않는다.
 올린 PDF는 LH·SH 공고로 식별되고 후속 작업(보강·검토)이 필요할 때만 공유 저장소에 잠시 둔다(src/analysis.py).
 설정(환경변수): DATABASE_URL(공유 저장소 — 없으면 저장 없이 동작), CCJ_AUTO_JUDGE_PUBLIC(미등록 공고 자동 판정 공개, 기본 꺼짐),
-CCJ_CORS_ORIGINS(화면 주소, 쉼표로 여럿 — 기본 http://localhost:3000).
+CCJ_CORS_ORIGINS(화면 주소, 쉼표로 여럿 — 기본 http://localhost:3000), CCJ_UPLOAD_PER_HOUR(접속자당 시간당 업로드 상한, 기본 0 = 제한 없음).
 """
 import dataclasses
+import hashlib
 import os
 import sys
 import threading
@@ -31,13 +32,14 @@ from typing import Any, Dict, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from fastapi import FastAPI, File, HTTPException, UploadFile  # noqa: E402
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
 from display_status import COMMON_NOTE, display, display_checks  # noqa: E402
 from explainability import explain  # noqa: E402
 from matcher import match_all, missing_inputs  # noqa: E402
+import notice_identify as ni  # noqa: E402
 from notice_identify import REGISTERED, SAME_NOTICE_OTHER_FILE, UNREGISTERED, identify_pdf  # noqa: E402
 from notices_data import ALL_NOTICES  # noqa: E402
 from profile_io import ProfileFormatError, household_from_dict, master_from_dict  # noqa: E402
@@ -53,6 +55,11 @@ app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.environ.
 
 PUBLIC_ENV = "CCJ_AUTO_JUDGE_PUBLIC"
 MAX_UPLOAD = 20 * 1024 * 1024
+# 업로드 횟수 제한(C9) — 같은 접속자(IP) 기준 한 시간에 UPLOAD_PER_HOUR건. **기본 0 = 제한 없음**(2026-11-01 사용자 결정 — 필요해지면
+# 환경변수로 켠다). IP는 이 프로세스 메모리에만 잠깐 두고(해시) 저장하지 않는다 — 재시작하면 사라진다.
+UPLOAD_PER_HOUR = int(os.environ.get("CCJ_UPLOAD_PER_HOUR", "0"))
+_uploads: Dict[str, list] = {}
+_uploads_lock = threading.Lock()
 KEEP_DRAFTS = 64          # 올린 공고의 분석 결과를 프로세스에 둘 개수(저장소가 없어도 올린 뒤 판정할 수 있게)
 _drafts: "OrderedDict[str, object]" = OrderedDict()
 _drafts_lock = threading.Lock()
@@ -154,8 +161,57 @@ def _ident_json(ident) -> Dict[str, Any]:
             "similar": ident.similar}
 
 
+def _identify(data: bytes, store):
+    """식별 — 같은 파일을 전에 식별했으면(공유 저장소, 같은 식별 판) PDF를 다시 읽지 않는다. 큰 공고는 읽는 데 수십 초라
+    여러 사용자가 같은 공고를 올릴 때 처음 한 번만 기다리게(A2). 등록 공고 원문은 지문만으로 알아보므로 저장하지 않는다."""
+    sha, version = hashlib.sha256(data).hexdigest(), ni.ident_version()
+    hit = store.get_ident(sha, version)
+    if hit is not None:
+        try:
+            return ni.from_dict(hit)
+        except TypeError:
+            pass                          # 형식이 다른 저장본은 무시하고 다시 식별
+    ident = identify_pdf(data)
+    if ident.status != REGISTERED:
+        store.save_ident(sha, version, ni.to_dict(ident))
+    return ident
+
+
+def _paused(d, store) -> bool:
+    """그 사업(템플릿)의 자동 판정을 멈췄는가 — 비교에서 위험이 나와 자동 강등됐거나 운영자가 멈춤(A3, program_health)."""
+    return bool(d is not None and d.template and d.template in store.demoted_programs())
+
+
+PAUSED = "이 사업({})은 정확도 점검 중이라 자동 판정을 잠시 멈췄습니다. 점검이 끝나면 다시 판정합니다."
+
+
+def _client(request: Request) -> str:
+    """접속자 구분(해시) — 호스팅의 프록시 뒤에서는 X-Forwarded-For의 첫 주소."""
+    ip = (request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+          or (request.client.host if request.client else ""))
+    return hashlib.sha256(ip.encode()).hexdigest()[:16]
+
+
+def _rate_limit(request: Request) -> None:
+    if UPLOAD_PER_HOUR <= 0:
+        return
+    import time
+    now, key = time.time(), _client(request)
+    with _uploads_lock:
+        recent = [t for t in _uploads.get(key, []) if now - t < 3600]
+        if len(recent) >= UPLOAD_PER_HOUR:
+            wait = int(3600 - (now - recent[0])) // 60 + 1
+            raise HTTPException(429, f"한 시간에 {UPLOAD_PER_HOUR}건까지 올릴 수 있습니다. 약 {wait}분 뒤에 다시 올려 주세요. "
+                                     "등록된 공고는 '목록에서 고르기'로 바로 판정할 수 있습니다.")
+        recent.append(now)
+        _uploads[key] = recent
+        if len(_uploads) > 10_000:                      # 오래된 접속자 정리(메모리 상한)
+            for k in [k for k, v in _uploads.items() if now - v[-1] >= 3600]:
+                del _uploads[k]
+
+
 @app.post("/upload")
-def upload(file: UploadFile = File(...)):
+def upload(request: Request, file: UploadFile = File(...)):
     """공고문 PDF → 식별 → 등록 공고면 그 공고의 검증된 규칙, 미등록이면 자동 분석(공개했을 때)으로 판정할 수 있는지.
     판정은 /evaluate(notice_id 또는 sha256). judge.by: registered / confirm(같은 공고의 다른 파일 — 사용자가 확인한 뒤 notice_id로) /
     analysis / none(판정할 수 없음 — reason)."""
@@ -164,8 +220,9 @@ def upload(file: UploadFile = File(...)):
         raise HTTPException(413, "파일이 너무 큽니다(20MB까지).")
     if not data.startswith(b"%PDF"):
         raise HTTPException(422, "PDF 파일이 아닙니다. 공고문 PDF를 올려 주세요.")
-    ident = identify_pdf(data)
+    _rate_limit(request)                 # 형식 오류는 세지 않는다 — 실제로 읽는 업로드만
     store = get_store()
+    ident = _identify(data, store)
     store.count("uploads")
     body = {"sha256": ident.sha256, "identification": _ident_json(ident)}
     if ident.status in (REGISTERED, SAME_NOTICE_OTHER_FILE):
@@ -179,10 +236,13 @@ def upload(file: UploadFile = File(...)):
     if ident.status == UNREGISTERED and auto_public():
         import analysis
         d = analysis.analyze(data, ident, store)
-    if d is None or d.notice is None:
+    paused = _paused(d, store)
+    if d is None or d.notice is None or paused:
         import draft
         store.count("unjudged")
-        if d is not None:
+        if paused:
+            reason = PAUSED.format(d.program)
+        elif d is not None:
             reason = d.reason
         elif ident.status == UNREGISTERED:
             reason = "새 공고 자동 판정은 아직 공개 전입니다."
@@ -242,6 +302,8 @@ def _target(notice_id: Optional[str], sha256: Optional[str], layer: str):
         d = _draft_for(sha256)
         if d is None or d.notice is None:
             raise HTTPException(404, "이 공고의 분석 결과가 없습니다. 공고문을 다시 올려 주세요(/upload).")
+        if _paused(d, get_store()):
+            raise HTTPException(403, PAUSED.format(d.program))
         notice, where = d.notice, "이 공고"
     else:
         d, notice, where = None, ALL_NOTICES.get(notice_id), notice_id

@@ -182,8 +182,14 @@ Engine**이다.
   API `GET /match/form`·`/match`(+3상태·접수 일정·near_misses)·`POST /whatif`(시나리오 — src/whatif.py 그대로). 저장 파일은 브라우저 안에서만.
   `tests/test_d4_match.py`, `web/e2e/find.spec.ts`.
   배포: API Render `ccj-api`(master 자동, 무료 — 15분 쉬면 잠듦) · 화면 Vercel(Root `web`). 화면은 열 때 서버를 깨우고 늦으면 '서버 시동중' 안내.
+  A단계(2026-11-01): 사업 이름표 확대·NOT_NOTICE(`notice_candidates`), 업로드 한 번 읽기·식별 캐시(`identifications`),
+  사업별 자동 강등(`program_health` — `draft_compare --record`, `tools/program_health.py`). 상세 docs/10 A단계.
+  B단계(2026-11-01): 새 행복주택 공고 N27(과천 S12)·N28(구리갈매) 등록 — 얼린 초안과 B2 비교 위험 0. 조항 장부 우선공급 절·시설 안내,
+  추출기 '출생일…이후'·가운뎃점 없는 주거약자 문구 보강. 상세 docs/10 B단계.
+  C단계(2026-11-01): 운영자 검토 화면 `pages/9_운영자_검토.py`(대기열·사업별 멈춤·집계), 업로드 횟수 제한(`CCJ_UPLOAD_PER_HOUR`, 기본 0 = 꺼짐 —
+  사용자 결정, IP 저장 안 함), 이용 안내 `web /about`.
   모바일 웹 = 같은 화면 반응형(lg 미만 1단). **화면을 고치면 PC·휴대폰 둘 다 점검**(Playwright pc-chromium·mobile-chromium, `e2e/mobile.spec.ts`).
-- pytest: 총 **926개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+- pytest: 총 **965개 전부 통과**(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

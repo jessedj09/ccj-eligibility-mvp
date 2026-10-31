@@ -4,7 +4,7 @@ export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:80
 export type Window = { start: string; end: string; page: number };
 
 export type Identification = {
-  status: "REGISTERED" | "SAME_NOTICE_OTHER_FILE" | "UNREGISTERED" | "UNREADABLE";
+  status: "REGISTERED" | "SAME_NOTICE_OTHER_FILE" | "UNREGISTERED" | "UNREADABLE" | "NOT_NOTICE";
   notice_id: string | null;
   reason: string;
   issuer: string | null;

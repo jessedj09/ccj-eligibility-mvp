@@ -6,6 +6,8 @@
     s.save_analysis(sha, version, snapshot, grade)
     s.enqueue(sha, "enhance")  /  job = s.claim("enhance")  /  s.finish(job.id, ok)
     s.put_pdf(sha, data)  /  s.get_pdf(sha)  /  s.delete_pdf(sha)
+    s.save_ident(sha, version, data)  /  s.get_ident(sha, version)   # 식별 결과 — 같은 파일을 다시 읽지 않게(A2)
+    s.record_comparison(program, same, cautious, danger)  /  s.demoted_programs()   # 사업별 정확도·자동 강등(A3)
 
 - DB는 원본이 아니다(원본 = git의 검증된 규칙 + 공고 원문). 공유 캐시·작업 대기열·분석 중 PDF만 둔다.
 - 사용자 조건·판정 결과·IP는 저장하지 않는다(usage_daily는 날짜별 건수만).
@@ -78,6 +80,11 @@ CREATE TABLE IF NOT EXISTS program_health (
     cautious int NOT NULL DEFAULT 0, danger int NOT NULL DEFAULT 0,
     demoted_at timestamptz
 );
+CREATE TABLE IF NOT EXISTS identifications (
+    sha256 text NOT NULL, version text NOT NULL, data jsonb NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (sha256, version)
+);
 CREATE TABLE IF NOT EXISTS usage_daily (
     day date PRIMARY KEY,
     uploads int NOT NULL DEFAULT 0, judged int NOT NULL DEFAULT 0, unjudged int NOT NULL DEFAULT 0
@@ -125,6 +132,16 @@ class NullStore:
     def delete_pdf(self, sha): return False
     def purge_expired(self): return 0
     def count(self, what, n=1): return False
+    def save_ident(self, sha, version, data): return False
+    def get_ident(self, sha, version): return None
+    def record_comparison(self, program, same=0, cautious=0, danger=0): return False
+    def set_demoted(self, program, demoted): return False
+    def demoted_programs(self): return frozenset()
+    def program_health(self): return []
+    def list_jobs(self, kind=None, status=None, limit=100): return []
+    def close_job(self, job_id, status, note=""): return False
+    def latest_snapshot(self, sha): return None
+    def usage(self, days=14): return []
 
 
 def _safe(default):
@@ -305,6 +322,89 @@ class Store(NullStore):
             f"""INSERT INTO usage_daily (day, {what}) VALUES ((now() AT TIME ZONE 'Asia/Seoul')::date, %s)
                 ON CONFLICT (day) DO UPDATE SET {what} = usage_daily.{what} + EXCLUDED.{what}""", (n,)))
         return True
+
+    @_safe(False)
+    def save_ident(self, sha, version, data: Dict) -> bool:
+        """식별 결과(공고문 PDF에서 읽은 사업·공고일·접수기간 — 공개 정보, 개인정보 없음). version = 식별 코드·등록 공고 판."""
+        self._run(lambda c: c.execute(
+            "INSERT INTO identifications (sha256, version, data) VALUES (%s, %s, %s::jsonb) ON CONFLICT DO NOTHING",
+            (sha, version, json.dumps(data, ensure_ascii=False))))
+        return True
+
+    @_safe(None)
+    def get_ident(self, sha, version) -> Optional[Dict]:
+        row = self._run(lambda c: c.execute(
+            "SELECT data FROM identifications WHERE sha256 = %s AND version = %s", (sha, version)).fetchone())
+        return row[0] if row else None
+
+    @_safe(False)
+    def record_comparison(self, program, same=0, cautious=0, danger=0) -> bool:
+        """사업(템플릿)별 B2 비교 결과를 더한다(초안 판정 vs 등록 판정 — tools/draft_compare). **위험이 1건이라도 나오면 그 사업의
+        자동 판정을 바로 멈춘다**(demoted_at) — 다시 켜는 것은 운영자(set_demoted False)만."""
+        self._run(lambda c: c.execute(
+            """INSERT INTO program_health (program, compared, same, cautious, danger, demoted_at)
+               VALUES (%s, %s, %s, %s, %s, CASE WHEN %s > 0 THEN now() END)
+               ON CONFLICT (program) DO UPDATE SET compared = program_health.compared + EXCLUDED.compared,
+                 same = program_health.same + EXCLUDED.same, cautious = program_health.cautious + EXCLUDED.cautious,
+                 danger = program_health.danger + EXCLUDED.danger,
+                 demoted_at = COALESCE(program_health.demoted_at, EXCLUDED.demoted_at)""",
+            (program, same + cautious + danger, same, cautious, danger, danger)))
+        return True
+
+    @_safe(False)
+    def set_demoted(self, program, demoted: bool) -> bool:
+        self._run(lambda c: c.execute(
+            """INSERT INTO program_health (program, demoted_at) VALUES (%s, CASE WHEN %s THEN now() END)
+               ON CONFLICT (program) DO UPDATE SET demoted_at = CASE WHEN %s THEN COALESCE(program_health.demoted_at, now())
+                                                                     END""", (program, demoted, demoted)))
+        return True
+
+    @_safe(frozenset())
+    def demoted_programs(self) -> frozenset:
+        rows = self._run(lambda c: c.execute("SELECT program FROM program_health WHERE demoted_at IS NOT NULL").fetchall())
+        return frozenset(r[0] for r in rows)
+
+    @_safe([])
+    def program_health(self) -> list:
+        rows = self._run(lambda c: c.execute(
+            "SELECT program, compared, same, cautious, danger, demoted_at FROM program_health ORDER BY program").fetchall())
+        return [dict(zip(("program", "compared", "same", "cautious", "danger", "demoted_at"), r)) for r in rows]
+
+    # ---- 운영자 검토 화면(C8 — pages/9_운영자_검토.py) ----
+    @_safe([])
+    def list_jobs(self, kind=None, status=None, limit=100) -> list:
+        """작업 목록 + 공고 정보 + PDF 보관 여부(최근 것부터). kind·status로 거른다."""
+        rows = self._run(lambda c: c.execute(
+            """SELECT j.id, j.sha256, j.kind, j.status, j.priority, j.attempts, j.error, j.updated_at,
+                      n.issuer, n.program, n.title, n.announcement_date, n.first_seen, (b.sha256 IS NOT NULL)
+               FROM jobs j JOIN notices n ON n.sha256 = j.sha256 LEFT JOIN pdf_blobs b ON b.sha256 = j.sha256
+               WHERE (%s::text IS NULL OR j.kind = %s) AND (%s::text IS NULL OR j.status = %s)
+               ORDER BY j.status = 'done', j.priority DESC, j.id DESC LIMIT %s""",
+            (kind, kind, status, status, limit)).fetchall())
+        keys = ("id", "sha256", "kind", "status", "priority", "attempts", "error", "updated_at", "issuer", "program", "title",
+                "announcement_date", "first_seen", "has_pdf")
+        return [dict(zip(keys, r)) for r in rows]
+
+    @_safe(False)
+    def close_job(self, job_id, status, note="") -> bool:
+        """운영자가 작업을 끝낸다 — done(검토·등록 완료) 또는 failed(판정할 수 없음 — 사유). 작업기의 재시도와 무관."""
+        assert status in ("done", "failed"), status
+        self._run(lambda c: c.execute("UPDATE jobs SET status = %s, error = %s, updated_at = now() WHERE id = %s",
+                                      (status, note or None, job_id)))
+        return True
+
+    @_safe(None)
+    def latest_snapshot(self, sha) -> Optional[Dict]:
+        """그 공고의 가장 최근 분석(엔진 판과 무관 — 운영자가 무엇이 보류됐는지 보려고)."""
+        row = self._run(lambda c: c.execute(
+            "SELECT snapshot FROM analyses WHERE sha256 = %s ORDER BY id DESC LIMIT 1", (sha,)).fetchone())
+        return row[0] if row else None
+
+    @_safe([])
+    def usage(self, days=14) -> list:
+        rows = self._run(lambda c: c.execute(
+            "SELECT day, uploads, judged, unjudged FROM usage_daily ORDER BY day DESC LIMIT %s", (days,)).fetchall())
+        return [dict(zip(("day", "uploads", "judged", "unjudged"), r)) for r in rows]
 
 
 _store = None
