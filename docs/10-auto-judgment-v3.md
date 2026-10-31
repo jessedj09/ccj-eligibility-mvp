@@ -229,3 +229,17 @@ N20·N26 순위 정의 문장(신생아 가구 1순위·자치구 거주 1·2순
 - 시험 `tests/test_d4_store.py`: DB 없음·닿지 않는 DB에서도 결과 같음, 저장 → 재사용, 판 변경, 실제 PostgreSQL(대기열 중복 없이 가져가기·
   재시도·PDF 상한·익명 집계)은 `TEST_DATABASE_URL`이 있을 때 임시 스키마에서(CI는 postgres 서비스). 다른 테스트·화면 점검은 운영 DB를
   쓰지 않는다(conftest·ui_fixture에서 NullStore).
+
+### ④-2 판정 API 업로드 판정 · Docker (2026-10-31)
+- `api/main.py`(기존 D2b API 확장 — 새 공개 화면(Next.js)이 부를 입구):
+  - `POST /upload`(PDF, 20MB까지): 식별 → `judge.by` = registered(검증된 규칙) / confirm(같은 공고의 다른 파일 — 사용자 확인 후
+    notice_id로) / analysis(자동 분석 — 공개 스위치 `CCJ_AUTO_JUDGE_PUBLIC`가 켜졌을 때만, 계층 목록·계층 등급) / none(이유).
+  - `POST /evaluate`: `notice_id` 또는 `sha256`(올린 공고). 올린 공고는 화면과 같은 `grading.judge`(사용자 단위 확정).
+    분석 결과는 프로세스 메모리(최근 64건) → 없으면 공유 저장소(같은 엔진 판)에서 — 서버가 다시 떠도 다시 올리지 않아도 된다.
+  - 응답에 화면 3상태(`display`)·원문 확인할 곳(`checks`)·공통 문구(`common_note`)를 함께 — 화면은 판정 로직 없이 보여 주기만.
+  - CORS `CCJ_CORS_ORIGINS`, 일 단위 익명 집계(uploads·judged·unjudged).
+- 배포: `Dockerfile`(python 3.12-slim, 이미지를 만들 때 `tools/warm_cache.py`로 등록 공고 원문 추출 캐시를 채움, 일반 사용자로 실행,
+  `PORT` 환경변수), `.dockerignore`(비밀 정보·로컬 캐시·기획서 제외), `render.yaml`(Render 블루프린트 — 싱가포르, 개발 중 free →
+  베타 때 starter, 비밀 값은 대시보드에서). CI에 `docker` 작업 — 이미지를 만들고 띄워 /health·/upload·/evaluate 확인.
+- 시험 `tests/test_d4_api_upload.py`: 등록 공고 업로드, PDF 아님·용량 초과, 공개 전 판정 거절(403), 미등록으로 취급한 N12 업로드 →
+  판정 = 등록 규칙 판정, 서버 재시작 뒤 저장소에서 분석 읽기, 보류 조건의 확인할 곳이 응답에 옴.

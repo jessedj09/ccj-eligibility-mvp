@@ -53,3 +53,33 @@ jobs:
       - run: pip install -r requirements.txt
       - name: UI smoke
         run: python tools/ui_smoke.py
+
+  docker:
+    # 판정 API 배포 이미지(Render와 같은 Dockerfile)가 만들어지고, 떠서 업로드 판정까지 되는지.
+    needs: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build
+        run: docker build -t ccj-api .
+      - name: Run and check
+        run: |
+          docker run -d --name api -p 8000:8000 -e PORT=8000 ccj-api
+          for i in $(seq 1 30); do curl -sf localhost:8000/health && break; sleep 2; done
+          curl -sf localhost:8000/health
+          docker exec -i api python - <<'PY'
+          import sys, httpx
+          sys.path.insert(0, "src")
+          import source_verify as sv
+          p = sv.pdf_path("N12")
+          j = httpx.post("http://127.0.0.1:8000/upload", files={"file": (p.name, p.read_bytes(), "application/pdf")}, timeout=120).json()
+          assert j["judge"]["by"] == "registered" and j["judge"]["notice_id"] == "N12", j
+          body = {"age": 25, "marital_status": "미혼", "home_ownership": "무주택", "household_size": 1}
+          r = httpx.post("http://127.0.0.1:8000/evaluate", json={"notice_id": "N12", "layer": "청년", "profile": body}, timeout=60).json()
+          assert r["display"]["group"] and r["common_note"], r
+          print("upload →", j["judge"]["by"], "| evaluate →", r["verdict"])
+          PY
+      - name: Logs
+        if: always()
+        run: docker logs api || true

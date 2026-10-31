@@ -1,0 +1,18 @@
+# Render 블루프린트 — 판정 API(Docker). Render 대시보드 → New → Blueprint에서 이 저장소를 고르면 만들어진다.
+# 비밀 값(DATABASE_URL·CCJ_CORS_ORIGINS)은 sync: false — 대시보드에서 직접 넣는다(저장소에 두지 않음).
+services:
+  - type: web
+    name: ccj-api
+    runtime: docker
+    region: singapore          # Neon(AWS 싱가포르)과 같은 지역
+    plan: free                 # 개발·시험 중 무료(15분 쉬면 잠듦) → 베타 공개 때 starter(월 $7, 잠들지 않음)
+    branch: master
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: CCJ_CORS_ORIGINS
+        sync: false
+      - key: CCJ_AUTO_JUDGE_PUBLIC
+        value: "0"             # 베타 공개 기준을 충족하면 1
