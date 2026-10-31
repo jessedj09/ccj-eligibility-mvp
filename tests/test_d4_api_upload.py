@@ -187,3 +187,20 @@ def test_paused_program_is_not_judged(n12, unregistered, monkeypatch):
     p = next(p for _, _, p in gc.cases(only=[("N12", "청년")]))
     r = client.post("/evaluate", json={"sha256": j["sha256"], "layer": "청년", "profile": _body(p)})
     assert r.status_code == 403 and "정확도 점검 중" in r.json()["detail"]
+
+
+def test_upload_rate_limit_per_client(monkeypatch):
+    """한 접속자가 한 시간에 정해진 수보다 많이 올리면 429 — 형식이 틀린 파일은 세지 않는다(C9). IP는 저장하지 않는다."""
+    monkeypatch.setattr(api, "UPLOAD_PER_HOUR", 2)
+    monkeypatch.setattr(api, "_uploads", {})
+    monkeypatch.setattr(api, "identify_pdf", lambda data: ni.Identification(ni.NOT_NOTICE, sha256="x", reason="(시험)"))
+    pdf = b"%PDF-1.7 test"
+    a = {"X-Forwarded-For": "203.0.113.5, 10.0.0.1"}
+    b = {"X-Forwarded-For": "198.51.100.7"}
+    assert client.post("/upload", files={"file": ("a.txt", b"hello", "text/plain")}, headers=a).status_code == 422
+    for _ in range(2):
+        assert client.post("/upload", files={"file": ("n.pdf", pdf, "application/pdf")}, headers=a).status_code == 200
+    r = client.post("/upload", files={"file": ("n.pdf", pdf, "application/pdf")}, headers=a)
+    assert r.status_code == 429 and "한 시간에 2건" in r.json()["detail"]
+    assert client.post("/upload", files={"file": ("n.pdf", pdf, "application/pdf")}, headers=b).status_code == 200
+    assert all("203.0.113.5" not in k for k in api._uploads)

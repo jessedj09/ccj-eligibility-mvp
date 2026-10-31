@@ -24,7 +24,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ServerWaking />
         <div className="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-8">{children}</div>
         <footer className="mx-auto max-w-7xl px-4 pb-10 text-xs text-slate-500 sm:px-8">
-          판정 근거는 조건별로 표시한 공고문 원문입니다. 최종 자격은 공고 기관의 서류 심사로 확정됩니다. 입력한 정보는 저장하지 않습니다.
+          판정 근거는 조건별로 표시한 공고문 원문입니다. 최종 자격은 공고 기관의 서류 심사로 확정됩니다. 입력한 정보는 저장하지 않습니다.{" "}
+          <Link href="/about" className="underline hover:text-blue-700">이용 안내·개인정보 처리</Link>
         </footer>
       </body>
     </html>

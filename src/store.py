@@ -138,6 +138,10 @@ class NullStore:
     def set_demoted(self, program, demoted): return False
     def demoted_programs(self): return frozenset()
     def program_health(self): return []
+    def list_jobs(self, kind=None, status=None, limit=100): return []
+    def close_job(self, job_id, status, note=""): return False
+    def latest_snapshot(self, sha): return None
+    def usage(self, days=14): return []
 
 
 def _safe(default):
@@ -365,6 +369,42 @@ class Store(NullStore):
         rows = self._run(lambda c: c.execute(
             "SELECT program, compared, same, cautious, danger, demoted_at FROM program_health ORDER BY program").fetchall())
         return [dict(zip(("program", "compared", "same", "cautious", "danger", "demoted_at"), r)) for r in rows]
+
+    # ---- 운영자 검토 화면(C8 — pages/9_운영자_검토.py) ----
+    @_safe([])
+    def list_jobs(self, kind=None, status=None, limit=100) -> list:
+        """작업 목록 + 공고 정보 + PDF 보관 여부(최근 것부터). kind·status로 거른다."""
+        rows = self._run(lambda c: c.execute(
+            """SELECT j.id, j.sha256, j.kind, j.status, j.priority, j.attempts, j.error, j.updated_at,
+                      n.issuer, n.program, n.title, n.announcement_date, n.first_seen, (b.sha256 IS NOT NULL)
+               FROM jobs j JOIN notices n ON n.sha256 = j.sha256 LEFT JOIN pdf_blobs b ON b.sha256 = j.sha256
+               WHERE (%s::text IS NULL OR j.kind = %s) AND (%s::text IS NULL OR j.status = %s)
+               ORDER BY j.status = 'done', j.priority DESC, j.id DESC LIMIT %s""",
+            (kind, kind, status, status, limit)).fetchall())
+        keys = ("id", "sha256", "kind", "status", "priority", "attempts", "error", "updated_at", "issuer", "program", "title",
+                "announcement_date", "first_seen", "has_pdf")
+        return [dict(zip(keys, r)) for r in rows]
+
+    @_safe(False)
+    def close_job(self, job_id, status, note="") -> bool:
+        """운영자가 작업을 끝낸다 — done(검토·등록 완료) 또는 failed(판정할 수 없음 — 사유). 작업기의 재시도와 무관."""
+        assert status in ("done", "failed"), status
+        self._run(lambda c: c.execute("UPDATE jobs SET status = %s, error = %s, updated_at = now() WHERE id = %s",
+                                      (status, note or None, job_id)))
+        return True
+
+    @_safe(None)
+    def latest_snapshot(self, sha) -> Optional[Dict]:
+        """그 공고의 가장 최근 분석(엔진 판과 무관 — 운영자가 무엇이 보류됐는지 보려고)."""
+        row = self._run(lambda c: c.execute(
+            "SELECT snapshot FROM analyses WHERE sha256 = %s ORDER BY id DESC LIMIT 1", (sha,)).fetchone())
+        return row[0] if row else None
+
+    @_safe([])
+    def usage(self, days=14) -> list:
+        rows = self._run(lambda c: c.execute(
+            "SELECT day, uploads, judged, unjudged FROM usage_daily ORDER BY day DESC LIMIT %s", (days,)).fetchall())
+        return [dict(zip(("day", "uploads", "judged", "unjudged"), r)) for r in rows]
 
 
 _store = None
