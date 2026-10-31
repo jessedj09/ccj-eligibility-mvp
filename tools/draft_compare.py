@@ -72,7 +72,8 @@ def compare(snapshot: Dict, nid: Optional[str] = None, limit: Optional[int] = No
             if limit is not None and i >= limit:
                 break
             r = evaluate(p, reg, layer)
-            dr = draft.evaluate_draft(d, p, layer)[0] if d.status == draft.OK else None
+            # 초안이 뽑지 못한 계층(예: 주거약자용 주택형)은 화면도 판정하지 않는다 → '초안 판정 없음'
+            dr = draft.evaluate_draft(d, p, layer)[0] if d.status == draft.OK and layer in d.notice.layers else None
             kind = classify(dr.verdict if dr else None, r.verdict)
             c[kind] += 1
             c["exact"] += bool(dr and dr.verdict == r.verdict)

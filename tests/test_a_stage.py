@@ -70,10 +70,12 @@ def test_new_notice_gets_next_ids_and_index_entry():
     r = _report("N24")
     r["registered_as"], r["analysis_key"] = None, ni.analysis_key("0" * 64, "SH")     # 처음 보는 원문인 것처럼
     md = ni.to_markdown(r)
-    assert r["analysis_key"] == "SH27" and ni.analysis_key(sv.notice_doc("N24")["source"]["sha256"], "SH") == "SH26"
-    assert f'dict(nid="{r["next_id"]}", key="SH27"' in md
+    index = json.loads((Path(__file__).resolve().parent.parent / "docs" / "notice-analysis" / "index.json").read_text(encoding="utf-8"))
+    nxt = f"SH{max(int(x['key'][2:]) for x in index) + 1:02d}"          # 번호는 LH·SH 통틀어 이어진다
+    assert r["analysis_key"] == nxt and ni.analysis_key(sv.notice_doc("N24")["source"]["sha256"], "SH") == "SH26"
+    assert f'dict(nid="{r["next_id"]}", key="{nxt}"' in md
     entry = json.loads(md.split("### 8-5.")[1].split("```json")[1].split("```")[0])
-    assert entry["key"] == "SH27" and entry["sha256"] == r["sha256"] and entry["file"].startswith("sample_sh/")
+    assert entry["key"] == nxt and entry["sha256"] == r["sha256"] and entry["file"].startswith("sample_sh/")
 
 
 def test_save_draft_writes_loadable_rules(tmp_path):

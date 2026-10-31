@@ -45,8 +45,11 @@ def test_multi_window_notice_reports_next_rank():
 
 
 def test_all_sample_notices_closed_on_2026_10_22():
+    """처음 등록한 26건은 2026.10.22.에 모두 마감. B단계에 등록한 N27·N28(11월 접수)은 접수 예정."""
     st = schedule.statuses(notice_ids(), kst(2026, 10, 22, 12))
-    assert {s.code for s in st.values()} == {CLOSED}
+    assert {n for n, s in st.items() if s.code != CLOSED} == {"N27", "N28"}
+    assert {st[n].code for n in ("N27", "N28")} == {UPCOMING}
+    assert all(s.code == CLOSED for s in schedule.statuses(notice_ids(), kst(2026, 11, 13, 12)).values())
 
 
 def test_open_on_2026_10_14_noon():

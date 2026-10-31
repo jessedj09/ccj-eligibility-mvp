@@ -123,3 +123,11 @@ def test_record_adds_counts_per_program(n12_snapshot):
     conds.remove(next(c for c in conds if c["id"].endswith("-age")))
     dc.record(dc.compare(snap, limit=LIMIT), h)
     assert h.rows[1][3] > 0                                            # 위험이 기록된다
+
+
+def test_layer_missing_from_draft_is_not_judged(n12_snapshot):
+    """초안이 뽑지 못한 계층은 '초안 판정 없음'(위험 아님) — 화면도 그 계층을 판정하지 않는다."""
+    snap = copy.deepcopy(n12_snapshot)
+    del snap["doc"]["layers"]["청년"]
+    res = dc.compare(snap, limit=50)
+    assert res["counts"]["청년"][dc.NOT_JUDGED] == 50 and dc.danger_count(res) == 0

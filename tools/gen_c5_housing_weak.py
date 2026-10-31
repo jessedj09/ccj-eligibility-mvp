@@ -58,6 +58,9 @@ PLAN = {
                        "65세 이상인 사람(고령자)"]),
     "N8": dict(bases=["신혼부부", "한부모"], elderly=True, page=8,
                quotes=["신혼부부·한부모가족의 일반 공급대상자의 요건을 모두 갖추고 아래 주거약자의 요건을 갖춘 사람", DISABLED_QUOTE]),
+    "N28": dict(bases=["신혼부부", "한부모"], elderly=True, page=9,
+                quotes=["신혼부부 한부모가족 공급대상자의 요건을 모두 갖추고 아래 주거약자의 요건을 갖춘 자",
+                        "고령자(65세 이상인 자)", DISABLED_QUOTE]),
     "N5": dict(tracks=["지역전략산업종사자", "청년", "대학생"], elderly=False, page=11,
                quotes=["지역전략산업종사자, 청년, 대학생 중 하나의 자격요건을 충족 하면서 주거약자(장애인 등)에 해당", DISABLED_QUOTE]),
 }
