@@ -213,3 +213,73 @@ N20·N26 순위 정의 문장(신생아 가구 1순위·자치구 거주 1·2순
 자동 확정 100%: N4·N6(행복주택), N11·N12(청년매입), N13·N14(LH 신혼), N16·N17(든든전세), N19(SH 신혼), N23·N24(장기전세2).
 판정 없음: N9·N10(행복주택 1순위 지역 — ⑤), N25(장기전세 — 형제 1건이라 규칙 생성 실패, ⑤), N5 주거약자형 계층(계층 누락 안전장치).
 보류가 남은 곳: N15(자녀 출산 시 자산 완화 문장), SH 신혼 N18·N20·N21, 행복주택 N5·N7·N8, 장기전세 N26, 형제 없는 N22.
+
+### ④-1 공유 저장소(Neon) · 분석 입구 (2026-10-31)
+- 구조 결정(2026-10-31): 공개 화면 Next.js(Vercel) · 판정 API FastAPI(`api/main.py` 확장, Render 싱가포르, Docker) · DB Neon(AWS 싱가포르) ·
+  운영자 화면만 Streamlit(운영자 PC). 상세는 `기획서/실서비스_설계개발문서_v1.0.md` §9.
+- `src/store.py`: 테이블 6개(notices·analyses·jobs·pdf_blobs·program_health·usage_daily, 처음 접속 때 `CREATE … IF NOT EXISTS`).
+  설정은 환경변수 `DATABASE_URL` → 없으면 로컬 `.streamlit/secrets.toml`(git 제외) → 없으면 **NullStore(저장 없이 동작)**.
+  질의 실패는 경고만 남기고 기본값, 접속 실패 뒤 60초는 DB 없이(판정을 늦추지 않게). 대기열은 `FOR UPDATE SKIP LOCKED`, 같은 공고·종류의
+  열린 작업은 하나(부분 유일 색인), 실패 3회면 failed(운영자 검토). PDF는 파일 20MB·합계 300MB·14일. 화면과 무관(Streamlit 안 씀).
+- `src/analysis.py` `analyze(pdf, ident)`: 같은 원문(sha256)·같은 **엔진 판**의 분석이 저장돼 있으면 그것, 없으면 분석해 저장.
+  엔진 판 = 분석 코드 파일 6개 + 형제 공고 정답 시트의 해시(손으로 올리는 번호 없음 — 코드나 등록 공고가 바뀌면 다시 분석).
+  후속 작업은 LH·SH 공고만: 핵심 값 보류·보류 값 있음 → enhance(PC 작업기, 로컬 LLM), 미분류 문장 → review, 대상 아닌 사업 → review.
+  작업을 넣을 때만 PDF를 둔다. 화면(app.py)의 초안 만들기가 이것을 부른다.
+- 초안 규칙의 원문 파일 이름을 임시 파일 이름 대신 `upload.pdf`로 — 같은 원문이면 같은 초안(저장본 비교가 가능해짐).
+- 시험 `tests/test_d4_store.py`: DB 없음·닿지 않는 DB에서도 결과 같음, 저장 → 재사용, 판 변경, 실제 PostgreSQL(대기열 중복 없이 가져가기·
+  재시도·PDF 상한·익명 집계)은 `TEST_DATABASE_URL`이 있을 때 임시 스키마에서(CI는 postgres 서비스). 다른 테스트·화면 점검은 운영 DB를
+  쓰지 않는다(conftest·ui_fixture에서 NullStore).
+
+### ④-2 판정 API 업로드 판정 · Docker (2026-10-31)
+- `api/main.py`(기존 D2b API 확장 — 새 공개 화면(Next.js)이 부를 입구):
+  - `POST /upload`(PDF, 20MB까지): 식별 → `judge.by` = registered(검증된 규칙) / confirm(같은 공고의 다른 파일 — 사용자 확인 후
+    notice_id로) / analysis(자동 분석 — 공개 스위치 `CCJ_AUTO_JUDGE_PUBLIC`가 켜졌을 때만, 계층 목록·계층 등급) / none(이유).
+  - `POST /evaluate`: `notice_id` 또는 `sha256`(올린 공고). 올린 공고는 화면과 같은 `grading.judge`(사용자 단위 확정).
+    분석 결과는 프로세스 메모리(최근 64건) → 없으면 공유 저장소(같은 엔진 판)에서 — 서버가 다시 떠도 다시 올리지 않아도 된다.
+  - 응답에 화면 3상태(`display`)·원문 확인할 곳(`checks`)·공통 문구(`common_note`)를 함께 — 화면은 판정 로직 없이 보여 주기만.
+  - CORS `CCJ_CORS_ORIGINS`, 일 단위 익명 집계(uploads·judged·unjudged).
+- 배포: `Dockerfile`(python 3.12-slim, 이미지를 만들 때 `tools/warm_cache.py`로 등록 공고 원문 추출 캐시를 채움, 일반 사용자로 실행,
+  `PORT` 환경변수), `.dockerignore`(비밀 정보·로컬 캐시·기획서 제외), `render.yaml`(Render 블루프린트 — 싱가포르, 개발 중 free →
+  베타 때 starter, 비밀 값은 대시보드에서). CI에 `docker` 작업 — 이미지를 만들고 띄워 /health·/upload·/evaluate 확인.
+- 시험 `tests/test_d4_api_upload.py`: 등록 공고 업로드, PDF 아님·용량 초과, 공개 전 판정 거절(403), 미등록으로 취급한 N12 업로드 →
+  판정 = 등록 규칙 판정, 서버 재시작 뒤 저장소에서 분석 읽기, 보류 조건의 확인할 곳이 응답에 옴.
+
+### ④-3 PC 보강 작업기 (2026-10-31)
+- `tools/worker.py`: 공유 저장소의 enhance 작업을 하나씩 가져와(`FOR UPDATE SKIP LOCKED`) 보관된 PDF를 로컬 LLM 슬롯과 함께 다시 분석
+  (`draft.make_draft(slot=)` — 결정론이 못 채운 빈칸만 묻고, 같은 검증을 통과해야 씀. 화면·API는 슬롯을 넘기지 않는다).
+  나아졌을 때만(판정 가능 > 자동 확정 계층 수 > 확인 못 한 것 수) `created_by=worker`로 저장. 자동 확정이면 PDF 삭제, 아니면 review 작업으로.
+  Ollama가 꺼져 있으면 작업을 가져가지 않는다(시도 횟수 보존). 실패는 3회까지 다시 대기. 보관 기한 지난 PDF는 돌 때마다 삭제.
+  실행: `python tools/worker.py`(계속) / `--once`(Windows 작업 스케줄러용) / `--status`. 접속 주소는 `.streamlit/secrets.toml`(이 PC).
+- 시험 `tests/test_d4_worker.py`: 아무것도 못 찾는 슬롯 = 결정론과 같은 초안, 저장·삭제·검토 넘김·PDF 없음, Ollama 꺼짐이면 가져가지 않음,
+  실제 PostgreSQL에서 대기열 → 보강 → 저장 → PDF 삭제(임시 스키마).
+- **실측(2026-10-31, ministral-3:3b)**: 형제에서 자기를 뺀 N5·N8·N21(보류 값이 남는 공고)에 LLM을 붙여도 **나아진 것 없음** — 남은 보류
+  (표 안 금액·근거 문장 표현 차이)는 지금 LLM 경로(문장 찾기·행복주택 지역 목록)가 묻는 대상이 아니라 호출이 0~1회. 작업기의 실제 효과는
+  LLM 경로를 넓힐 때(⑤ 지역 조항 등) 생긴다 — 그전까지 남는 것은 운영자 검토(review)로 간다.
+
+### ④-4 공개 화면(Next.js) — PC 브라우저 1차 (2026-10-31)
+- 순서 결정(2026-10-31): **PC 브라우저 웹을 먼저**, 모바일 웹(같은 Next.js, 휴대폰 화면 대응)은 그다음.
+- 입력 양식을 Python 한 곳으로: `src/form_spec.py` `form_for(notice, layer)` — 늘 묻는 항목 + 그 계층의 조건이 읽는 항목만, 항목마다
+  type·선택지·도움말·조건부 표시(show_if)·이 계층 기준 설명(읽는 항목 3개 이하 조건만 — 순위 묶음 설명 반복 방지). Streamlit 화면도
+  같은 정의를 가져다 쓴다(app.py에서 중복 정의 제거). 자녀 생년월일에서 계산하는 항목(has_children 등)은 묻지 않는다(DERIVED).
+- API: `GET /form`(등록 공고 notice_id 또는 올린 공고 sha256), `/evaluate`에 `birth_date`(공고일 기준 만 나이를 서버가 계산 — 화면에
+  계산 로직 없음), 지원 안 하는 계층은 이유와 함께 404, `/upload` 응답에 지원 안 하는 계층 목록. `CCJ_STORE=off`면 저장소를 쓰지 않음
+  (로컬 시험·화면 점검이 운영 DB에 쓰지 않게).
+- `web/`(Next.js 15, TypeScript, Tailwind 4): 공고 판정 화면 — 공고문 PDF 올리기(끌어 놓기)·목록에서 고르기 → 계층 → 서버 양식대로 입력
+  (모름은 null — **금액 기본값을 0이 아니라 '모름'**으로: 비워 둔 소득이 0원으로 판정되지 않게) → 결과(3상태·원문 확인할 곳·조건별 근거·
+  순위별 결과·공통 문구). 내 조건으로 공고 찾기는 다음 차례(자리만).
+- 화면 점검 `web/e2e`(Playwright, PC 1440×900, API·화면을 직접 띄움): 등록 공고 업로드 → 판정 = API 직접 판정, 목록 선택 → 지원 불가와
+  근거 쪽, 조건부 항목(혼인중 → 혼인신고일), PDF 아님 오류. CI `web` 작업(타입·린트·빌드·Playwright). 양식 시험 `tests/test_d4_form.py`
+  (모든 등록 공고·계층의 입력을 양식이 빠짐없이 묻는지, 생년월일 → 만 나이 경계).
+
+### ④-4 2차 내 조건으로 공고 찾기(Next.js `/find`) (2026-10-31)
+- 입력 양식도 Python 한 곳: `form_spec.master_form()` — Streamlit 찾기 화면과 **같은 42개 항목**(`tests/test_d4_match.py`가
+  `profile_form.WIDGETS`와 대조). 항목 이름 `master.x`는 저장 파일(ccj-profile/1)의 master, 그 밖은 common. '추가 정보'는 접어 둔다(collapsed).
+- API: `GET /match/form`. `/match` 응답에 화면 3상태(display)·기관·사업·공고일·접수 일정 전체(windows·note)·접수 상태별 공고 수·공통 문구,
+  **조건 하나만 부족한 공고(near_misses — 금액 한도는 엔진으로 이분 탐색, src/whatif.py)**. `POST /whatif` — 혼인신고·예비신혼·거주지 이전·
+  세대 분리 시나리오 전후 비교(3상태별 개수, 새로 지원 가능·빠지는 공고와 이유). 둘 다 src/whatif.py를 직접 부른 결과와 같음을 테스트로 확인.
+  `/match`의 matches 순서는 그대로(판정 순서) — 화면이 3상태로 묶고 접수 중 → 예정 → 마감 순으로 다시 정렬.
+- 화면: 왼쪽 입력(서버 양식, 기존 ProfileForm 재사용) / 오른쪽 결과 — 기준일·보기(접수 중·예정만 / 전체), 3상태 개수, 더 입력할 항목,
+  묶음별 공고 카드(접수 일정·근거), 지원 불가는 접어서 첫 사유만, What-if 2탭(조건 하나 부족 · 시나리오). **내 조건 파일 저장·불러오기는
+  브라우저 안에서만**(서버 저장 없음 — 소득·자산 개인정보).
+- 화면 점검 `web/e2e/find.spec.ts`: 판정 개수 = API /match(2026.10.14. 접수 중 5건 기준·마감 포함 전환), 저장 → 다시 불러오기 → 같은 파일,
+  잘못된 파일 거절, What-if = API /whatif, 추가 정보 접힘·생년월일 필수.

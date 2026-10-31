@@ -4,7 +4,7 @@
 AppTest는 파일 업로드를 흉내 낼 수 없어 두 가지만 바꿔 끼운다(앱 실행에는 쓰이지 않는다).
 - 공고문 업로드 칸(key="notice_pdf")이 session_state["fixture_pdf"] 파일을 올린 것처럼 돌려준다.
 - 식별을 '미등록'으로 바꾼다 — 등록 공고 원문을 새 공고로 취급해, 초안 판정을 등록 규칙 판정과 비교할 수 있게.
-그 밖의 흐름(운영자 잠금·초안 만들기·판정·표시)은 app.py 그대로다.
+그 밖의 흐름(운영자 잠금·초안 만들기·판정·표시)은 app.py 그대로다. 공유 저장소는 쓰지 않는다(NullStore).
 """
 import dataclasses
 import hashlib
@@ -18,6 +18,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 import notice_identify as ni  # noqa: E402
 import source_verify as sv  # noqa: E402
+import store  # noqa: E402
+
+store.reset_store(store.NullStore())   # 점검은 운영 저장소(Neon)에 쓰지 않는다 — 등록 공고 원문을 미등록으로 취급하므로
 
 
 class _Upload:

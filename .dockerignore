@@ -1,0 +1,17 @@
+# 판정 API 이미지에 넣지 않는 것 — 비밀 정보·로컬 캐시·문서·화면 점검 도구
+.git
+.github
+.streamlit
+.cache
+.venv
+venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+기획서
+Project_CCJ_note
+_vault-test
+*.docx
+*.pdf.txt
+docs/draft-checks
+web

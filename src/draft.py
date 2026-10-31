@@ -34,6 +34,7 @@ from rule_engine import evaluate  # noqa: E402
 PASSING = ("lh.youth_rental", "lh.newlywed_rental", "lh.deundeun", "sh.jeonse", "sh.jeonse2")
 OK, UNSUPPORTED, BLOCKED, UNREADABLE = "ok", "unsupported", "blocked", "unreadable"
 DRAFT_ID = "DRAFT"
+UPLOAD_NAME = "upload.pdf"
 NOTE = "검증 전 초안 — 자동으로 읽은 공고입니다. 신청 전 원문을 확인하세요."
 
 
@@ -79,9 +80,11 @@ def _siblings_except(exclude: str = ""):
 _siblings = _siblings_except()
 
 
-def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exclude: str = "") -> Draft:
+def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exclude: str = "", slot=None) -> Draft:
     """only: 초안을 만들 템플릿(None = 전부 — 등록 도구용). pages: 이미 읽은 쪽 텍스트(없으면 data에서 읽는다).
-    exclude: 형제에서 뺄 등록 공고(평가 — 등록 공고를 '처음 보는 공고'처럼 만들 때. 실제 사용에서는 비움)."""
+    exclude: 형제에서 뺄 등록 공고(평가 — 등록 공고를 '처음 보는 공고'처럼 만들 때. 실제 사용에서는 비움).
+    slot: LLM 슬롯(tools/llm_slot.py) — PC 보강 작업기(tools/worker.py)만 넘긴다. 결정론이 못 채운 빈칸만 묻고, 낸 값은 같은
+    검증(원문 대조·주제 일치)을 통과해야 쓴다. 화면·API는 넘기지 않는다(판정 경로에 LLM 없음)."""
     if pages is None:
         try:
             pages = sv.extract_pages_bytes(data, label="<초안>", cache=False)
@@ -89,7 +92,8 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
             return Draft(UNREADABLE, str(e))
     if not any(p.strip() for p in pages):
         return Draft(UNREADABLE, "글자를 읽을 수 없는 PDF입니다(스캔 이미지일 수 있음).")
-    ext = X.extract(pages, _siblings_except(exclude))
+    llm = X.LLM(slot, _raw_pages(data)) if slot is not None else None
+    ext = X.extract(pages, _siblings_except(exclude), llm)
     ann = ext["announcement_date"].value if ext["announcement_date"].status == X.FILLED else None
     rep = X.field_report(ext)
     base = dict(template=ext["template"], program=ext["program"], announcement_date=ann,
@@ -102,7 +106,9 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
     try:
         with os.fdopen(fd, "wb") as f:
             f.write(data)
-        g = X.gate(ext, Path(tmp), pages, DRAFT_ID)
+        g = X.gate(ext, Path(tmp), pages, DRAFT_ID, llm)
+        if g["doc"]:
+            g["doc"]["source"]["document"] = UPLOAD_NAME   # 임시 파일 이름 대신 — 같은 원문이면 같은 초안(저장·비교)
         unclassified = _unclassified(Path(tmp), g["doc"], ext["template"], exclude) if g["doc"] else []
     finally:
         os.remove(tmp)
@@ -116,6 +122,18 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
     ids = set(re.findall(rf"({DRAFT_ID}-[A-Za-z0-9가-힣-]+)", " ".join(g["missing"])))
     held = {layer: X.affected_conditions(ls.conditions, ids) for layer, ls in notice.layers.items()}
     return Draft(OK, "", notice=notice, held_conditions=held, **base)
+
+
+def _raw_pages(data: bytes) -> List[str]:
+    """LLM에게 보여 줄 쪽 텍스트(띄어쓰기 유지)."""
+    import llm_slot as L
+    fd, tmp = tempfile.mkstemp(suffix=".pdf")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(data)
+        return L.raw_pages(tmp)
+    finally:
+        os.remove(tmp)
 
 
 def _unclassified(pdf: Path, doc: Dict, template: Optional[str], exclude: str = "") -> List[tuple]:
