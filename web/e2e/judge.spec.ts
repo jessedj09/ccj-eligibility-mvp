@@ -58,6 +58,14 @@ test("등록 공고 PDF를 올리면 검증된 규칙으로 판정하고, 결과
   await expect(page.getByTestId("scope")).toContainText("확인하지 않은 것");
   await expect(page.getByTestId("scope")).toContainText("순위·배점·추첨과 당첨 여부");
   await expect(page.getByTestId("source")).toContainText("검증된 등록 규칙");
+  // 결과 보관(B2): 입력·결과·판정 근거의 판이 파일로
+  await expect(page.getByTestId("basis")).toContainText(want.basis.rule_version);
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("save-result").click()]);
+  const saved = JSON.parse(readFileSync(await download.path(), "utf-8"));
+  expect(saved.format).toBe("ccj-result/1");
+  expect(saved.basis.rule_version).toBe(want.basis.rule_version);
+  expect(saved.result.verdict).toBe(want.verdict);
+  expect(saved.input.monthly_income).toBe(2500000);
 });
 
 test("20MB를 넘는 파일은 올리기 전에 알린다", async ({ page }) => {

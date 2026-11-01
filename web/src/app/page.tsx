@@ -97,6 +97,7 @@ export default function Home() {
   const [form, setForm] = useState<Form | null>(null);
   const [values, setValues] = useState<Values>({});
   const [result, setResult] = useState<Result | null>(null);
+  const [judgedProfile, setJudgedProfile] = useState<Record<string, unknown> | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
@@ -185,6 +186,7 @@ export default function Home() {
     setBusy("판정하는 중입니다…");
     try {
       setResult(await evaluate(picked.target, layer, profile));
+      setJudgedProfile(profile);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -193,6 +195,18 @@ export default function Home() {
   }
 
   const unsupported = picked?.unsupported.find((u) => u.name === layer);
+
+  /** 판정 결과 보관(피드백 B2) — 입력·결과·판정 근거의 판을 이 기기에 파일로. 서버에는 남지 않는다. */
+  function saveResult() {
+    if (!result) return;
+    const file = { format: "ccj-result/1", basis: result.basis, notice: picked?.title, input: judgedProfile, result };
+    const blob = new Blob([JSON.stringify(file, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `판정결과_${result.basis?.notice_id ?? "올린공고"}_${layer}_${(result.basis?.judged_at ?? "").slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 
   return (
     <div className="space-y-5">
@@ -299,7 +313,13 @@ export default function Home() {
         )}
         {result && (
           <div ref={resultRef} className={`${card} scroll-mt-4`}>
-            <h2 className="mb-4 text-base font-semibold">4. 판정 결과</h2>
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-base font-semibold">4. 판정 결과</h2>
+              <button type="button" onClick={saveResult} data-testid="save-result"
+                className="rounded-md border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:border-blue-500">
+                결과 파일로 저장
+              </button>
+            </div>
             <ResultView result={result} source={picked && "notice_id" in picked.target ? "registered" : "analysis"} />
           </div>
         )}

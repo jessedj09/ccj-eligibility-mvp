@@ -26,6 +26,7 @@ import os
 import sys
 import threading
 from collections import OrderedDict
+from functools import lru_cache
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -334,6 +335,42 @@ def form(layer: str, notice_id: Optional[str] = None, sha256: Optional[str] = No
     return form_spec.form_for(notice, layer)
 
 
+ROOT = Path(__file__).resolve().parent.parent
+ENGINE_FILES = ("src/rule_engine.py", "src/rule_data.py", "src/explainability.py", "src/display_status.py")
+
+
+def _digest(paths) -> str:
+    h = hashlib.sha256()
+    for p in paths:
+        h.update(p.read_bytes().replace(b"\r\n", b"\n"))
+    return h.hexdigest()[:12]
+
+
+@lru_cache(maxsize=1)
+def engine_version() -> str:
+    """판정 엔진·기준표의 판 — 엔진 코드나 소득 기준표가 바뀌면 달라진다(결과 보관·재현성, 피드백 B2)."""
+    return "e-" + _digest([ROOT / f for f in ENGINE_FILES] + sorted((ROOT / "rules" / "reference").glob("*.json")))
+
+
+@lru_cache(maxsize=None)
+def rule_version(nid: str) -> str:
+    """등록 공고 규칙의 판 — 규칙 파일이 바뀌면 달라진다."""
+    return "r-" + _digest([ROOT / "rules" / "notices" / f"{nid}.json"])
+
+
+def _basis(req: "EvaluateRequest", notice, d) -> Dict[str, Any]:
+    """무엇으로 판정했는가 — '같은 공고·같은 입력·같은 규칙(또는 분석)·같은 엔진 판이면 같은 결과'를 확인할 수 있게(피드백 B2)."""
+    out = {"judged_at": now_kst().isoformat(timespec="seconds"), "layer": req.layer,
+           "announcement_date": str(notice.announcement_date), "engine_version": engine_version()}
+    if d is None:
+        out.update(by="registered", notice_id=req.notice_id, title=notice.title, rule_version=rule_version(req.notice_id),
+                   source_sha256=notice.meta.get("source", {}).get("sha256"))
+    else:
+        import analysis
+        out.update(by="analysis", sha256=req.sha256, program=d.program, analysis_version=analysis.analysis_version())
+    return out
+
+
 @app.post("/evaluate")
 def evaluate_one(req: EvaluateRequest):
     notice, d = _target(req.notice_id, req.sha256, req.layer)
@@ -344,7 +381,7 @@ def evaluate_one(req: EvaluateRequest):
     else:
         result, checks = evaluate(profile, notice, req.layer), []
     get_store().count("judged")
-    return _result_json(result, notice, checks)
+    return dict(_result_json(result, notice, checks), basis=_basis(req, notice, d))
 
 
 @app.get("/match/form")
