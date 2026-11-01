@@ -134,7 +134,7 @@ Engine**이다.
   `eval_extraction --llm ministral-3:3b`. 시험용: 결정론만 90%→LLM 93%(이전 qwen3.5:4b 94%), 틀림 0. **합격 5개 사업
   (청년매입·LH 신혼·든든전세·장기전세·장기전세2)은 결정론만으로 판정 100% 같음 → P2를 AI 없이 열 수 있음.** 모델: D:\ollama\models
   (Ollama 앱 설정 DB `settings.models` + `OLLAMA_MODELS`). **중국 개발 모델은 쓰지 않음** — 기본 `llm_slot.DEFAULT_MODEL` =
-  ministral-3:3b(docs/09 §18 비교), 받아 둔 모델은 이것 하나. `tests/test_t33_llm.py`(가짜 슬롯).
+  **gemma4:e2b**(2026-11-01 교체, docs/09 §20 — 이전 ministral-3:3b §18), 받아 둔 모델은 이것 하나. `tests/test_t33_llm.py`(가짜 슬롯).
 - **P2 준비(2026-10-25, docs/09 §17)**: 검증 관문에 ① **기준표 연도 확인**(`reference_guard` — 기준표를 직접 참조하는 조건은
   등록 형제 공고들이 공통으로 싣는 기준표 대표 금액이 새 공고에 없으면 보류; 인용문에 금액이 없는 조건이 연도가 바뀌어도 통과하던 구멍)
   ② **새 제한 문구**(`new_restrictions` — 규칙이 인용하지 않는 지역·모집 제한 문구면 '지원 가능'→'수동 확인'). 초안 판정 입구
@@ -195,7 +195,12 @@ Engine**이다.
   G4(2026-11-01): 공공임대(10년·분양전환·50년) 예비입주자 `lh.public_rental`(N37~N44, 처음 보는 공고 5건 위험 0 → PASSING 공개), 새 입력 rewin_restricted·청약통장 기간·횟수 — 상세 docs/10 G4.
   G3(2026-11-01): 신혼희망타운 공공분양 `lh.newlywed_town_sale`(N45~N48, 단순형·정규형, 처음 보는 공고 2건 위험 0 — 공개 전), 기준표 income_standard_nhtown, 새 입력 past_special_supply, 계층 '예비신혼부부' — 상세 docs/10 G3.
   모바일 웹 = 같은 화면 반응형(lg 미만 1단). **화면을 고치면 PC·휴대폰 둘 다 점검**(Playwright pc-chromium·mobile-chromium, `e2e/mobile.spec.ts`).
-- pytest: 총 **1233개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+- **표 칸 위치 읽기(2026-11-01, docs/09 §19 — 평가 단계, 판정 경로 미연결)**: `src/pdf_tables.py`(pdfplumber **0.11.9 고정** — 0.11.10은
+  Pillow ≥12.2라 streamlit과 충돌) — 선(lines)·글자 좌표(words) 두 방법, 소득 기준표 해석(1·2인 가산 풀기 등), 검증 4종(교차·일관성·방법 일치·
+  기준액 묶음 대조). 평가 `tools/eval_tables.py`(`docs/eval-tables.md`: 틀린 칸 0, 복원율 99.8%), `tests/test_pdf_tables.py`.
+  **새 기준표 JSON을 추가하면 `python tools/eval_tables.py`로 묶음·틀린 칸 0을 확인**(기준액이 다른 표는 자동으로 따로 묶음).
+  적용(연도 전환 기준표 후보·한도 표 읽기)은 다음 결정. OCR(Mistral)은 보류(2026-11-01 사용자 결정).
+- pytest: 총 **1239개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

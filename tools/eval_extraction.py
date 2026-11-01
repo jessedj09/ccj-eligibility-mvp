@@ -286,7 +286,7 @@ def main(argv=None):
     ap.add_argument("-v", action="store_true")
     ap.add_argument("--judge", action="store_true", help="골든 입력으로 판정 일치율까지(시간이 걸림)")
     ap.add_argument("--limit", type=int, help="계층마다 골든 입력 앞 N건만")
-    ap.add_argument("--llm", help="결정론이 못 채운 빈칸을 물어볼 로컬 Ollama 모델(예: ministral-3:3b)")
+    ap.add_argument("--llm", help="결정론이 못 채운 빈칸을 물어볼 로컬 Ollama 모델(예: gemma4:e2b)")
     ap.add_argument("--loo", action="store_true",
                     help="형제를 등록 공고 전부(자기 제외)에서 — 실제 새 공고 조건(다듬기/시험 구분 없는 하나 빼고 맞혀 보기)")
     a = ap.parse_args(argv)
