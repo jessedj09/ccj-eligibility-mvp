@@ -359,6 +359,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return "sh.newlywed" if issuer == "SH" else "lh.newlywed_rental"
     if "국민임대" in program:          # G2: LH 표준 공고로 만든 틀 — SH 국민임대는 아직 검증 전
         return None if issuer == "SH" else "lh.national_rental"
+    if "영구임대" in program:          # G2: LH 영구임대 표준 공고 — SH 영구임대는 아직 검증 전
+        return None if issuer == "SH" else "lh.permanent_rental"
     for key, t in PROGRAM_TEMPLATE:
         if key in program and t:
             return t
@@ -712,7 +714,7 @@ def _happy_weak(pages, layers, heads) -> Field:
 
 
 # ------------------------------------------------------------------ 국민임대(G2)
-# 고령자 전용 주택형: 부천 p.3 "범박1단지46형고령자임대주택은(공고일현재65세이상만신청)가능하며"
+# 고령자 전용 주택형: N32 p.3 "○○단지46형고령자임대주택은(공고일현재65세이상만신청)가능하며"
 ELDERLY_TYPE = r"[가-힣0-9]{0,20}\d+형고령자[가-힣]*주택은?\(공고일현재65세이상만신청\)가능"
 
 
@@ -720,6 +722,34 @@ def _national_rental(pages):
     hit = find_text(pages, ELDERLY_TYPE)
     return {"elderly_quote": Field(FILLED, hit[1], hit[0], hit[1], "'○○형 고령자임대주택은(공고일현재65세이상만신청)' 문구")
             if hit else Field(ABSENT, None, how="고령자 전용 주택형 문구 없음")}
+
+
+# ------------------------------------------------------------------ 영구임대(G2)
+# 거주 요건: N33 p.1 "현재○○시에거주(주민등록이등재)하는무주택세대구성원중영구임대주택입주적격자에한합니다",
+#           N34 p.1 "현재○○시에거주(주민등록등재)하는무주택세대구성원이지원가능하며"
+RESIDENCE = r"([가-힣]{1,6}[시군])에거주\(주민등록이?등재\)하는무주택세대구성원[가-힣]{0,20}"
+ADULT = r"「민법」상미성년자\(19세미만\)는공급신청할수없습니다|신청자는민법상성년자\(만19세\)이어야합니다"
+WEAK_TYPE = r"\d+[A-Z]?\d?형(?:\(주거약자용주택\))?은주거약자에한하여신청가능합니다"
+
+
+def _permanent_rental(pages):
+    from rule_data import region_groups
+    known = {n for names in region_groups().values() for n in names}
+    f = {}
+    hit = find_text(pages, RESIDENCE)
+    city = re.match(RESIDENCE, hit[1]).group(1).removeprefix("현재") if hit else None
+    f["city"] = Field(FILLED, city, hit[0], hit[1], "'○○시에 거주(주민등록 등재)하는 무주택세대구성원' 문구") \
+        if city in known else Field(HELD, None, hit[0] if hit else None, hit[1] if hit else None,
+                                    "거주 요건 시·군을 원문에서 확인하지 못함(표준 지역 이름이 아님)" if hit else "거주 요건 문구 없음")
+    f["residence_quote"] = Field(FILLED, hit[1], hit[0], hit[1], "거주 요건 문장") if hit else \
+        Field(HELD, "무주택세대구성원", how="거주 요건 문장 없음")
+    hit = find_text(pages, ADULT)
+    f["adult_quote"] = Field(FILLED, hit[1], hit[0], hit[1], "성년 요건 문장") if hit else \
+        Field(HELD, "「민법」상 미성년자(19세 미만)는 공급신청할 수 없습니다", how="성년 요건 문장을 찾지 못함")
+    hit = find_text(pages, WEAK_TYPE)
+    f["weak_quote"] = Field(FILLED, hit[1], hit[0], hit[1], "'○○형은 주거약자에 한하여 신청 가능' 문구") if hit else \
+        Field(ABSENT, None, how="주거약자용 주택형 문구 없음")
+    return f
 
 
 # ------------------------------------------------------------------ 전체
@@ -739,6 +769,7 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
     fn = {"lh.youth_rental": lambda: _youth_rental(pages, ann, sib),
           "lh.newlywed_rental": lambda: _newlywed_rental(pages, ann, sib, program),
           "lh.deundeun": dict, "sh.vacant": dict, "lh.national_rental": lambda: _national_rental(pages),
+          "lh.permanent_rental": lambda: _permanent_rental(pages),
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),
           "sh.jeonse2": lambda: _jeonse2(pages, ann, sib, program, llm),
           "sh.jeonse": lambda: _jeonse(pages, ann, sib, program, llm),

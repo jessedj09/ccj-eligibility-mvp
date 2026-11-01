@@ -4764,5 +4764,115 @@
    "note": "공고일 현재 65세 이상인지(고령자 전용 주택형)",
    "timing": "NOW"
   }
+ ],
+ "N33/일반": [
+  {
+   "id": "N33-P-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-P-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "공고일 현재 양주시에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-P-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-P-rank",
+   "field": "입주자격",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "「공공주택 특별법 시행규칙」 별표3의 영구임대 입주자격(1순위 가~자, 2순위 차·타) 중 하나 이상에 해당하는지 (신분마다 소득 기준이 다름 — 수급자 등 없음 / 70% / 50% / 100%)",
+   "timing": "NOW"
+  }
+ ],
+ "N33/일반(주거약자용)": [
+  {
+   "id": "N33-W-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-W-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "공고일 현재 양주시에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-W-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-W-rank",
+   "field": "입주자격",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "「공공주택 특별법 시행규칙」 별표3의 영구임대 입주자격(1순위 가~자, 2순위 차·타) 중 하나 이상에 해당하는지 (신분마다 소득 기준이 다름 — 수급자 등 없음 / 70% / 50% / 100%)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-W-weak",
+   "field": "age/housing_weak_type",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "주거약자(만 65세 이상, 장애인, 상이 1~7급 국가유공자·보훈보상대상자, 5·18 부상자, 고엽제후유의증환자)인지",
+   "timing": "NOW"
+  }
+ ],
+ "N34/일반": [
+  {
+   "id": "N34-P-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N34-P-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "공고일 현재 부천시에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N34-P-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.2",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N34-P-rank",
+   "field": "입주자격",
+   "required": true,
+   "source_ref": "공고문 p.8",
+   "note": "「공공주택 특별법 시행규칙」 별표3의 영구임대 입주자격(1순위 가~자, 2순위 차·타) 중 하나 이상에 해당하는지 (신분마다 소득 기준이 다름 — 수급자 등 없음 / 70% / 50% / 100%)",
+   "timing": "NOW"
+  }
  ]
 }

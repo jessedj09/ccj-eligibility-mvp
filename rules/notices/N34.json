@@ -1,0 +1,1037 @@
+{
+  "notice_id": "N34",
+  "title": "부천시 영구임대주택 예비입주자",
+  "announcement_date": "2026-09-04",
+  "issuer": "LH",
+  "program": "영구임대주택",
+  "version": 1,
+  "valid_from": "2026-09-04",
+  "supersedes": null,
+  "source": {
+    "document": "부천시영구임대예비입주자모집공고문.pdf",
+    "sha256": "e227f0f6b1e3267ffbffea1bac8b9e842f10ab06517c3aa3568a91682c7e7663",
+    "pages": 34
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "G2 생성(tools/gen_c6_public.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+    "log": []
+  },
+  "notes": [
+    "판정하지 않는 입주자격: 다목(일본군위안부 피해자)·카목(국토교통부장관 또는 시·도지사가 입주가 필요하다고 인정하는 자) — 해당하면 공고문 문의처에 확인한다.",
+    "1순위 안의 선정 순서·배점과 2순위는 신청자가 모집 인원보다 많을 때의 순서라 판정하지 않는다.",
+    "과거 공공임대주택에서 불법 양도·전대로 적발된 뒤 4년이 지나지 않았으면 선정될 수 없다 — 이 판정은 묻지 않는다.",
+    "같은 공고의 단지(중동한라1·중동덕유1) 중 1개 단지만 신청할 수 있다 — 중복 신청하면 모두 부적격(p.1).",
+    "두 단지는 1기 신도시 정비사업 대상으로 입주 후 재건축 등으로 이주할 수 있다(p.1)."
+  ],
+  "unsupported_layers": [],
+  "tables": {
+    "permanent_terms": {
+      "label": "영구임대 소득 비율(일반 50%·국가유공자 등 70%·2순위 장애인 100% 기준)·자산·자동차 한도: 가구원수 × 출생자녀수",
+      "columns": [
+        "size",
+        "child"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        },
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "ratio50",
+        "ratio70",
+        "ratio100",
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1,
+            "child": 0
+          },
+          "out": [
+            70,
+            90,
+            120,
+            245000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 1,
+            "child": "1+"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 1인인데 출생자녀 가산 대상 자녀가 있습니다(자녀도 가구원). 가구원수 또는 자녀 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 0
+          },
+          "out": [
+            60,
+            80,
+            110,
+            245000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": 1
+          },
+          "out": [
+            70,
+            90,
+            120,
+            270000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": 2,
+            "child": "2+"
+          },
+          "result": "NO_ROW",
+          "no_row": {
+            "code": "INPUT_INCONSISTENT",
+            "detail": "가구원수가 2인인데 출생자녀 가산 대상 자녀가 2명 이상입니다. 가구원수 또는 자녀 입력을 확인해 주세요."
+          }
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 0
+          },
+          "out": [
+            50,
+            70,
+            100,
+            245000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": 1
+          },
+          "out": [
+            60,
+            80,
+            110,
+            270000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "size": "3+",
+            "child": "2+"
+          },
+          "out": [
+            70,
+            90,
+            120,
+            294000000,
+            54510000
+          ]
+        }
+      ],
+      "source": {
+        "quote": [
+          "245,000,000",
+          "270,000,000",
+          "294,000,000"
+        ],
+        "page": 4
+      }
+    }
+  },
+  "layers": {
+    "일반": {
+      "conditions": [
+        {
+          "id": "N34-P-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재부천시에거주(주민등록등재)하는무주택세대구성원이지원가능하며"
+            ],
+            "page": 1
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N34-P-region",
+          "field": "residence_area",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재부천시에거주(주민등록등재)하는무주택세대구성원이지원가능하며"
+            ],
+            "page": 1
+          },
+          "note": "공고일 현재 부천시에 주민등록이 되어 있는지",
+          "check": {
+            "in": [
+              {
+                "var": "residence_area"
+              },
+              [
+                "부천시"
+              ]
+            ]
+          }
+        },
+        {
+          "id": "N34-P-adult",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "신청자는 민법상 성년자(만19세)이어야 합니다"
+            ],
+            "page": 2
+          },
+          "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+          "check": {
+            "any": [
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  19
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "age"
+                  },
+                  18
+                ],
+                "review_if_true": {
+                  "code": "AMBIGUOUS_SOURCE",
+                  "detail": "미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청할 수 있습니다. 예외 해당 여부는 이 화면이 묻지 않습니다."
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N34-P-rank",
+          "field": "입주자격",
+          "required": true,
+          "source": {
+            "quote": [
+              "1순위 가. 국민기초생활보장법상의 생계급여수급자",
+              "2순위 차."
+            ],
+            "page": 8
+          },
+          "note": "「공공주택 특별법 시행규칙」 별표3의 영구임대 입주자격(1순위 가~자, 2순위 차·타) 중 하나 이상에 해당하는지 (신분마다 소득 기준이 다름 — 수급자 등 없음 / 70% / 50% / 100%)",
+          "tracks": [
+            {
+              "id": "가",
+              "label": "생계급여 또는 의료급여 수급자(소득·자산 검증 없음)",
+              "conditions": [
+                {
+                  "id": "N34-P-Ta",
+                  "field": "livelihood_medical_recipient",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "국민기초생활보장법상의 생계급여수급자 또는 의료급여수급자"
+                    ],
+                    "page": 8
+                  },
+                  "note": "생계급여 또는 의료급여 수급자인지(주거·교육급여만 받는 경우는 아님)",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "livelihood_medical_recipient"
+                      },
+                      true
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "나",
+              "label": "국가유공자·보훈보상대상자·5·18·특수임무·참전유공자(유족 포함), 소득 70%",
+              "conditions": [
+                {
+                  "id": "N34-P-Tb",
+                  "field": "merit_person",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "「국가유공자 등 예우 및 지원에 관한 법률」에 따른 국가유공자 또는 그 유족"
+                    ],
+                    "page": 8
+                  },
+                  "note": "국가유공자·보훈보상대상자·5·18민주유공자·특수임무유공자(또는 그 유족)·참전유공자인지",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "merit_person"
+                      },
+                      true
+                    ]
+                  }
+                },
+                {
+                  "id": "N34-P-Tb-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "전년도 도시근로자 가구당 월평균소득의 70%(1인 90%, 2인 80%) 이하이고 영구임대주택의 자산요건을 충족한"
+                    ],
+                    "page": 8
+                  },
+                  "note": "세대 월평균소득이 70%(가구원수·출생자녀 가산 반영) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard_permanent",
+                          {
+                            "var": "household_size"
+                          },
+                          {
+                            "term": "ratio70"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Tb-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "가액합산기준",
+                      "24,500"
+                    ],
+                    "page": 4
+                  },
+                  "note": "세대 총자산이 2억4,500만원(출생자녀 1명 2억7,000만·2명 이상 2억9,400만) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      {
+                        "term": "asset_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Tb-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "개별자동차가액",
+                      "4,542"
+                    ],
+                    "page": 4
+                  },
+                  "note": "자동차가액(가장 높은 차량가액)이 4,542만원(출생자녀 가산) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      {
+                        "term": "car_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                }
+              ]
+            },
+            {
+              "id": "라",
+              "label": "지원대상 한부모가족(소득·자산 검증 없음)",
+              "conditions": [
+                {
+                  "id": "N34-P-Td",
+                  "field": "is_supported_single_parent",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "라.지원대상한부모가족"
+                    ],
+                    "page": 8
+                  },
+                  "note": "지원대상 한부모가족(한부모가족 증명서 발급 대상)인지",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "is_supported_single_parent"
+                      },
+                      true
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "마",
+              "label": "북한이탈주민, 소득 70%",
+              "conditions": [
+                {
+                  "id": "N34-P-Te",
+                  "field": "north_korean_defector",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "영구임대주택의 자산요건을 충족하는 북한이탈주민"
+                    ],
+                    "page": 8
+                  },
+                  "note": "북한이탈주민인지",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "north_korean_defector"
+                      },
+                      true
+                    ]
+                  }
+                },
+                {
+                  "id": "N34-P-Te-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "전년도 도시근로자 가구당 월평균소득의 70%(1인 90%, 2인 80%) 이하이고 영구임대주택의 자산요건을 충족한"
+                    ],
+                    "page": 8
+                  },
+                  "note": "세대 월평균소득이 70%(가구원수·출생자녀 가산 반영) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard_permanent",
+                          {
+                            "var": "household_size"
+                          },
+                          {
+                            "term": "ratio70"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Te-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "가액합산기준",
+                      "24,500"
+                    ],
+                    "page": 4
+                  },
+                  "note": "세대 총자산이 2억4,500만원(출생자녀 1명 2억7,000만·2명 이상 2억9,400만) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      {
+                        "term": "asset_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Te-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "개별자동차가액",
+                      "4,542"
+                    ],
+                    "page": 4
+                  },
+                  "note": "자동차가액(가장 높은 차량가액)이 4,542만원(출생자녀 가산) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      {
+                        "term": "car_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                }
+              ]
+            },
+            {
+              "id": "바",
+              "label": "장애인(지적·정신·중증 뇌병변장애인은 그 배우자 포함), 소득 70%",
+              "conditions": [
+                {
+                  "id": "N34-P-Tf",
+                  "field": "housing_weak_type/disabled_spouse_qualifies",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "장애인등록증이 교부된 자"
+                    ],
+                    "page": 8
+                  },
+                  "note": "장애인등록증이 교부된 장애인이거나, 지적·정신·중증 뇌병변장애인의 배우자인지",
+                  "check": {
+                    "any": [
+                      {
+                        "eq": [
+                          {
+                            "var": "housing_weak_type"
+                          },
+                          "장애인"
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "disabled_spouse_qualifies"
+                          },
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "N34-P-Tf-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "전년도 도시근로자 가구당 월평균소득의 70%(1인 90%, 2인 80%) 이하이고 영구임대주택의 자산요건을 충족한"
+                    ],
+                    "page": 8
+                  },
+                  "note": "세대 월평균소득이 70%(가구원수·출생자녀 가산 반영) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard_permanent",
+                          {
+                            "var": "household_size"
+                          },
+                          {
+                            "term": "ratio70"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Tf-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "가액합산기준",
+                      "24,500"
+                    ],
+                    "page": 4
+                  },
+                  "note": "세대 총자산이 2억4,500만원(출생자녀 1명 2억7,000만·2명 이상 2억9,400만) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      {
+                        "term": "asset_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Tf-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "개별자동차가액",
+                      "4,542"
+                    ],
+                    "page": 4
+                  },
+                  "note": "자동차가액(가장 높은 차량가액)이 4,542만원(출생자녀 가산) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      {
+                        "term": "car_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                }
+              ]
+            },
+            {
+              "id": "사",
+              "label": "65세 이상 직계존속 부양자로서 수급자 선정기준 소득인정액 이하",
+              "conditions": [
+                {
+                  "id": "N34-P-Tg",
+                  "field": "supports_elderly_parent",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "65세 이상 직계존속(배우자의 직계존속 포함)을 부양"
+                    ],
+                    "page": 8
+                  },
+                  "note": "만 65세 이상 직계존속(배우자 부모 포함)을 같은 등본에서 부양하는지 — 소득인정액은 이 화면이 계산하지 않는다",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "supports_elderly_parent"
+                      },
+                      true
+                    ],
+                    "review_if_true": {
+                      "code": "SELF_REPORT_UNVERIFIED",
+                      "detail": "65세 이상 직계존속 부양자는 생계·의료급여 수급자 선정기준의 '소득인정액' 이하여야 합니다. 소득인정액(소득+재산 환산액)은 이 화면이 계산하지 않으니 주민센터에 확인하세요."
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "id": "아",
+              "label": "아동복지시설 퇴소자(시설장 추천), 소득 70%",
+              "conditions": [
+                {
+                  "id": "N34-P-Th",
+                  "field": "child_facility_leaver",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "아동복지시설에서 퇴소하는 자로서 아동복지시설의 장이 추천하는 자"
+                    ],
+                    "page": 8
+                  },
+                  "note": "아동복지시설에서 퇴소하며 시설장의 추천을 받았는지",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "child_facility_leaver"
+                      },
+                      true
+                    ]
+                  }
+                },
+                {
+                  "id": "N34-P-Th-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "전년도 도시근로자 가구당 월평균소득의 70%(1인 90%, 2인 80%) 이하이고 영구임대주택의 자산요건을 충족한"
+                    ],
+                    "page": 8
+                  },
+                  "note": "세대 월평균소득이 70%(가구원수·출생자녀 가산 반영) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard_permanent",
+                          {
+                            "var": "household_size"
+                          },
+                          {
+                            "term": "ratio70"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Th-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "가액합산기준",
+                      "24,500"
+                    ],
+                    "page": 4
+                  },
+                  "note": "세대 총자산이 2억4,500만원(출생자녀 1명 2억7,000만·2명 이상 2억9,400만) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      {
+                        "term": "asset_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Th-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "개별자동차가액",
+                      "4,542"
+                    ],
+                    "page": 4
+                  },
+                  "note": "자동차가액(가장 높은 차량가액)이 4,542만원(출생자녀 가산) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      {
+                        "term": "car_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                }
+              ]
+            },
+            {
+              "id": "자",
+              "label": "65세 이상 수급권자 또는 차상위계층",
+              "conditions": [
+                {
+                  "id": "N34-P-Ti",
+                  "field": "age/welfare_status",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "65세 이상인 사람으로서 「국민기초생활보장법」 제2조 제1호에 따른 수급권자"
+                    ],
+                    "page": 8
+                  },
+                  "note": "만 65세 이상이고 기초생활 수급권자(급여 종류 무관) 또는 차상위계층인지",
+                  "check": {
+                    "all": [
+                      {
+                        "gte": [
+                          {
+                            "var": "age"
+                          },
+                          65
+                        ]
+                      },
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "교육급여만 수급",
+                            "차상위계층"
+                          ]
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "차",
+              "label": "2순위 — 일반(소득 50%)",
+              "conditions": [
+                {
+                  "id": "N34-P-Tj-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "전년도 도시근로자 가구원수별 가구당 월평균소득 50%(1인 70%, 2인 60%) 이하인 자"
+                    ],
+                    "page": 8
+                  },
+                  "note": "세대 월평균소득이 50%(가구원수·출생자녀 가산 반영) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard_permanent",
+                          {
+                            "var": "household_size"
+                          },
+                          {
+                            "term": "ratio50"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Tj-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "가액합산기준",
+                      "24,500"
+                    ],
+                    "page": 4
+                  },
+                  "note": "세대 총자산이 2억4,500만원(출생자녀 1명 2억7,000만·2명 이상 2억9,400만) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      {
+                        "term": "asset_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Tj-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "개별자동차가액",
+                      "4,542"
+                    ],
+                    "page": 4
+                  },
+                  "note": "자동차가액(가장 높은 차량가액)이 4,542만원(출생자녀 가산) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      {
+                        "term": "car_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                }
+              ]
+            },
+            {
+              "id": "타",
+              "label": "2순위 — 장애인, 소득 100%",
+              "conditions": [
+                {
+                  "id": "N34-P-Tl",
+                  "field": "housing_weak_type/disabled_spouse_qualifies",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "장애인등록증이 교부된 자"
+                    ],
+                    "page": 8
+                  },
+                  "note": "장애인등록증이 교부된 장애인이거나, 지적·정신·중증 뇌병변장애인의 배우자인지",
+                  "check": {
+                    "any": [
+                      {
+                        "eq": [
+                          {
+                            "var": "housing_weak_type"
+                          },
+                          "장애인"
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "disabled_spouse_qualifies"
+                          },
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "N34-P-Tl-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "전년도 도시근로자 가구원수별 가구당 월평균소득의 100%(1인 120%, 2인 110%) 이하이고"
+                    ],
+                    "page": 8
+                  },
+                  "note": "세대 월평균소득이 100%(가구원수·출생자녀 가산 반영) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard_permanent",
+                          {
+                            "var": "household_size"
+                          },
+                          {
+                            "term": "ratio100"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Tl-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "가액합산기준",
+                      "24,500"
+                    ],
+                    "page": 4
+                  },
+                  "note": "세대 총자산이 2억4,500만원(출생자녀 1명 2억7,000만·2명 이상 2억9,400만) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      {
+                        "term": "asset_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                },
+                {
+                  "id": "N34-P-Tl-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "개별자동차가액",
+                      "4,542"
+                    ],
+                    "page": 4
+                  },
+                  "note": "자동차가액(가장 높은 차량가액)이 4,542만원(출생자녀 가산) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      {
+                        "term": "car_limit"
+                      }
+                    ]
+                  },
+                  "table": "permanent_terms"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

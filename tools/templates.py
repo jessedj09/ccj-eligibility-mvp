@@ -86,6 +86,12 @@ TEMPLATES: Dict[str, Dict] = {
     "lh.national_rental": dict(module=PUB, builder="national_rental", issuer="LH", program="국민임대", params=[
         Param("elderly_quote", "text", "고령자 전용 주택형 문구(있으면 65세 이상 계층을 더 만든다)", critical=False),
     ]),
+    "lh.permanent_rental": dict(module=PUB, builder="permanent_rental", issuer="LH", program="영구임대", params=[
+        Param("city", "region", "거주 요건 시·군(주민등록 등재) — 표준 지역 이름"),
+        Param("residence_quote", "text", "거주·무주택세대구성원 요건 문장", critical=False),
+        Param("adult_quote", "text", "성년 요건 문장", critical=False),
+        Param("weak_quote", "text", "주거약자용 주택형 문구(있으면 주거약자 계층을 더 만든다)", critical=False),
+    ]),
     "lh.happy_housing": dict(module=C1, builder=None, issuer="LH", program="행복주택", params=[
         Param("base", "choice", "기준 템플릿 — N3(일반 행복주택) / N1(신혼희망타운 행복주택)"),
         Param("layers", "layers", "공급 계층(대학생·청년·신혼부부·한부모 중 이 공고에 있는 것)"),
@@ -100,7 +106,7 @@ TEMPLATES: Dict[str, Dict] = {
 _PLAN_TEMPLATE = {(LH, "youth_rental"): "lh.youth_rental", (LH, "newlywed_rental"): "lh.newlywed_rental",
                   (LH, "jeonse"): "lh.deundeun", (SH, "sh_newlywed"): "sh.newlywed", (SH, "sh_vacant"): "sh.vacant",
                   (JS, "jeonse2"): "sh.jeonse2", (JS, "jeonse"): "sh.jeonse",
-                  (PUB, "national_rental"): "lh.national_rental"}
+                  (PUB, "national_rental"): "lh.national_rental", (PUB, "permanent_rental"): "lh.permanent_rental"}
 BASE_NOTICES = ("N1", "N2", "N3")      # 시트 없음(템플릿 원본·손으로 만든 공고)
 
 

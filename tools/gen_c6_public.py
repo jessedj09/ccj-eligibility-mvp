@@ -5,6 +5,8 @@
 | N30 | LH30 | 국민임대 남양주마석2단지 예비입주자(LH 표준 공고) | 2026-09-07 |
 | N31 | LH31 | 국민임대 김포지역 예비입주자(LH 표준 공고, 정정) | 2026-09-07 |
 | N32 | LH32 | 국민임대 부천시지역 예비입주자(고령자 주택형 포함) — 처음 보는 공고 검증 | 2026-09-07 |
+| N33 | LH33 | 영구임대 양주회천 A25BL 예비입주자(주거약자용 포함) | 2026-09-21 |
+| N34 | LH34 | 영구임대 부천시 예비입주자 | 2026-09-04 |
 
 - 판정 범위는 신청 자격(무주택·성년·소득·자산·자동차)이다. 순위(청약저축 납입 횟수·거주지)와 배점은 경쟁이 있을 때의
   선정 순서라 판정하지 않는다(notes에 적는다).
@@ -109,16 +111,17 @@ def _money(prefix, term, quote, pct):
              {"lte": [{"var": "monthly_income"},
                       {"lookup": ["income_standard_permanent", {"var": "household_size"}, {"term": term}]}]},
              table="permanent_terms"),
-        cond(f"{prefix}-assets", "total_assets", ["가액합산기준 (24,500)만원 이하"],
+        # 총자산·자동차 한도는 '(24,500)만원'(부천)·'24,500만원'(양주) 두 표기 — 괄호 밖 공통 부분을 인용한다
+        cond(f"{prefix}-assets", "total_assets", ["가액합산기준", "24,500"],
              "세대 총자산이 2억4,500만원(출생자녀 1명 2억7,000만·2명 이상 2억9,400만) 이하인지",
              {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table="permanent_terms"),
-        cond(f"{prefix}-car", "car_value", ["개별자동차가액 (4,542)만원 이하"],
+        cond(f"{prefix}-car", "car_value", ["개별자동차가액", "4,542"],
              "자동차가액(가장 높은 차량가액)이 4,542만원(출생자녀 가산) 이하인지",
              {"lte": [CAR, {"term": "car_limit"}]}, table="permanent_terms"),
     ]
 
 
-def permanent_rental(nid, city, residence_quote, weak_quote=None):
+def permanent_rental(nid, city, residence_quote, adult_quote, weak_quote=None):
     """영구임대 일반공급: 그 시·군 거주 + 성년 + 무주택세대구성원 + 「공공주택 특별법 시행규칙」 별표3 신분 중 하나.
     신분마다 소득 기준이 다르다(수급자 등 검증 없음 / 70% / 50% / 100%) — 트랙 묶음으로 표현한다.
     weak_quote: 주거약자용 주택형 문구 — 있으면 같은 자격 + 주거약자(65세 이상·장애인·상이 국가유공자 등) 계층을 만든다."""
@@ -171,7 +174,7 @@ def permanent_rental(nid, city, residence_quote, weak_quote=None):
         cond(f"{p}-home", "home_ownership", [residence_quote], "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)", HOME),
         cond(f"{p}-region", "residence_area", [residence_quote], f"공고일 현재 {city}에 주민등록이 되어 있는지",
              {"in": [{"var": "residence_area"}, [city]]}),
-        cond(f"{p}-adult", "age", ["「민법」상 미성년자(19세 미만)는 공급신청할 수 없습니다"],
+        cond(f"{p}-adult", "age", [adult_quote],
              "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
              {"any": [{"gte": [{"var": "age"}, 19]},
                       {"lte": [{"var": "age"}, 18],
@@ -241,9 +244,28 @@ PLAN = [
              "범박1단지 46형 고령자임대주택은 공고일 현재 65세 이상만 신청할 수 있고 다른 주택형과 중복 신청할 수 없다(p.3) — "
              "'일반(고령자 주택형)' 계층으로 판정한다.",
              "입주자모집공고일 현재 2세 미만 자녀(태아 포함)가 있으면 모집호수의 30% 범위에서 우선 배정한다(p.3)."]),
+    # 영구임대(개발용) — LH 영구임대 표준 공고
+    dict(nid="N33", key="LH33", title="양주회천A25BL 영구임대주택 예비입주자", ann="2026-09-21",
+         program="영구임대주택", template="permanent_rental",
+         params={"city": "양주시",
+                 "residence_quote": "현재양주시에거주(주민등록이등재)하는무주택세대구성원중영구임대주택입주적격자에한합니다",
+                 "adult_quote": "「민법」상 미성년자(19세 미만)는 공급신청할 수 없습니다",
+                 "weak_quote": "26A1형은주거약자에한하여신청가능합니다"},
+         notes=PERMANENT_NOTES + [
+             "신청은 양주시 안 주소지 관할 행정복지센터 현장 접수만 받는다(인터넷 신청 불가, p.1·p.3).",
+             "26A1형(주거약자용)은 주거약자만 신청할 수 있고, 모집 정원에 못 미쳐도 일반으로 전환하지 않는다(p.2·p.5)."]),
+    dict(nid="N34", key="LH34", title="부천시 영구임대주택 예비입주자", ann="2026-09-04",
+         program="영구임대주택", template="permanent_rental",
+         params={"city": "부천시",
+                 "residence_quote": "현재부천시에거주(주민등록등재)하는무주택세대구성원이지원가능하며",
+                 "adult_quote": "신청자는 민법상 성년자(만19세)이어야 합니다",
+                 "weak_quote": None},
+         notes=PERMANENT_NOTES + [
+             "같은 공고의 단지(중동한라1·중동덕유1) 중 1개 단지만 신청할 수 있다 — 중복 신청하면 모두 부적격(p.1).",
+             "두 단지는 1기 신도시 정비사업 대상으로 입주 후 재건축 등으로 이주할 수 있다(p.1)."]),
 ]
 
-ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5)}
+ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
 
 
 def pdf_for(key):
@@ -259,8 +281,8 @@ def walk(conditions):
 
 
 # 템플릿(사업별 규칙 생성 함수) — 공고별 값은 PLAN의 params(파라미터 시트, P1 docs/09 §5)
-BUILDERS = {"national_rental": national_rental}
-ISSUER = {"national_rental": "LH"}
+BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_rental}
+ISSUER = {"national_rental": "LH", "permanent_rental": "LH"}
 
 
 def make_doc(plan, pdf, pages):

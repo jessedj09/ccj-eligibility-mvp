@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
 const API = "http://127.0.0.1:8765";
-const DAY = "2026-10-14"; // 그날 정오에 접수 중인 공고 5건(tests/test_d4_match.py와 같은 날)
+const DAY = "2026-10-14"; // 그날 정오에 접수 중인 공고 6건(tests/test_d4_match.py와 같은 날)
 const AT = `${DAY}T12:00:00+09:00`;
 
 const field = (page: Page, name: string) => page.locator(`[data-field="${name}"]`);
@@ -41,7 +41,7 @@ test("전체 공고 판정 결과가 API /match와 같고, 기준일·보기를 
   await expect(page.getByTestId("count-ELIGIBLE")).toHaveText(c("ELIGIBLE"));
   await expect(page.getByTestId("count-INELIGIBLE")).toHaveText(c("INELIGIBLE"));
   await expect(page.getByTestId("count-HOLD")).toHaveText(String((want.counts.NEEDS_INFO ?? 0) + (want.counts.MANUAL_REVIEW ?? 0)));
-  await expect(page.getByTestId("schedule-counts")).toContainText("접수 중 5건");
+  await expect(page.getByTestId("schedule-counts")).toContainText("접수 중 6건");
 
   // 마감 포함으로 바꾸면 공고 전체
   await page.getByRole("radio", { name: "전체 공고(마감 포함)" }).check();

@@ -222,5 +222,19 @@
     "file": "sample_lh/20260907_부천시국민임대공고문(예비입주자).pdf",
     "pages": 32,
     "sha256": "07bc1e47eea8e800c97a6cea42ea504366a2c4f9194c500c156aa5b2c8b486fa"
+  },
+  {
+    "key": "LH33",
+    "org": "LH",
+    "file": "sample_lh/양주회천A25BL_영구임대주택예비입주자모집공고문.pdf",
+    "pages": 35,
+    "sha256": "04d577db6ff1528153f077a7455a19b4dc0221cf000364cfd6cb49fa1d6131c8"
+  },
+  {
+    "key": "LH34",
+    "org": "LH",
+    "file": "sample_lh/부천시영구임대예비입주자모집공고문.pdf",
+    "pages": 34,
+    "sha256": "e227f0f6b1e3267ffbffea1bac8b9e842f10ab06517c3aa3568a91682c7e7663"
   }
 ]
