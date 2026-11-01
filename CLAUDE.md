@@ -195,6 +195,7 @@ Engine**이다.
   G4(2026-11-01): 공공임대(10년·분양전환·50년) 예비입주자 `lh.public_rental`(N37~N44, 처음 보는 공고 5건 위험 0 → PASSING 공개), 새 입력 rewin_restricted·청약통장 기간·횟수 — 상세 docs/10 G4.
   G3(2026-11-01): 신혼희망타운 공공분양 `lh.newlywed_town_sale`(N45~N48, 단순형·정규형, 처음 보는 공고 2건 위험 0 — 공개 전), 기준표 income_standard_nhtown, 새 입력 past_special_supply, 계층 '예비신혼부부' — 상세 docs/10 G3.
   G3-2(2026-11-01): LH 공공분양 `lh.public_sale`(N49 양주회천 A-26·N50 안산신길2 B-1 처음 보는 공고 위험 0 — 공개 전), 특별공급 5종 + 일반공급 60㎡ 이하/초과, 기준표 income_standard_sale, 새 입력 부동산 가액·생애최초 3종·노부모 3년 — 상세 docs/10 G3-2.
+  **2026-11-02 사용자 결정: 판정 틀이 있는 사업은 모두 새 업로드 자동 판정 공개**(PASSING 15종 — 처음 보는 공고 3건·독립 검증은 권장 절차로).
   G3-3(2026-11-01): SH 토지임대부 분양 `sh.land_sale`(N51 마곡17·N52 고덕강일3 처음 보는 공고 위험 0 — 공개 전), 청년 특공·총자산·투기과열 1순위, 기준표 income_standard_youth_sale, 새 입력 본인 과거 주택 소유·세대 5년 내 당첨 — 상세 docs/10 G3-3.
   모바일 웹 = 같은 화면 반응형(lg 미만 1단). **화면을 고치면 PC·휴대폰 둘 다 점검**(Playwright pc-chromium·mobile-chromium, `e2e/mobile.spec.ts`).
 - **표 칸 위치 읽기(2026-11-01, docs/09 §19 — 평가 단계, 판정 경로 미연결)**: `src/pdf_tables.py`(pdfplumber **0.11.9 고정** — 0.11.10은
