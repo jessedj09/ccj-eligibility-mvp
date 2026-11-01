@@ -68,6 +68,24 @@ test("등록 공고 PDF를 올리면 검증된 규칙으로 판정하고, 결과
   expect(saved.input.monthly_income).toBe(2500000);
 });
 
+test("보류(정보 부족)면 모르는 항목만 다시 묻고, 답하면 바로 다시 판정한다(피드백 B1)", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "목록에서 고르기" }).click();
+  await page.getByTestId("notice-select").selectOption("N38");     // 공공임대 예비입주자 — 거주지·재당첨 제한을 묻는다
+  await page.getByRole("button", { name: "일반", exact: true }).click();
+  await page.getByRole("textbox", { name: "생년월일" }).fill("1990-01-01");
+  await page.getByRole("button", { name: "판정하기" }).click();
+  await expect(page.getByTestId("result-title")).toContainText("보류");
+  const q = page.getByTestId("questions");
+  await expect(q).toBeVisible();
+  await expect(q.locator('[data-field="monthly_income"]')).toHaveCount(0);      // 이 판정에 필요 없는 항목은 묻지 않는다
+  await q.locator('[data-field="residence_area"] select').selectOption("고양시");
+  await q.locator('[data-field="rewin_restricted"] select').selectOption("no");
+  await q.getByTestId("rejudge").click();
+  await expect(page.getByTestId("result-title")).toContainText("지원 가능");
+  await expect(page.getByTestId("questions")).toHaveCount(0);
+});
+
 test("20MB를 넘는 파일은 올리기 전에 알린다", async ({ page }) => {
   await page.goto("/");
   let uploaded = false;

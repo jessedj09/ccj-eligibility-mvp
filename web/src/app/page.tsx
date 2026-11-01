@@ -1,6 +1,6 @@
 "use client";
 // 공고 판정(메인) — 공고문 PDF를 올리거나 목록에서 골라 계층을 정하고, 필요한 정보만 넣어 판정한다. PC는 2단, 휴대폰은 1단.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ProfileForm, { initialValues, toProfile, type Values } from "@/components/ProfileForm";
 import ResultView from "@/components/ResultView";
 import {
@@ -203,6 +203,21 @@ export default function Home() {
 
   const unsupported = picked?.unsupported.find((u) => u.name === layer);
 
+  // 피드백 B1: '보류 — 추가 정보 필요'를 질문으로 — 정보 부족 조건이 읽는 항목 중 이번에 '모름'으로 보낸 것만 다시 묻는다
+  const ask = useMemo(() => {
+    if (!result || !form || result.verdict !== "NEEDS_INFO" || !result.questions?.length || !judgedProfile) return null;
+    const names = new Set(result.questions.flatMap((q) => q.fields));
+    const fields = form.fields.filter((f) => names.has(f.name) && f.type !== "age" &&
+      (judgedProfile[f.name] === null || judgedProfile[f.name] === undefined));
+    if (!fields.length) return null;
+    const asked = new Set(fields.map((f) => f.name));
+    // 순위·유형마다 같은 조건(소득·자산 등)이 되풀이되므로 설명이 같은 것은 한 번만
+    const seen = new Set<string>();
+    const items = result.questions.filter((q) => q.fields.some((x) => asked.has(x)) && !seen.has(q.description) &&
+      Boolean(seen.add(q.description)));
+    return { form: { ...form, fields, notes: [] }, items };
+  }, [result, form, judgedProfile]);
+
   /** 판정 결과 보관(피드백 B2) — 입력·결과·판정 근거의 판을 이 기기에 파일로. 서버에는 남지 않는다. */
   function saveResult() {
     if (!result) return;
@@ -328,6 +343,30 @@ export default function Home() {
               </button>
             </div>
             <ResultView result={result} source={picked && "notice_id" in picked.target ? "registered" : "analysis"} />
+          </div>
+        )}
+        {ask && (
+          <div className={`${card} border-amber-300`} data-testid="questions">
+            <h2 className="mb-1 text-base font-semibold">이것만 알려 주시면 바로 판정합니다</h2>
+            <p className="mb-3 text-xs text-slate-600">
+              아래 항목을 &lsquo;모름&rsquo;으로 두어 판정을 미뤘습니다. 아는 대로 답하고 다시 판정하세요. 해석이 필요한 조건(수동 확인)은
+              공고 기관에 문의해야 합니다.
+            </p>
+            <details className="mb-4 text-sm text-slate-700" open={ask.items.length <= 4}>
+              <summary className="cursor-pointer text-xs font-medium text-slate-600">판정을 미룬 조건 {ask.items.length}개 보기</summary>
+              <ul className="mt-2 space-y-1">
+                {ask.items.map((q) => (
+                  <li key={q.rule_id}>· {q.description} <span className="text-xs text-slate-500">(근거: {q.source_ref})</span></li>
+                ))}
+              </ul>
+            </details>
+            <ProfileForm form={ask.form} values={values} onChange={setValues} />
+            <div className="mt-4 flex justify-end">
+              <button type="button" onClick={onJudge} disabled={Boolean(busy)} data-testid="rejudge"
+                className="w-full rounded-md bg-amber-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50 sm:w-auto">
+                다시 판정하기
+              </button>
+            </div>
           </div>
         )}
       </main>

@@ -159,6 +159,23 @@ def test_evaluate_reports_what_it_judged_with(monkeypatch):
     assert m.rule_version("N12") != m.rule_version("N13")
 
 
+def test_evaluate_lists_questions_for_unknown_inputs_only():
+    """피드백 B1: '정보 부족' 조건마다 그 조건이 읽는 입력 항목 — 수동 확인(해석)·충족 조건은 넣지 않는다."""
+    body = {"age": 40, "marital_status": "미혼", "home_ownership": "무주택", "household_size": 1}
+    r = client.post("/evaluate", json={"notice_id": "N38", "layer": "일반", "profile": body}).json()
+    assert r["verdict"] == "NEEDS_INFO"
+    asked = {f for q in r["questions"] for f in q["fields"]}
+    assert asked == {"residence_area", "rewin_restricted"}
+    r = client.post("/evaluate", json={"notice_id": "N38", "layer": "일반", "profile": dict(
+        body, residence_area="고양시", rewin_restricted=False)}).json()
+    assert r["verdict"] == "ELIGIBLE" and r["questions"] == []
+    # 자녀 관련 조건은 원래 입력란(자녀 생년월일)으로 묻는다
+    r = client.post("/evaluate", json={"notice_id": "N46", "layer": "한부모", "profile": dict(
+        body, marital_status="한부모", household_size=2, residence_area="고양시")}).json()
+    assert any("children_birth_dates" in q["fields"] for q in r["questions"])
+    assert not any(f in ("has_children", "youngest_child_birth_date") for q in r["questions"] for f in q["fields"])
+
+
 def test_evaluate_errors():
     assert client.post("/evaluate", json={"notice_id": "N999", "layer": "청년", "profile": {}}).status_code == 404
     assert client.post("/evaluate", json={"notice_id": "N1", "layer": "없음", "profile": {}}).status_code == 404

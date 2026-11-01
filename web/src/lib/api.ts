@@ -85,6 +85,8 @@ export type Result = {
     by: "registered" | "analysis"; notice_id?: string; title?: string; rule_version?: string; source_sha256?: string;
     sha256?: string; program?: string; analysis_version?: string;
   };
+  /** '정보 부족' 조건마다 그 조건이 읽는 입력 항목(피드백 B1) — 화면은 지금 '모름'인 항목만 다시 묻는다. */
+  questions?: { rule_id: string; description: string; source_ref: string; fields: string[] }[];
 };
 
 export type NoticeSummary = {
