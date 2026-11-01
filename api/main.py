@@ -45,7 +45,7 @@ from notices_data import ALL_NOTICES  # noqa: E402
 from profile_io import ProfileFormatError, household_from_dict, master_from_dict  # noqa: E402
 from rule_engine import evaluate, validate_profile  # noqa: E402
 from schedule import CLOSED, KST, OPEN, UPCOMING, load_schedules, now_kst, statuses  # noqa: E402
-from store import get_store  # noqa: E402
+from store import UNKNOWN_DEMOTED, get_store  # noqa: E402
 import whatif  # noqa: E402
 
 app = FastAPI(title="공공임대 자격 판정 API", version="1",
@@ -177,12 +177,20 @@ def _identify(data: bytes, store):
     return ident
 
 
-def _paused(d, store) -> bool:
-    """그 사업(템플릿)의 자동 판정을 멈췄는가 — 비교에서 위험이 나와 자동 강등됐거나 운영자가 멈춤(A3, program_health)."""
-    return bool(d is not None and d.template and d.template in store.demoted_programs())
+def _paused(d, store) -> Optional[str]:
+    """그 사업(템플릿)의 자동 판정을 멈췄으면 그 이유 — 비교에서 위험이 나와 자동 강등됐거나 운영자가 멈춤(A3, program_health).
+    멈춘 사업 목록을 읽지 못하면(DB 장애) 모든 사업을 멈춘 것으로 본다(피드백 A4) — 등록 공고 판정은 계속된다."""
+    if d is None or not d.template:
+        return None
+    demoted = store.demoted_programs()
+    if demoted is UNKNOWN_DEMOTED:
+        return STORE_DOWN
+    return PAUSED.format(d.program) if d.template in demoted else None
 
 
 PAUSED = "이 사업({})은 정확도 점검 중이라 자동 판정을 잠시 멈췄습니다. 점검이 끝나면 다시 판정합니다."
+STORE_DOWN = ("서버 점검 중이라 새 공고 자동 판정을 잠시 멈췄습니다. 등록된 공고는 목록에서 그대로 판정할 수 있습니다. "
+              "잠시 뒤 다시 올려 주세요.")
 
 
 def _client(request: Request) -> str:
@@ -241,7 +249,7 @@ def upload(request: Request, file: UploadFile = File(...)):
         import draft
         store.count("unjudged")
         if paused:
-            reason = PAUSED.format(d.program)
+            reason = paused
         elif d is not None:
             reason = d.reason
         elif ident.status == UNREGISTERED:
@@ -302,8 +310,9 @@ def _target(notice_id: Optional[str], sha256: Optional[str], layer: str):
         d = _draft_for(sha256)
         if d is None or d.notice is None:
             raise HTTPException(404, "이 공고의 분석 결과가 없습니다. 공고문을 다시 올려 주세요(/upload).")
-        if _paused(d, get_store()):
-            raise HTTPException(403, PAUSED.format(d.program))
+        paused = _paused(d, get_store())
+        if paused:
+            raise HTTPException(403, paused)
         notice, where = d.notice, "이 공고"
     else:
         d, notice, where = None, ALL_NOTICES.get(notice_id), notice_id

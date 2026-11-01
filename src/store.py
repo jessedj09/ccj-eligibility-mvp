@@ -116,6 +116,16 @@ def database_url() -> Optional[str]:
     return None
 
 
+class _AllPrograms(frozenset):
+    """멈춘 사업 목록을 읽지 못함(DB 장애) — 모든 사업이 멈춘 것으로 본다(피드백 A4). 빈 목록을 돌려주면 위험 때문에 멈춘 사업이
+    장애 동안 다시 자동 판정된다. 등록 공고 판정은 이 목록을 보지 않으므로 계속된다."""
+    def __contains__(self, item):
+        return True
+
+
+UNKNOWN_DEMOTED = _AllPrograms()
+
+
 class NullStore:
     """DB가 없을 때 — 아무것도 저장하지 않고, 찾으면 늘 없음."""
     available = False
@@ -359,7 +369,7 @@ class Store(NullStore):
                                                                      END""", (program, demoted, demoted)))
         return True
 
-    @_safe(frozenset())
+    @_safe(UNKNOWN_DEMOTED)
     def demoted_programs(self) -> frozenset:
         rows = self._run(lambda c: c.execute("SELECT program FROM program_health WHERE demoted_at IS NOT NULL").fetchall())
         return frozenset(r[0] for r in rows)
