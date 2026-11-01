@@ -31,6 +31,9 @@ WIDGETS = [
     ("m_workarea", "workplace_area", "pick"), ("m_affil", "industrial_affiliation", "pick"),
     ("m_regional", "regional_industry_type", "pick"), ("m_spdis", "disabled_spouse_qualifies", "yes_no"),
     ("m_eparent", "supports_elderly_parent_1y", "yes_no"), ("m_veteran", "veteran_priority_notified", "yes_no"),
+    ("m_lmr", "livelihood_medical_recipient", "yes_no"), ("m_merit", "merit_person", "yes_no"),
+    ("m_defector", "north_korean_defector", "yes_no"), ("m_facility", "child_facility_leaver", "yes_no"),
+    ("m_eparent0", "supports_elderly_parent", "yes_no"),
 ]
 
 

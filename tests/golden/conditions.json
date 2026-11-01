@@ -4554,5 +4554,325 @@
    "note": "신청자 본인이 주거약자인지 — 65세 이상 고령자이거나 장애인, 상이등급 1~7급 국가유공자·보훈보상대상자·준군경, 5·18 부상자(장해 1~14급), 고엽제후유의증환자(경도 이상)",
    "timing": "NOW"
   }
+ ],
+ "N29/신혼·신생아": [
+  {
+   "id": "N29-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N29-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "신혼부부·예비신혼부부·한부모가족·지원대상 한부모·유자녀 혼인가구·신생아 가구·혼인가구 중 하나에 해당하는지(순위는 유형으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N29-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "가구 월평균소득이 130%(1인 150%·2인 140%), 맞벌이 200%(1인 220%·2인 210%) 이하인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N29-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "총자산이 출생자녀 가산(1명 +10%p, 2명 이상 +20%p)을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
+ ],
+ "N30/일반": [
+  {
+   "id": "N30-G-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N30-G-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N30-G-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "세대 전원의 월평균소득 합계가 70%(1인 +20%p·2인 +10%p, 출산자녀 1명 +10%p·2명 이상 +20%p) 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N30-G-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "세대 전원의 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N30-G-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N31/일반": [
+  {
+   "id": "N31-G-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N31-G-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N31-G-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "세대 전원의 월평균소득 합계가 70%(1인 +20%p·2인 +10%p, 출산자녀 1명 +10%p·2명 이상 +20%p) 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N31-G-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "세대 전원의 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N31-G-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N32/일반": [
+  {
+   "id": "N32-G-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N32-G-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N32-G-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "세대 전원의 월평균소득 합계가 70%(1인 +20%p·2인 +10%p, 출산자녀 1명 +10%p·2명 이상 +20%p) 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N32-G-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "세대 전원의 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N32-G-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N32/일반(고령자 주택형)": [
+  {
+   "id": "N32-E-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N32-E-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N32-E-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "세대 전원의 월평균소득 합계가 70%(1인 +20%p·2인 +10%p, 출산자녀 1명 +10%p·2명 이상 +20%p) 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N32-E-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "세대 전원의 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N32-E-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N32-E-age65",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "공고일 현재 65세 이상인지(고령자 전용 주택형)",
+   "timing": "NOW"
+  }
+ ],
+ "N33/일반": [
+  {
+   "id": "N33-P-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-P-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "공고일 현재 양주시에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-P-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-P-rank",
+   "field": "입주자격",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "「공공주택 특별법 시행규칙」 별표3의 영구임대 입주자격(1순위 가~자, 2순위 차·타) 중 하나 이상에 해당하는지 (신분마다 소득 기준이 다름 — 수급자 등 없음 / 70% / 50% / 100%)",
+   "timing": "NOW"
+  }
+ ],
+ "N33/일반(주거약자용)": [
+  {
+   "id": "N33-W-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-W-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "공고일 현재 양주시에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-W-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-W-rank",
+   "field": "입주자격",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "「공공주택 특별법 시행규칙」 별표3의 영구임대 입주자격(1순위 가~자, 2순위 차·타) 중 하나 이상에 해당하는지 (신분마다 소득 기준이 다름 — 수급자 등 없음 / 70% / 50% / 100%)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N33-W-weak",
+   "field": "age/housing_weak_type",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "주거약자(만 65세 이상, 장애인, 상이 1~7급 국가유공자·보훈보상대상자, 5·18 부상자, 고엽제후유의증환자)인지",
+   "timing": "NOW"
+  }
+ ],
+ "N34/일반": [
+  {
+   "id": "N34-P-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N34-P-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.1",
+   "note": "공고일 현재 부천시에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N34-P-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.2",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N34-P-rank",
+   "field": "입주자격",
+   "required": true,
+   "source_ref": "공고문 p.8",
+   "note": "「공공주택 특별법 시행규칙」 별표3의 영구임대 입주자격(1순위 가~자, 2순위 차·타) 중 하나 이상에 해당하는지 (신분마다 소득 기준이 다름 — 수급자 등 없음 / 70% / 50% / 100%)",
+   "timing": "NOW"
+  }
  ]
 }

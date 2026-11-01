@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "798b386deb6113962e48c220f2ba6ded74978370639a2cde379ef1b76e8c9758",
+  "file": "2026년 국민임대주택 입주자모집공고문(20260820).pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "국민임대주택",
+  "announcement_date": null,
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

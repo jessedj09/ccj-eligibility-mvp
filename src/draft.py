@@ -14,7 +14,6 @@
   찾지 못한 인용문(missing)을 등록 작업의 출발점으로 쓴다(판정에는 쓰지 않음).
 """
 import os
-import re
 import sys
 import tempfile
 from dataclasses import dataclass, field
@@ -139,7 +138,7 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
         return Draft(BLOCKED, reason, **base)
     base["doc"] = dict(g["doc"], title=f"{ext['program']} (검증 전 초안)")
     notice = build_notice(base["doc"])
-    ids = set(re.findall(rf"({DRAFT_ID}-[A-Za-z0-9가-힣-]+)", " ".join(g["missing"])))
+    ids = X.held_condition_ids(base["doc"], g["missing"])
     held = {layer: X.affected_conditions(ls.conditions, ids) for layer, ls in notice.layers.items()}
     return Draft(OK, "", notice=notice, held_conditions=held, **base)
 

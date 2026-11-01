@@ -357,6 +357,10 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None
     if "신혼·신생아 매입임대" in program:
         return "sh.newlywed" if issuer == "SH" else "lh.newlywed_rental"
+    if "국민임대" in program:          # G2: LH 표준 공고로 만든 틀 — SH 국민임대는 아직 검증 전
+        return None if issuer == "SH" else "lh.national_rental"
+    if "영구임대" in program:          # G2: LH 영구임대 표준 공고 — SH 영구임대는 아직 검증 전
+        return None if issuer == "SH" else "lh.permanent_rental"
     for key, t in PROGRAM_TEMPLATE:
         if key in program and t:
             return t
@@ -709,6 +713,45 @@ def _happy_weak(pages, layers, heads) -> Field:
     return Field(ABSENT, None, how="신혼부부·한부모 주거약자 요건 문구 없음(고령자 배정 주거약자용은 고령자 계층으로 판정)")
 
 
+# ------------------------------------------------------------------ 국민임대(G2)
+# 고령자 전용 주택형: N32 p.3 "○○단지46형고령자임대주택은(공고일현재65세이상만신청)가능하며"
+ELDERLY_TYPE = r"[가-힣0-9]{0,20}\d+형고령자[가-힣]*주택은?\(공고일현재65세이상만신청\)가능"
+
+
+def _national_rental(pages):
+    hit = find_text(pages, ELDERLY_TYPE)
+    return {"elderly_quote": Field(FILLED, hit[1], hit[0], hit[1], "'○○형 고령자임대주택은(공고일현재65세이상만신청)' 문구")
+            if hit else Field(ABSENT, None, how="고령자 전용 주택형 문구 없음")}
+
+
+# ------------------------------------------------------------------ 영구임대(G2)
+# 거주 요건: N33 p.1 "현재○○시에거주(주민등록이등재)하는무주택세대구성원중영구임대주택입주적격자에한합니다",
+#           N34 p.1 "현재○○시에거주(주민등록등재)하는무주택세대구성원이지원가능하며"
+RESIDENCE = r"([가-힣]{1,6}[시군])에거주\(주민등록이?등재\)하는무주택세대구성원[가-힣]{0,20}"
+ADULT = r"「민법」상미성년자\(19세미만\)는공급신청할수없습니다|신청자는민법상성년자\(만19세\)이어야합니다"
+WEAK_TYPE = r"\d+[A-Z]?\d?형(?:\(주거약자용주택\))?은주거약자에한하여신청가능합니다"
+
+
+def _permanent_rental(pages):
+    from rule_data import region_groups
+    known = {n for names in region_groups().values() for n in names}
+    f = {}
+    hit = find_text(pages, RESIDENCE)
+    city = re.match(RESIDENCE, hit[1]).group(1).removeprefix("현재") if hit else None
+    f["city"] = Field(FILLED, city, hit[0], hit[1], "'○○시에 거주(주민등록 등재)하는 무주택세대구성원' 문구") \
+        if city in known else Field(HELD, None, hit[0] if hit else None, hit[1] if hit else None,
+                                    "거주 요건 시·군을 원문에서 확인하지 못함(표준 지역 이름이 아님)" if hit else "거주 요건 문구 없음")
+    f["residence_quote"] = Field(FILLED, hit[1], hit[0], hit[1], "거주 요건 문장") if hit else \
+        Field(HELD, "무주택세대구성원", how="거주 요건 문장 없음")
+    hit = find_text(pages, ADULT)
+    f["adult_quote"] = Field(FILLED, hit[1], hit[0], hit[1], "성년 요건 문장") if hit else \
+        Field(HELD, "「민법」상 미성년자(19세 미만)는 공급신청할 수 없습니다", how="성년 요건 문장을 찾지 못함")
+    hit = find_text(pages, WEAK_TYPE)
+    f["weak_quote"] = Field(FILLED, hit[1], hit[0], hit[1], "'○○형은 주거약자에 한하여 신청 가능' 문구") if hit else \
+        Field(ABSENT, None, how="주거약자용 주택형 문구 없음")
+    return f
+
+
 # ------------------------------------------------------------------ 전체
 def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Dict:
     """siblings_of(template) → 형제 정답 시트 목록(같은 템플릿, 평가 시 다듬기용 공고만). llm이 있으면 결정론이 못 채운
@@ -725,7 +768,8 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
     sib = siblings_of(template) if siblings_of else []
     fn = {"lh.youth_rental": lambda: _youth_rental(pages, ann, sib),
           "lh.newlywed_rental": lambda: _newlywed_rental(pages, ann, sib, program),
-          "lh.deundeun": dict, "sh.vacant": dict,
+          "lh.deundeun": dict, "sh.vacant": dict, "lh.national_rental": lambda: _national_rental(pages),
+          "lh.permanent_rental": lambda: _permanent_rental(pages),
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),
           "sh.jeonse2": lambda: _jeonse2(pages, ann, sib, program, llm),
           "sh.jeonse": lambda: _jeonse(pages, ann, sib, program, llm),
@@ -927,6 +971,10 @@ def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW", llm: Optional[LLM] 
     if not ext["template"]:
         out["blocked"] = "사업 유형(템플릿)을 정하지 못함"
         return out
+    relaxed = relaxed_notice(pages)
+    if relaxed:
+        out["blocked"] = relaxed
+        return out
     try:
         out["doc"], out["missing"] = _build(ext, nid, pdf, pages)
     except (KeyError, TypeError, ValueError) as e:     # 필수 빈칸이 보류라 규칙을 만들 수 없음
@@ -1013,6 +1061,33 @@ def new_restrictions(doc: Dict, pages: List[str]) -> List[tuple]:
                 if not any(key in q for q in quotes):
                     out.append((i, m.group(0)))
     return sorted(set(out))
+
+
+# 입주자격 완화 공고(G2 2026-11-01 — 화성동탄 행복주택·화성서부권 국민임대): 이번 공고에 한해 소득·자산 요건을 빼거나 기간 요건을
+# 넓힌다. 템플릿은 평상시 요건이라 '지원 불가'가 틀릴 수 있으므로 자동 판정하지 않는다(등록 28건에는 이 표현이 없다).
+RELAXED = re.compile(r"입주자격완화|【완화조건】|완화기준은해당공고에한하여")
+
+
+def relaxed_notice(pages: List[str]) -> Optional[str]:
+    for i, p in enumerate(pages):
+        m = RELAXED.search(p)
+        if m:
+            return (f"입주자격 완화 공고(p.{i + 1} '{m.group()}') — 이번 공고에 한해 소득·자산·기간 요건이 평상시와 달라 "
+                    "자동 판정하지 않습니다")
+    return None
+
+
+def held_condition_ids(doc: Dict, missing: List[str]) -> set:
+    """찾지 못한 인용문·기준표가 걸린 조건 ID. 메시지는 '<계층>/<조건 ID>: …' 또는 'table:<표 이름>: …'.
+    조건 ID에 '/'가 들어가도(DRAFT-R7/R7b) 정확히 맞추고, 표 인용문을 못 찾으면 그 표를 쓰는 조건을 모두 보류한다."""
+    tables = {m.split(": ", 1)[0][len("table:"):] for m in missing if m.startswith("table:")}
+    out = set()
+    for ld in doc["layers"].values():
+        for c in _walk(ld["conditions"]):
+            check = json.dumps(c.get("check", {}), ensure_ascii=False)
+            if any(f"/{c['id']}: " in m for m in missing) or                     any(c.get("table") == t or f'"{t}"' in check for t in tables):
+                out.add(c["id"])
+    return out
 
 
 def affected_conditions(conditions, condition_ids) -> set:

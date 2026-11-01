@@ -1,0 +1,327 @@
+# -*- coding: utf-8 -*-
+"""G2: 공공임대 새 사업(국민임대 …)의 규칙을 만든다. 사용: python tools/gen_c6_public.py   (재실행 안전 — 같은 결과)
+
+| ID  | 원문 | 사업 | 공고일 |
+| N30 | LH30 | 국민임대 남양주마석2단지 예비입주자(LH 표준 공고) | 2026-09-07 |
+| N31 | LH31 | 국민임대 김포지역 예비입주자(LH 표준 공고, 정정) | 2026-09-07 |
+| N32 | LH32 | 국민임대 부천시지역 예비입주자(고령자 주택형 포함) — 처음 보는 공고 검증 | 2026-09-07 |
+| N33 | LH33 | 영구임대 양주회천 A25BL 예비입주자(주거약자용 포함) | 2026-09-21 |
+| N34 | LH34 | 영구임대 부천시 예비입주자 | 2026-09-04 |
+
+- 판정 범위는 신청 자격(무주택·성년·소득·자산·자동차)이다. 순위(청약저축 납입 횟수·거주지)와 배점은 경쟁이 있을 때의
+  선정 순서라 판정하지 않는다(notes에 적는다).
+- 원문 표의 수치(자산·자동차 한도)는 손으로 옮긴 리터럴이다 — 다음 해 기준이 바뀐 공고는 인용문을 찾지 못해 보류된다.
+- 소득 기준표는 국민임대 공고의 70%·80%·90% 열(1~8인)을 rules/reference/income_standard_public.json에 따로 둔다
+  (다른 사업 표와 섞지 않는다 — C4a의 행복주택·매입임대 표 누수 교훈).
+- 인용문 쪽은 대상 PDF에서 자동 탐색한다. 생성 후 tools/verify_sources.py, pytest(tests/test_g2_public.py)로 확인.
+"""
+import hashlib
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+import source_verify as sv  # noqa: E402
+
+_spec = importlib.util.spec_from_file_location("gen_c3_layers", ROOT / "tools" / "gen_c3_layers.py")
+C3 = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(C3)
+cond, r, no_row, locate, place_quotes = C3.cond, C3.r, C3.no_row, C3.locate, C3.place_quotes
+B1, B2, B3 = C3.B1, C3.B2, C3.B3
+HOME = {"eq": [{"var": "home_ownership"}, "무주택"]}
+CAR = {"var": "car_value", "unknown_values": ["확인불가"]}
+
+
+# ------------------------------------------------------------------------------------------------
+# 국민임대 (LH 표준 공고 — 남양주마석 p.4~6 / 김포 p.5~8)
+# ------------------------------------------------------------------------------------------------
+def national_rental(nid, elderly_quote=None):
+    """elderly_quote: 고령자 전용 주택형 문구(예: 부천 p.3 '범박1단지46형고령자임대주택은(공고일현재65세이상만신청)가능') —
+    있으면 같은 자격에 '공고일 현재 65세 이상'을 더한 계층을 만든다."""
+    p = f"{nid}-G"
+    terms = "national_terms"
+    conditions = [
+        cond(f"{p}-home", "home_ownership",
+             ["현재 무주택세대구성원으로서 아래의 '소득 및 자산보유기준'을 충족하는 사람"],
+             "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)", HOME),
+        cond(f"{p}-adult", "age", ["「민법」상 미성년자(19세 미만)는 공급신청할 수 없습니다"],
+             "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+             {"any": [{"gte": [{"var": "age"}, 19]},
+                      {"lte": [{"var": "age"}, 18],
+                       "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                          "detail": "미성년자는 원칙적으로 신청할 수 없고, 자녀가 있는 미성년 세대주·형제자매를 부양하는 "
+                                                    "미성년 세대주 등 예외에 해당할 때만 신청할 수 있습니다(법정대리인 동의 필요). "
+                                                    "예외 해당 여부는 이 화면이 묻지 않습니다."}}]}),
+        cond(f"{p}-income", "monthly_income",
+             # '20%가산'(남양주·김포)과 '20%p가산'(부천) 두 표기가 있어 비율 문구 대신 가산 항목 머리말을 인용한다
+             ["소득기준가산", "가구원수 가산항목 및 비율", "출산자녀수 가산항목 및 비율"],
+             "세대 전원의 월평균소득 합계가 70%(1인 +20%p·2인 +10%p, 출산자녀 1명 +10%p·2명 이상 +20%p) 기준 이내인지",
+             {"lte": [{"var": "monthly_income"},
+                      {"lookup": ["income_standard_public", {"var": "household_size"}, {"term": "ratio"}]}]},
+             table=terms),
+        cond(f"{p}-assets", "total_assets", ["총자산가액 합산기준 (345)백만원 이하"],
+             "세대 전원의 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+             {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table=terms),
+        cond(f"{p}-car", "car_value", ["개별자동차가액 (4,542)만원 이하"],
+             "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+             {"lte": [CAR, {"term": "car_limit"}]}, table=terms),
+    ]
+    tables = {terms: {
+        "label": "국민임대 소득 비율·자산·자동차 한도: 가구원수 × 출산자녀수(가구원수 가산과 출산자녀 가산을 더함)",
+        "columns": ["size", "child"],
+        "inputs": {"size": {"var": "household_size"}, "child": {"fn": "child_bonus_count"}},
+        "outputs": ["ratio", "asset_limit", "car_limit"],
+        "rows": [
+            r({"size": 1, "child": 0}, [90] + B1),
+            r({"size": 1, "child": "1+"}, **no_row(C3.D_ALONE_CHILD)),
+            r({"size": 2, "child": 0}, [80] + B1),
+            r({"size": 2, "child": 1}, [90] + B2),
+            r({"size": 2, "child": "2+"}, **no_row(C3.D_TWO_KIDS)),
+            r({"size": "3+", "child": 0}, [70] + B1),
+            r({"size": "3+", "child": 1}, [80] + B2),
+            r({"size": "3+", "child": "2+"}, [90] + B3),
+        ],
+        "source": {"quote": ["0명(기준) 34,500 4,542", "1명 37,900 4,996", "2명 41,300 5,451"]},
+    }}
+    layers = {"일반": {"conditions": conditions}}
+    if elderly_quote:
+        layers["일반(고령자 주택형)"] = {"conditions": [dict(json.loads(json.dumps(c)), id=c["id"].replace(f"{p}-", f"{nid}-E-"))
+                                             for c in conditions] + [
+            cond(f"{nid}-E-age65", "age", [elderly_quote], "공고일 현재 65세 이상인지(고령자 전용 주택형)",
+                 {"gte": [{"var": "age"}, 65]})]}
+    return layers, tables
+
+
+# ------------------------------------------------------------------------------------------------
+# 영구임대 (LH 영구임대 표준 공고 — 양주회천 A25 p.4~7·p.9 / 부천시 p.4~6)
+# ------------------------------------------------------------------------------------------------
+PERM_B1, PERM_B2, PERM_B3 = [245000000, 45420000], [270000000, 49960000], [294000000, 54510000]
+WELFARE_ANY = ["생계·의료·주거급여 수급자", "교육급여만 수급", "차상위계층"]     # 수급권자(급여 종류 무관)·차상위
+WEAK_TYPES = ["장애인", "국가유공자(상이 1~7급)", "보훈보상대상자(상이 1~7급)", "5·18민주화운동부상자(장해 1~14급)",
+              "고엽제후유의증환자(경도 이상)", "국가유공자에 준하는 군경(상이 1~7급)"]
+Q70 = "전년도 도시근로자 가구당 월평균소득의 70%(1인 90%, 2인 80%) 이하이고 영구임대주택의 자산요건을 충족한"
+
+
+def _money(prefix, term, quote, pct):
+    """영구임대 신분별 소득(기준 비율은 신분마다 다름)·자산·자동차 조건."""
+    return [
+        cond(f"{prefix}-income", "monthly_income", [quote], f"세대 월평균소득이 {pct}(가구원수·출생자녀 가산 반영) 이하인지",
+             {"lte": [{"var": "monthly_income"},
+                      {"lookup": ["income_standard_permanent", {"var": "household_size"}, {"term": term}]}]},
+             table="permanent_terms"),
+        # 총자산·자동차 한도는 '(24,500)만원'(부천)·'24,500만원'(양주) 두 표기 — 괄호 밖 공통 부분을 인용한다
+        cond(f"{prefix}-assets", "total_assets", ["가액합산기준", "24,500"],
+             "세대 총자산이 2억4,500만원(출생자녀 1명 2억7,000만·2명 이상 2억9,400만) 이하인지",
+             {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table="permanent_terms"),
+        cond(f"{prefix}-car", "car_value", ["개별자동차가액", "4,542"],
+             "자동차가액(가장 높은 차량가액)이 4,542만원(출생자녀 가산) 이하인지",
+             {"lte": [CAR, {"term": "car_limit"}]}, table="permanent_terms"),
+    ]
+
+
+def permanent_rental(nid, city, residence_quote, adult_quote, weak_quote=None):
+    """영구임대 일반공급: 그 시·군 거주 + 성년 + 무주택세대구성원 + 「공공주택 특별법 시행규칙」 별표3 신분 중 하나.
+    신분마다 소득 기준이 다르다(수급자 등 검증 없음 / 70% / 50% / 100%) — 트랙 묶음으로 표현한다.
+    weak_quote: 주거약자용 주택형 문구 — 있으면 같은 자격 + 주거약자(65세 이상·장애인·상이 국가유공자 등) 계층을 만든다."""
+    p = f"{nid}-P"
+    disabled = {"any": [{"eq": [{"var": "housing_weak_type"}, "장애인"]},
+                        {"eq": [{"var": "disabled_spouse_qualifies"}, True]}]}
+    tracks = [
+        {"id": "가", "label": "생계급여 또는 의료급여 수급자(소득·자산 검증 없음)", "conditions": [
+            cond(f"{p}-Ta", "livelihood_medical_recipient", ["국민기초생활보장법상의 생계급여수급자 또는 의료급여수급자"],
+                 "생계급여 또는 의료급여 수급자인지(주거·교육급여만 받는 경우는 아님)",
+                 {"eq": [{"var": "livelihood_medical_recipient"}, True]})]},
+        {"id": "나", "label": "국가유공자·보훈보상대상자·5·18·특수임무·참전유공자(유족 포함), 소득 70%", "conditions": [
+            cond(f"{p}-Tb", "merit_person", ["「국가유공자 등 예우 및 지원에 관한 법률」에 따른 국가유공자 또는 그 유족"],
+                 "국가유공자·보훈보상대상자·5·18민주유공자·특수임무유공자(또는 그 유족)·참전유공자인지",
+                 {"eq": [{"var": "merit_person"}, True]})] + _money(f"{p}-Tb", "ratio70", Q70, "70%")},
+        {"id": "라", "label": "지원대상 한부모가족(소득·자산 검증 없음)", "conditions": [
+            cond(f"{p}-Td", "is_supported_single_parent", ["라.지원대상한부모가족"],
+                 "지원대상 한부모가족(한부모가족 증명서 발급 대상)인지", {"eq": [{"var": "is_supported_single_parent"}, True]})]},
+        {"id": "마", "label": "북한이탈주민, 소득 70%", "conditions": [
+            cond(f"{p}-Te", "north_korean_defector", ["영구임대주택의 자산요건을 충족하는 북한이탈주민"], "북한이탈주민인지",
+                 {"eq": [{"var": "north_korean_defector"}, True]})] + _money(f"{p}-Te", "ratio70", Q70, "70%")},
+        {"id": "바", "label": "장애인(지적·정신·중증 뇌병변장애인은 그 배우자 포함), 소득 70%", "conditions": [
+            cond(f"{p}-Tf", "housing_weak_type/disabled_spouse_qualifies", ["장애인등록증이 교부된 자"],
+                 "장애인등록증이 교부된 장애인이거나, 지적·정신·중증 뇌병변장애인의 배우자인지", disabled)]
+            + _money(f"{p}-Tf", "ratio70", Q70, "70%")},
+        {"id": "사", "label": "65세 이상 직계존속 부양자로서 수급자 선정기준 소득인정액 이하", "conditions": [
+            cond(f"{p}-Tg", "supports_elderly_parent", ["65세 이상 직계존속(배우자의 직계존속 포함)을 부양"],
+                 "만 65세 이상 직계존속(배우자 부모 포함)을 같은 등본에서 부양하는지 — 소득인정액은 이 화면이 계산하지 않는다",
+                 {"eq": [{"var": "supports_elderly_parent"}, True],
+                  "review_if_true": {"code": "SELF_REPORT_UNVERIFIED",
+                                     "detail": "65세 이상 직계존속 부양자는 생계·의료급여 수급자 선정기준의 '소득인정액' 이하여야 "
+                                               "합니다. 소득인정액(소득+재산 환산액)은 이 화면이 계산하지 않으니 주민센터에 확인하세요."}})]},
+        {"id": "아", "label": "아동복지시설 퇴소자(시설장 추천), 소득 70%", "conditions": [
+            cond(f"{p}-Th", "child_facility_leaver", ["아동복지시설에서 퇴소하는 자로서 아동복지시설의 장이 추천하는 자"],
+                 "아동복지시설에서 퇴소하며 시설장의 추천을 받았는지", {"eq": [{"var": "child_facility_leaver"}, True]})]
+            + _money(f"{p}-Th", "ratio70", Q70, "70%")},
+        {"id": "자", "label": "65세 이상 수급권자 또는 차상위계층", "conditions": [
+            cond(f"{p}-Ti", "age/welfare_status", ["65세 이상인 사람으로서 「국민기초생활보장법」 제2조 제1호에 따른 수급권자"],
+                 "만 65세 이상이고 기초생활 수급권자(급여 종류 무관) 또는 차상위계층인지",
+                 {"all": [{"gte": [{"var": "age"}, 65]}, {"in": [{"var": "welfare_status"}, WELFARE_ANY]}]})]},
+        {"id": "차", "label": "2순위 — 일반(소득 50%)", "conditions": _money(
+            f"{p}-Tj", "ratio50", "전년도 도시근로자 가구원수별 가구당 월평균소득 50%(1인 70%, 2인 60%) 이하인 자", "50%")},
+        {"id": "타", "label": "2순위 — 장애인, 소득 100%", "conditions": [
+            cond(f"{p}-Tl", "housing_weak_type/disabled_spouse_qualifies", ["장애인등록증이 교부된 자"],
+                 "장애인등록증이 교부된 장애인이거나, 지적·정신·중증 뇌병변장애인의 배우자인지", disabled)]
+            + _money(f"{p}-Tl", "ratio100",
+                     "전년도 도시근로자 가구원수별 가구당 월평균소득의 100%(1인 120%, 2인 110%) 이하이고", "100%")},
+    ]
+    common = [
+        cond(f"{p}-home", "home_ownership", [residence_quote], "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)", HOME),
+        cond(f"{p}-region", "residence_area", [residence_quote], f"공고일 현재 {city}에 주민등록이 되어 있는지",
+             {"in": [{"var": "residence_area"}, [city]]}),
+        cond(f"{p}-adult", "age", [adult_quote],
+             "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+             {"any": [{"gte": [{"var": "age"}, 19]},
+                      {"lte": [{"var": "age"}, 18],
+                       "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                          "detail": "미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청할 수 있습니다. "
+                                                    "예외 해당 여부는 이 화면이 묻지 않습니다."}}]}),
+        {"id": f"{p}-rank", "field": "입주자격", "required": True,
+         "source": {"quote": ["1순위 가. 국민기초생활보장법상의 생계급여수급자", "2순위 차."]},
+         "note": "「공공주택 특별법 시행규칙」 별표3의 영구임대 입주자격(1순위 가~자, 2순위 차·타) 중 하나 이상에 해당하는지 "
+                 "(신분마다 소득 기준이 다름 — 수급자 등 없음 / 70% / 50% / 100%)",
+         "tracks": tracks},
+    ]
+    tables = {"permanent_terms": {
+        "label": "영구임대 소득 비율(일반 50%·국가유공자 등 70%·2순위 장애인 100% 기준)·자산·자동차 한도: 가구원수 × 출생자녀수",
+        "columns": ["size", "child"],
+        "inputs": {"size": {"var": "household_size"}, "child": {"fn": "child_bonus_count"}},
+        "outputs": ["ratio50", "ratio70", "ratio100", "asset_limit", "car_limit"],
+        "rows": [
+            r({"size": 1, "child": 0}, [70, 90, 120] + PERM_B1),
+            r({"size": 1, "child": "1+"}, **no_row(C3.D_ALONE_CHILD)),
+            r({"size": 2, "child": 0}, [60, 80, 110] + PERM_B1),
+            r({"size": 2, "child": 1}, [70, 90, 120] + PERM_B2),
+            r({"size": 2, "child": "2+"}, **no_row(C3.D_TWO_KIDS)),
+            r({"size": "3+", "child": 0}, [50, 70, 100] + PERM_B1),
+            r({"size": "3+", "child": 1}, [60, 80, 110] + PERM_B2),
+            r({"size": "3+", "child": "2+"}, [70, 90, 120] + PERM_B3),
+        ],
+        "source": {"quote": ["245,000,000", "270,000,000", "294,000,000"]},
+    }}
+    layers = {"일반": {"conditions": common}}
+    if weak_quote:
+        weak = json.loads(json.dumps(common, ensure_ascii=False).replace(f'"{p}-', f'"{nid}-W-'))
+        weak.append(cond(f"{nid}-W-weak", "age/housing_weak_type", [weak_quote],
+                         "주거약자(만 65세 이상, 장애인, 상이 1~7급 국가유공자·보훈보상대상자, 5·18 부상자, 고엽제후유의증환자)인지",
+                         {"any": [{"gte": [{"var": "age"}, 65]}, {"in": [{"var": "housing_weak_type"}, WEAK_TYPES]}]}))
+        layers["일반(주거약자용)"] = {"conditions": weak}
+    return layers, tables
+
+
+PERMANENT_NOTES = [
+    "판정하지 않는 입주자격: 다목(일본군위안부 피해자)·카목(국토교통부장관 또는 시·도지사가 입주가 필요하다고 인정하는 자) — "
+    "해당하면 공고문 문의처에 확인한다.",
+    "1순위 안의 선정 순서·배점과 2순위는 신청자가 모집 인원보다 많을 때의 순서라 판정하지 않는다.",
+    "과거 공공임대주택에서 불법 양도·전대로 적발된 뒤 4년이 지나지 않았으면 선정될 수 없다 — 이 판정은 묻지 않는다.",
+]
+
+
+NATIONAL_NOTES = [
+    "순위(전용 50㎡ 미만은 거주지, 50㎡ 이상은 청약저축 납입 횟수)와 배점은 신청자가 모집 인원보다 많을 때의 선정 순서라 "
+    "이 판정에 넣지 않았다 — 자격이 있으면 순위와 무관하게 신청할 수 있다.",
+    "과거 공공임대주택에서 불법 양도·전대로 적발된 뒤 4년이 지나지 않았으면 선정될 수 없다 — 이 판정은 묻지 않는다.",
+    "주거약자용 주택형(고령자·장애인)은 이 판정에 넣지 않았다 — 해당 주택형은 원문 주거약자 기준을 확인한다.",
+]
+
+PLAN = [
+    dict(nid="N30", key="LH30", title="남양주마석2단지 국민임대주택 예비입주자", ann="2026-09-07",
+         program="국민임대주택", template="national_rental", params={"elderly_quote": None},
+         notes=NATIONAL_NOTES + ["입주자모집공고일 현재 2세 미만 자녀(태아 포함)가 있으면 모집호수의 30% 범위에서 우선 배정한다(p.3)."]),
+    dict(nid="N31", key="LH31", title="김포시지역 국민임대주택 예비입주자(정정)", ann="2026-09-07",
+         program="국민임대주택", template="national_rental", params={"elderly_quote": None},
+         notes=NATIONAL_NOTES),
+    # G2 처음 보는 공고 검증 — 초안은 등록 전에 docs/draft-checks/X-national-bucheon.g2.draft.json에 얼림
+    dict(nid="N32", key="LH32", title="부천시지역 국민임대주택 예비입주자", ann="2026-09-07",
+         program="국민임대주택", template="national_rental",
+         params={"elderly_quote": "범박1단지46형고령자임대주택은(공고일현재65세이상만신청)가능"},
+         notes=NATIONAL_NOTES[:2] + [
+             "범박1단지 46형 고령자임대주택은 공고일 현재 65세 이상만 신청할 수 있고 다른 주택형과 중복 신청할 수 없다(p.3) — "
+             "'일반(고령자 주택형)' 계층으로 판정한다.",
+             "입주자모집공고일 현재 2세 미만 자녀(태아 포함)가 있으면 모집호수의 30% 범위에서 우선 배정한다(p.3)."]),
+    # 영구임대(개발용) — LH 영구임대 표준 공고
+    dict(nid="N33", key="LH33", title="양주회천A25BL 영구임대주택 예비입주자", ann="2026-09-21",
+         program="영구임대주택", template="permanent_rental",
+         params={"city": "양주시",
+                 "residence_quote": "현재양주시에거주(주민등록이등재)하는무주택세대구성원중영구임대주택입주적격자에한합니다",
+                 "adult_quote": "「민법」상 미성년자(19세 미만)는 공급신청할 수 없습니다",
+                 "weak_quote": "26A1형은주거약자에한하여신청가능합니다"},
+         notes=PERMANENT_NOTES + [
+             "신청은 양주시 안 주소지 관할 행정복지센터 현장 접수만 받는다(인터넷 신청 불가, p.1·p.3).",
+             "26A1형(주거약자용)은 주거약자만 신청할 수 있고, 모집 정원에 못 미쳐도 일반으로 전환하지 않는다(p.2·p.5)."]),
+    dict(nid="N34", key="LH34", title="부천시 영구임대주택 예비입주자", ann="2026-09-04",
+         program="영구임대주택", template="permanent_rental",
+         params={"city": "부천시",
+                 "residence_quote": "현재부천시에거주(주민등록등재)하는무주택세대구성원이지원가능하며",
+                 "adult_quote": "신청자는 민법상 성년자(만19세)이어야 합니다",
+                 "weak_quote": None},
+         notes=PERMANENT_NOTES + [
+             "같은 공고의 단지(중동한라1·중동덕유1) 중 1개 단지만 신청할 수 있다 — 중복 신청하면 모두 부적격(p.1).",
+             "두 단지는 1기 신도시 정비사업 대상으로 입주 후 재건축 등으로 이주할 수 있다(p.1)."]),
+]
+
+ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
+
+
+def pdf_for(key):
+    index = json.loads((ROOT / "docs" / "notice-analysis" / "index.json").read_text(encoding="utf-8"))
+    return ROOT / next(x["file"] for x in index if x["key"] == key)
+
+
+def walk(conditions):
+    for c in conditions:
+        yield c
+        for t in c.get("tracks", []):
+            yield from walk(t["conditions"])
+
+
+# 템플릿(사업별 규칙 생성 함수) — 공고별 값은 PLAN의 params(파라미터 시트, P1 docs/09 §5)
+BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_rental}
+ISSUER = {"national_rental": "LH", "permanent_rental": "LH"}
+
+
+def make_doc(plan, pdf, pages):
+    """PLAN 항목(또는 같은 모양의 파라미터 시트) + 원문 쪽 텍스트 → 공고 규칙 문서. 인용문 쪽은 원문에서 찾고,
+    찾지 못한 인용문은 missing으로 돌려준다(새 공고에서 문구가 달라진 조건을 드러낸다)."""
+    layers, tables = BUILDERS[plan["template"]](plan["nid"], **plan["params"])
+    missing = []
+    for layer, ldoc in layers.items():
+        text, hint = ANCHORS[layer]
+        anchor = locate(pages, text, hint) or hint
+        for c in walk(ldoc["conditions"]):
+            place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)
+    for name, t in tables.items():
+        anchor = locate(pages, "소득및자산보유기준", 6) or 6
+        place_quotes(t["source"], pages, anchor, f"table:{name}", missing)
+    doc = {
+        "notice_id": plan["nid"], "title": plan["title"], "announcement_date": plan["ann"],
+        "issuer": ISSUER[plan["template"]], "program": plan["program"],
+        "version": 1, "valid_from": plan["ann"], "supersedes": None,
+        "source": {"document": pdf.name, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(), "pages": len(pages)},
+        "review": {"status": "DRAFT", "note": "G2 생성(tools/gen_c6_public.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+                   "log": []},
+        "notes": plan["notes"], "unsupported_layers": [], "tables": tables, "layers": layers,
+    }
+    return doc, missing
+
+
+def main():
+    import logging
+    logging.disable(logging.CRITICAL)
+    for plan in PLAN:
+        pdf = pdf_for(plan["key"])
+        doc, missing = make_doc(plan, pdf, sv.extract_pages(pdf))
+        out = ROOT / "rules" / "notices" / f"{plan['nid']}.json"
+        out.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(plan["nid"], plan["title"], list(doc["layers"]), "MISSING", len(missing))
+        for m in missing:
+            print("   -", m)
+
+
+if __name__ == "__main__":
+    main()

@@ -60,6 +60,21 @@ DATES = {
                 grad=date(2024, 9, 17), adult=date(2007, 9, 17), newborn=date(2024, 9, 17)),
     "N15": dict(ann=date(2026, 6, 25), marriage=date(2019, 6, 25), child=date(2019, 6, 26),
                 grad=date(2024, 6, 25), adult=date(2007, 6, 25), newborn=date(2024, 6, 25)),
+    # G2(2026-11-01) 처음 보는 공고 검증 — N29 p.3 "혼인신고일이2019.9.17~2026.9.17"·"'19.9.18이후출생"·"'24.9.17이후출생".
+    "N29": dict(ann=date(2026, 9, 17), marriage=date(2019, 9, 17), child=date(2019, 9, 18),
+                grad=date(2024, 9, 17), adult=date(2007, 9, 17), newborn=date(2024, 9, 17)),
+    # G2 국민임대(N30 남양주마석·N31 김포) — 공고일만 쓴다(출산자녀 가산 기준일 2023.3.28.은 고정, 미성년 = 공고일−19년).
+    "N30": dict(ann=date(2026, 9, 7), marriage=date(2019, 9, 7), child=date(2019, 9, 8),
+                grad=date(2024, 9, 7), adult=date(2007, 9, 7)),
+    "N31": dict(ann=date(2026, 9, 7), marriage=date(2019, 9, 7), child=date(2019, 9, 8),
+                grad=date(2024, 9, 7), adult=date(2007, 9, 7)),
+    "N32": dict(ann=date(2026, 9, 7), marriage=date(2019, 9, 7), child=date(2019, 9, 8),
+                grad=date(2024, 9, 7), adult=date(2007, 9, 7)),
+    # G2 영구임대(N33 양주회천 A25 2026.09.21, N34 부천시 2026.09.04) — 공고일만 쓴다(출생자녀 기준일 2023.3.28. 고정).
+    "N33": dict(ann=date(2026, 9, 21), marriage=date(2019, 9, 21), child=date(2019, 9, 22),
+                grad=date(2024, 9, 21), adult=date(2007, 9, 21)),
+    "N34": dict(ann=date(2026, 9, 4), marriage=date(2019, 9, 4), child=date(2019, 9, 5),
+                grad=date(2024, 9, 4), adult=date(2007, 9, 4)),
     "N16": dict(ann=date(2026, 5, 22), marriage=date(2019, 5, 22), child=date(2019, 5, 23),
                 grad=date(2024, 5, 22), adult=date(2007, 5, 22)),
     "N17": dict(ann=date(2026, 10, 1), marriage=date(2019, 10, 1), child=date(2019, 10, 2),
@@ -104,7 +119,10 @@ REGION_FIELDS_BY_LAYER["N22"] = {"일반": ["residence_area"]}     # SH 장기�
 PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_rental", "N14": "newlywed_rental",
               "N15": "newlywed_rental", "N16": "jeonse", "N17": "jeonse",
               "N18": "sh_newlywed", "N19": "sh_newlywed", "N20": "sh_newlywed", "N21": "sh_newlywed", "N22": "jeonse",
-              "N23": "sh_jeonse2", "N24": "sh_jeonse2", "N25": "sh_jeonse", "N26": "sh_jeonse"}
+              "N23": "sh_jeonse2", "N24": "sh_jeonse2", "N25": "sh_jeonse", "N26": "sh_jeonse",
+              "N29": "newlywed_rental", "N30": "national_rental", "N31": "national_rental",
+              "N32": "national_rental", "N33": "permanent_rental", "N34": "permanent_rental"}
+CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
 JS_INCOME = [None, 0, 1] + [v + d for v in (4_004_031, 8_576_850, 9_393_693, 10_210_536, 11_435_801, 12_252_644,
@@ -124,6 +142,16 @@ NR_INCOME = [None, 0, 1] + [v + d for v in (3_432_027, 4_693_016, 5_717_900, 7_3
                             for d in (-1, 0, 1)] + [50_000_000]
 NR_ASSETS = [None, 0, 1] + [v + d for v in (345_000_000, 362_000_000, 379_000_000, 413_000_000, 431_000_000)
                             for d in (0, 1)]
+# G2 국민임대: 70·80·90% 열(1~8인) 경계 ±1원, 자산·자동차 3단계 한도 경계
+NAT_INCOME = [None, 0, 1] + [v + d for v in (3_432_027, 4_693_016, 5_279_643, 5_717_900, 6_534_743, 7_351_586,
+                                            6_161_541, 7_921_982, 7_339_879, 9_436_987, 7_745_373, 9_958_337)
+                             for d in (-1, 0, 1)] + [30_000_000]
+NAT_ASSETS = [None, 0, 1] + [v + d for v in (345_000_000, 379_000_000, 413_000_000) for d in (0, 1)]
+# G2 영구임대: 신분별 기준(50·70·100%)과 가산이 만드는 경계 ±1원(1·2·3·7인), 자산 3단계
+PERM_INCOME = [None, 0, 1] + [v + d for v in (2_669_354, 3_432_027, 4_576_036, 3_519_762, 4_693_016, 6_452_897, 4_106_389,
+                                              4_084_215, 5_717_900, 8_168_429, 4_901_057, 9_802_115, 5_242_771, 12_582_649)
+                              for d in (-1, 0, 1)] + [30_000_000]
+PERM_ASSETS = [None, 0, 1] + [v + d for v in (245_000_000, 270_000_000, 294_000_000) for d in (0, 1)]
 
 
 def _program_attributes(program: str, layer: str, pools) -> Dict[str, Tuple[list, object]]:
@@ -165,6 +193,23 @@ def _program_attributes(program: str, layer: str, pools) -> Dict[str, Tuple[list
         if program == "sh_jeonse2":
             attrs.update(marriage=(pools["marriage"], date(2025, 1, 1)), owned5=([None, False, True], False))
         return attrs
+    if program == "permanent_rental":
+        tri = ([None, False, True], False)
+        return {
+            "home": (["무주택", "주택보유"], "무주택"), "marital": (MARITALS, "혼인중"),
+            "age": ([17, 18, 19, 40, 64, 65, 70], 70 if "주거약자" in layer else 40),
+            "size": ([1, 2, 3, 4, 7, 8], 3), "kids": (pools["kids"], []), "count": (COUNTS, 0),
+            "income": (PERM_INCOME, 1), "assets": (PERM_ASSETS, 1), "car": (CARS, 0),
+            "welfare": (WELFARE, "해당없음"), "supported": tri, "weak": (WEAK, "해당없음"), "spouse_dis": tri,
+            "lmr": tri, "merit": tri, "defector": tri, "facility": tri, "eparent0": tri,
+        }
+    if program == "national_rental":
+        return {
+            "home": (["무주택", "주택보유"], "무주택"), "marital": (MARITALS, "혼인중"),
+            "age": ([17, 18, 19, 40, 64, 65, 70], 70 if "고령자" in layer else 40),
+            "size": ([1, 2, 3, 4, 6, 7, 8, 9], 3), "kids": (pools["kids"], []), "count": (COUNTS, 0),
+            "income": (NAT_INCOME, 1), "assets": (NAT_ASSETS, 1), "car": (CARS, 0),
+        }
     return {   # jeonse — 소득·자산 요건이 없으므로 아무 값이나 넣어도 판정이 바뀌지 않는지 기록
         "home": (["무주택", "주택보유"], "무주택"), "marital": (MARITALS, "미혼"), "age": ([17, 18, 19, 40], 40),
         "size": (SIZES, 3), "kids": (pools["kids"], None), "count": (COUNTS, 0),
@@ -207,6 +252,10 @@ GROUPS: List[Tuple[str, str]] = [
     # B단계 — 처음 보는 공고 검증(초안은 등록 전에 docs/draft-checks에 얼림)
     ("N27", "대학생"), ("N27", "청년"), ("N27", "신혼부부"), ("N27", "한부모"), ("N27", "고령자"), ("N27", "주거급여수급자"),
     ("N28", "신혼부부"), ("N28", "한부모"), ("N28", "신혼부부(주거약자용)"), ("N28", "한부모(주거약자용)"),
+    # G2 — 처음 보는 공고 검증(초안은 docs/draft-checks/X-*.draft.json)
+    ("N29", "신혼·신생아"),
+    ("N30", "일반"), ("N31", "일반"), ("N32", "일반"), ("N32", "일반(고령자 주택형)"),
+    ("N33", "일반"), ("N33", "일반(주거약자용)"), ("N34", "일반"),
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -286,6 +335,12 @@ def _pools(nid: str) -> Dict[str, list]:
 
 def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, object]]:
     """계층별 (값 풀, 기준 프로필의 기본값). 기본값은 '모든 조건이 통과'하는 쪽."""
+    if PROGRAM_OF.get(nid) == "national_rental":            # G2: 변형 계층(고령자 주택형)도 사업 전용 풀
+        return _program_attributes("national_rental", layer, pools)
+    if PROGRAM_OF.get(nid) == "permanent_rental":           # G2: 거주 요건 시는 공고마다 다르다
+        attrs = _program_attributes("permanent_rental", layer, pools)
+        attrs["residence_area"] = ([None, "양주시", "부천시", "서울특별시", "해당없음"], CITY_OF[nid])
+        return attrs
     if PROGRAM_OF.get(nid) in ("sh_jeonse2", "sh_jeonse"):   # C5b: 사업 전용 풀(변형 계층 공통) + 주거약자형이면 주거약자
         attrs = _program_attributes(PROGRAM_OF[nid], layer, pools)
         if "주거약자" in layer:
@@ -378,7 +433,10 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
                                             ("owned5", "owned_home_in_5y"),
                                             ("spouse_dis", "disabled_spouse_qualifies"),
                                             ("eparent", "supports_elderly_parent_1y"),
-                                            ("veteran", "veteran_priority_notified")) if key in v})
+                                            ("veteran", "veteran_priority_notified"),
+                                            ("lmr", "livelihood_medical_recipient"), ("merit", "merit_person"),
+                                            ("defector", "north_korean_defector"), ("facility", "child_facility_leaver"),
+                                            ("eparent0", "supports_elderly_parent")) if key in v})
 
 
 # 통과 값에 가중해서 '모든 조건이 통과 근처'인 영역(경계가 실제로 판정을 가르는 영역)을 충분히 뽑는다

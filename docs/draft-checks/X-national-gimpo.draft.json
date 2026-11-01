@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "30a3ad8ae94b1d3c4aa80deca42cdb7e1c95bc5eb9d3d8eb9361f31b40e5bc46",
+  "file": "정정)김포지역국민임대예비입주자표준모집공고문(26.09.07.).pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "국민임대주택",
+  "announcement_date": "2026-09-07",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

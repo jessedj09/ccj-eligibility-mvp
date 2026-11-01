@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "d7b89cac13f0715566675b70079ff939b6985598a7c234477637fa2f62cda778",
+  "file": "정정_260820_평택고덕A-58블록_고령자복지주택(영구임대)_입주자모집공고문(260820).pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "고령자복지주택",
+  "announcement_date": "2026-08-20",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

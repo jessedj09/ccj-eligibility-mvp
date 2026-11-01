@@ -59,6 +59,8 @@ def _date(p: str) -> str:
 
 
 RANGE = re.compile(_date("s") + r"(?P<st>\d{1,2}:\d\d)[~∼](?:" + _date("e") + r")?(?P<et>\d{1,2}:\d\d)")
+# 날짜 범위 + 매일 시간(N33 "2026.10.12.(월)~10.16(금)10:00~17:00") — 첫날 시작 시각 ~ 마지막 날 마감 시각
+DAILY = re.compile(_date("s") + r"[~∼]" + _date("e") + r"(?P<st>\d{1,2}:\d\d)[~∼](?P<et>\d{1,2}:\d\d)")
 ANN = re.compile(r"(?:입주자모집공고일|모집공고일|공고일)[:：|]?\(?(20\d\d)\.(\d{1,2})\.(\d{1,2})")
 ANY_DATE = re.compile(r"(20\d\d)\.(\d{1,2})\.(\d{1,2})\.?(?:\(" + WEEK + r"(?:요일)?\))?")
 CUTOFF = re.compile(r"(?:\[|\()?((?:19|20)\d\d|'\d\d)\.(\d{1,2})\.(\d{1,2})\.?(?:\(" + WEEK + r"\))?(이후|이전|~)")
@@ -104,7 +106,7 @@ def window_candidates(pages: List[str], ann: Optional[date]) -> List[dict]:
     같은 기간이 여러 쪽에 나오면 한 번만(첫 쪽) 싣고 나온 쪽을 모은다."""
     out: Dict[tuple, dict] = {}
     for i, t in enumerate(pages, 1):
-        for m in RANGE.finditer(t):
+        for m in [*RANGE.finditer(t), *DAILY.finditer(t)]:
             g = m.groupdict()
             try:
                 sm, sd = int(g["sm"]), int(g["sd"])
@@ -176,9 +178,18 @@ def keyword_pages(pages: List[str]) -> Dict[str, List[int]]:
             if any(k in t for t in pages)}
 
 
+# 여러 사업을 나열한 괄호 — LH 공고 첫머리 안내 "장기임대주택(통합공공임대,국민임대,영구임대,행복주택)입주시…"는 제목보다
+# 먼저 나오기도 해서(화성서부권 국민임대) 사업 이름으로 잡지 않는다.
+LISTED = re.compile(r"\([^()]*(?:임대|행복주택)[^()]*,[^()]*\)")
+
+
 def classify(pages: List[str]):
-    head = "".join(pages[:3])
-    issuer = "SH" if "i-sh.co.kr" in "".join(pages) else "LH" if "apply.lh.or.kr" in "".join(pages) else None
+    head = LISTED.sub("", "".join(pages[:3]))
+    pages = [LISTED.sub("", pages[0])] + list(pages[1:]) if pages else pages
+    text = "".join(pages)
+    # 영구임대 공고(N33·N34)는 주소 없이 'LH청약플러스'·'한국토지주택공사'만 적는다
+    lh = any(k in text for k in ("apply.lh.or.kr", "LH청약플러스", "한국토지주택공사"))
+    issuer = "SH" if "i-sh.co.kr" in text else "LH" if lh else None
     # 제목이 맨 앞에 오므로 가장 먼저 나오는 사업 이름을 쓴다(본문은 다른 사업을 함께 언급한다 — 예: 미리내집 공고의
     # "아파트형 미리내집(장기전세주택Ⅱ)"). 같은 위치면 더 긴 이름(구체적인 것).
     for text in (pages[0] if pages else "", head):

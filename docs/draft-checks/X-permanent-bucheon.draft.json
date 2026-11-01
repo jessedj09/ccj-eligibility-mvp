@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "e227f0f6b1e3267ffbffea1bac8b9e842f10ab06517c3aa3568a91682c7e7663",
+  "file": "부천시영구임대예비입주자모집공고문.pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "영구임대주택",
+  "announcement_date": "2026-09-04",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

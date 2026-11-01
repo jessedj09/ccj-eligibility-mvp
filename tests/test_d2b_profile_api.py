@@ -119,7 +119,8 @@ def test_health_and_notices():
     assert client.get("/health").json() == {"status": "ok", "notices": len(ALL_NOTICES)}
     r = client.get("/notices", params={"at": "2026-10-14T12:00:00"}).json()
     assert len(r["notices"]) == len(ALL_NOTICES) and r["at"].startswith("2026-10-14T12:00:00+09:00")
-    assert {n["notice_id"] for n in r["notices"] if n["schedule"]["code"] == "OPEN"} == {"N4", "N8", "N17", "N18", "N19"}
+    assert {n["notice_id"] for n in r["notices"] if n["schedule"]["code"] == "OPEN"} == {"N4", "N8", "N17", "N18", "N19",
+                                                                                       "N33"}   # N33 10.12~10.16(G2)
     n25 = next(n for n in r["notices"] if n["notice_id"] == "N25")
     assert "일반(우선공급·장애인)" in n25["layers"] and n25["schedule_note"]
 
@@ -166,5 +167,5 @@ def test_match_equals_matcher_and_filters_by_schedule():
     assert upcoming == {"N27", "N28"}
     open_ids = {m["notice_id"] for m in client.post("/match", json={"profile": body, "at": "2026-10-14T12:00:00",
                                                                    "only_open": True}).json()["matches"]}
-    assert open_ids == {"N4", "N8", "N17", "N18", "N19", "N27", "N28"}
+    assert open_ids == {"N4", "N8", "N17", "N18", "N19", "N33", "N27", "N28"}
     assert client.post("/match", json={"profile": {"schema": "x"}}).status_code == 422

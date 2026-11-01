@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "a50e0c50243059b3d08fa99a712464f1aa73956263dc1198c8883588d3fe4ba0",
+  "file": "구리갈매S1블록10년공공임대주택예비입주자모집공고(2026.10.22공고).pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "공공임대주택",
+  "announcement_date": "2026-10-22",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

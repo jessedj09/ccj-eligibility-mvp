@@ -54,7 +54,7 @@ def test_all_sample_notices_closed_on_2026_10_22():
 
 def test_open_on_2026_10_14_noon():
     st = schedule.statuses(notice_ids(), kst(2026, 10, 14, 12))
-    assert {n for n, s in st.items() if s.code == OPEN} == {"N4", "N8", "N17", "N18", "N19"}
+    assert {n for n, s in st.items() if s.code == OPEN} == {"N4", "N8", "N17", "N18", "N19", "N33"}   # N33: G2 영구임대
 
 
 def test_naive_datetime_is_taken_as_kst_and_unknown_notice():

@@ -144,6 +144,11 @@ with st.expander("추가 정보(해당하는 것만) — 대학생·취업준비
         spouse_disabled = yes_no("배우자가 지적·정신장애인 또는 장애 정도가 심한 뇌병변장애인", "m_spdis")
         elderly_parent = yes_no("만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 1년 이상 부양", "m_eparent")
         veteran = yes_no("국가보훈부로부터 장기전세 우선공급 대상자 통보받음", "m_veteran")
+        lmr = yes_no("생계급여 또는 의료급여 수급자(주거·교육급여만 받으면 아니오)", "m_lmr")
+        merit = yes_no("국가유공자·보훈보상대상자·5·18·특수임무유공자(또는 유족)·참전유공자", "m_merit")
+        defector = yes_no("북한이탈주민", "m_defector")
+        facility = yes_no("아동복지시설 퇴소자(시설장 추천)", "m_facility")
+        eparent0 = yes_no("만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 부양(기간 무관)", "m_eparent0")
 
 master = MasterProfile(
     home_self=home_self, home_household=home_household, income_self=income_self, income_household=income_household,
@@ -160,7 +165,8 @@ master = MasterProfile(
                 parents_total_assets=parents_assets, parents_car_value=parents_car, housing_weak_type=weak,
                 industrial_workplace=workplace, industrial_affiliation=affiliation, regional_industry_type=regional,
                 disabled_spouse_qualifies=spouse_disabled, supports_elderly_parent_1y=elderly_parent,
-                veteran_priority_notified=veteran))
+                veteran_priority_notified=veteran, livelihood_medical_recipient=lmr, merit_person=merit,
+                north_korean_defector=defector, child_facility_leaver=facility, supports_elderly_parent=eparent0))
 
 b1, b2 = st.columns([1, 3])
 with b1:

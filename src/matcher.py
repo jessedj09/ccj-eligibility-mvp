@@ -182,6 +182,9 @@ FIELD_LABELS = {
     "housing_weak_type": "주거약자 유형", "owned_home_in_5y": "최근 5년 주택 소유",
     "disabled_spouse_qualifies": "배우자 장애", "supports_elderly_parent_1y": "노부모 부양",
     "veteran_priority_notified": "국가보훈부 우선공급 통보",
+    "livelihood_medical_recipient": "생계·의료급여 수급", "merit_person": "국가유공자 등",
+    "north_korean_defector": "북한이탈주민", "child_facility_leaver": "아동복지시설 퇴소",
+    "supports_elderly_parent": "65세 이상 부모 부양",
 }
 
 
