@@ -186,7 +186,8 @@ FIELD_LABELS = {
     "north_korean_defector": "북한이탈주민", "child_facility_leaver": "아동복지시설 퇴소",
     "supports_elderly_parent": "65세 이상 부모 부양", "rewin_restricted": "재당첨 제한", "past_special_supply": "과거 특별공급",
     "household_ever_owned_home": "세대 과거 주택 소유", "income_tax_5y": "소득세 5년 납부",
-    "supports_elderly_parent_3y": "노부모 3년 부양", "real_estate_value": "부동산 가액", "subscription_deposit": "청약 저축액",
+    "supports_elderly_parent_3y": "노부모 3년 부양",
+    "self_ever_owned_home": "본인 과거 주택 소유", "household_won_5y": "세대 5년 내 당첨", "real_estate_value": "부동산 가액", "subscription_deposit": "청약 저축액",
     "has_subscription_account": "청약통장 가입", "subscription_months": "청약통장 가입 기간",
     "subscription_payment_count": "청약통장 납입 횟수",
 }

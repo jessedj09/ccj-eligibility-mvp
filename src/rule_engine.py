@@ -231,6 +231,10 @@ class HouseholdProfile:
     subscription_deposit: Optional[int] = None
     income_tax_5y: Optional[bool] = None
     supports_elderly_parent_3y: Optional[bool] = None
+    # G3(SH 토지임대부 분양): 청년 본인이 과거 주택을 소유한 적 있는지 / 투기과열지구 1순위 — 세대 전원 과거 5년 안에 다른 주택에 당첨된
+    # 적 있는지. None = 모름. 둘 다 없어야(False) 충족
+    self_ever_owned_home: Optional[bool] = None
+    household_won_5y: Optional[bool] = None
     # C5b(SH 장기전세2): 신청자·배우자(예비배우자)가 공고일 기준 최근 5년 안에 주택을 소유한 적이 있는지 — 없어야(False) 충족
 
     def __post_init__(self):

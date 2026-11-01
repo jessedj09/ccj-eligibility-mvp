@@ -254,7 +254,7 @@ def main():
 
     # 13) 접수 상태(D2) — 2026.10.14. 12:00에 접수 중: N4(~10.14)·N8·N18·N19(10.13~15)·N17(10.14~16)·N33(10.12~16, G2),
     #     N41(10.14~16, G4), 접수 예정: N27·N28(11월 접수 — B단계 등록)·N35(11.16~20, G2)·N43(11.3~4, G4)·
-    #     N48(11.23~24)·N50(11.12~17, G3). 2026.11.25.이면 보유 공고 전부 마감
+    #     N48(11.23~24)·N50(11.12~17)·N52(11.2~6, G3). 2026.11.25.이면 보유 공고 전부 마감
     at.radio(key="m_view").set_value("접수 중·예정 공고만").run()
     at.date_input(key="m_at").set_value(date(2026, 10, 14)).run()
     assert not at.exception, at.exception
@@ -262,15 +262,15 @@ def main():
     labels = [e.label for e in at.expander if " | " in e.label]
     lines = [c.value for c in at.caption if c.value.split(" ")[0] in ("🟢", "🗓️", "⚫")]
     total = sum(int(m.value) for m in list(at.metric)[:3])
-    opened, upcoming = ("N4", "N8", "N17", "N18", "N19", "N33", "N41"), ("N27", "N28", "N35", "N43", "N48", "N50")
+    opened, upcoming = ("N4", "N8", "N17", "N18", "N19", "N33", "N41"), ("N27", "N28", "N35", "N43", "N48", "N50", "N52")
     expect = sum(len(ALL_NOTICES[n].layers) for n in opened + upcoming)
     assert total == expect, (total, expect)
     assert all(x.startswith(("🟢", "🗓️")) for x in labels + lines) and labels + lines, (labels, lines)
-    assert any(x.startswith("🗓️") for x in labels + lines), "접수 예정 공고(N27·N28·N35·N43·N48·N50)도 보인다"
+    assert any(x.startswith("🗓️") for x in labels + lines), "접수 예정 공고(N27·N28·N35·N43·N48·N50·N52)도 보인다"
     at.date_input(key="m_at").set_value(date(2026, 11, 25)).run()
     assert any("접수 중이거나 접수 예정인 공고가 없습니다" in i.value for i in at.info)
     assert sum(int(m.value) for m in list(at.metric)[:3]) == 0
-    print("13) 접수 상태(D2): 10.14. 접수 중 7건·예정 6건의 계층", total, "개만 표시 / 11.25. 전부 마감 안내")
+    print("13) 접수 상태(D2): 10.14. 접수 중 7건·예정 7건의 계층", total, "개만 표시 / 11.25. 전부 마감 안내")
 
     # 14) 불러오기(D2b) — 파일 업로드 대신 불러오기가 하는 일(widget_state → session_state)을 그대로 재현한다
     from matcher import MasterProfile, match_all

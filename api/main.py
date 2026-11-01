@@ -385,6 +385,33 @@ def _basis(req: "EvaluateRequest", notice, d) -> Dict[str, Any]:
     return out
 
 
+# 엔진이 자녀 생년월일에서 계산하는 항목 — 질문은 원래 입력란(자녀 생년월일)으로 한다
+DERIVED_INPUT = {"has_children": "children_birth_dates", "youngest_child_birth_date": "children_birth_dates"}
+
+
+def _questions(result, notice, layer: str) -> list:
+    """피드백 B1: '정보 부족' 조건마다 그 조건이 읽는 입력 항목 — 화면은 이 항목만 다시 물어 바로 다시 판정한다.
+    '수동 확인'(해석이 필요한 조건·원문을 찾지 못한 조건)은 질문으로 풀 수 없어 넣지 않는다(기관 문의·원문 확인)."""
+    conds = {}
+
+    def walk(cs):
+        for c in cs:
+            conds[c.rule_id] = c
+            for t in c.tracks or []:
+                walk(t.conditions)
+    walk(notice.layers[layer].conditions)
+    ids = list(dict.fromkeys(list(result.unknown) + [u for t in result.tracks.values() for u in t.unknown]))
+    out = []
+    for rid in ids:
+        c = conds.get(rid)
+        if c is None or c.tracks:          # 순위 묶음 자체가 아니라 그 안의 조건을 묻는다
+            continue
+        fields = sorted({DERIVED_INPUT.get(f, f) for f in c.inputs})
+        if fields:
+            out.append({"rule_id": rid, "description": c.note, "source_ref": c.source_ref, "fields": fields})
+    return out
+
+
 @app.post("/evaluate")
 def evaluate_one(req: EvaluateRequest):
     notice, d = _target(req.notice_id, req.sha256, req.layer)
@@ -395,7 +422,8 @@ def evaluate_one(req: EvaluateRequest):
     else:
         result, checks = evaluate(profile, notice, req.layer), []
     get_store().count("judged")
-    return dict(_result_json(result, notice, checks), basis=_basis(req, notice, d))
+    return dict(_result_json(result, notice, checks), basis=_basis(req, notice, d),
+                questions=_questions(result, notice, req.layer))
 
 
 @app.get("/match/form")
