@@ -73,12 +73,15 @@ OTHER_PATHS = {"school_area": "재학 중인 대학 소재지", "income_base_are
                "spouse_residence_area": "배우자 거주지", "spouse_income_base_area": "배우자 소득 근거지"}
 
 
-def region_check(fields):
+def region_check(fields, areas=None):
+    """areas: 1순위 지역(주택건설지역 + 연접 지역, 표준 이름) — 없으면 서울특별시 + 연접 13개 시(N9·N10). G1(2026-11-01)부터
+    초안은 공고 원문에서 읽은 목록을 넘긴다(sheet_extract._region_rules)."""
+    areas = list(areas or SEOUL_ADJ)
     others = "·".join(OTHER_PATHS[f] for f in fields if f != "residence_area")
-    return {"any": [{"in": [{"var": "residence_area"}, SEOUL_ADJ]},
+    return {"any": [{"in": [{"var": "residence_area"}, areas]},
                     {"ne": [{"var": "residence_area"}, ""],       # 거주지를 입력했고 목록 밖이면(모르면 정보 부족)
                      "review_if_true": {"code": "SELF_REPORT_UNVERIFIED",
-                                        "detail": f"거주지가 서울특별시·연접 13개 시 밖입니다. 원문은 {others}가 이 지역이어도 "
+                                        "detail": f"거주지가 {areas[0]}·연접 {len(areas) - 1}개 시 밖입니다. 원문은 {others}가 이 지역이어도 "
                                                   "신청할 수 있습니다 — 해당되는지 직접 확인하세요."}}]}
 
 
@@ -267,7 +270,7 @@ def build(t):
                     "source": relocate({"page": anchor, "clause": "순위", "quote": rc["quote"]}, pages, anchor,
                                        f"{layer}/region", missing),
                     "note": rc["note"],
-                    "check": region_check(rc["fields"])}
+                    "check": region_check(rc["fields"], rc.get("areas"))}
             conds.append(cond)
         doc["layers"][layer] = {"conditions": conds}
     for name, layer in sorted(used_tables):

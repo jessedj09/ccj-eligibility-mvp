@@ -81,9 +81,14 @@ def test_clause_is_attached_to_layers_by_page(n12):
 
 
 def test_missing_layer_is_not_judgeable_instead_of_not_offered():
+    # 계층 구성 빈칸(주거약자형 등)을 원문에서 확인하지 못하면 초안에 없는 계층을 '해당 없음'으로 단정하지 않는다.
+    # (N5 주거약자형은 G1(2026-11-01)부터 읽으므로, 그 빈칸을 보류로 둔 초안을 만들어 본다)
+    import dataclasses
     d = draft.make_draft(sv.pdf_path("N5").read_bytes(), only=None, pages=sv.pdf_pages("N5"), exclude="N5")
-    assert "주거약자(26A1/B1형)" not in d.notice.layers and grading.layers_may_be_missing(d)
-    assert grading.offered(d, "주거약자(26A1/B1형)") is None and grading.offered(d, "청년") is True
+    assert "주거약자(26A1/B1형)" in d.notice.layers and not grading.layers_may_be_missing(d)
+    held = dataclasses.replace(d, held_fields=list(d.held_fields) + ["weak"])
+    assert grading.layers_may_be_missing(held) and grading.offered(held, "주거약자(다른형)") is None
+    assert grading.offered(held, "청년") is True and grading.offered(d, "주거약자(다른형)") is False
 
 
 @pytest.mark.parametrize("nid", ["N12", "N24", "N5", "N16"])

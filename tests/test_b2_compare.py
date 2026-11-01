@@ -69,12 +69,11 @@ def test_new_restriction_counts_as_cautious_not_danger(n12_snapshot):
     assert "새 제한 문구 p.3" in dc.to_markdown(res)
 
 
-def test_blocked_draft_is_not_judged():
-    path = sv.pdf_path("N10")
-    d = draft.make_draft(path.read_bytes(), only=None, pages=sv.pdf_pages("N10"))
-    snap = draft.to_snapshot(d, sv.notice_doc("N10")["source"]["sha256"])
+def test_blocked_draft_is_not_judged(n12_snapshot):
+    # 핵심 빈칸이 보류인 초안(판정 불가) — N10은 G1(2026-11-01)부터 지역을 읽으므로 상태만 '막힘'으로 바꿔 본다
+    snap = dict(copy.deepcopy(n12_snapshot), status=draft.BLOCKED, reason="판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다")
     res = dc.compare(snap, limit=50)
-    assert d.status == draft.BLOCKED and dc.danger_count(res) == 0
+    assert dc.danger_count(res) == 0
     assert all(c[dc.NOT_JUDGED] == 50 for c in res["counts"].values())
 
 

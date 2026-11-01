@@ -89,3 +89,14 @@ def test_visit_only_procedure_is_not_a_condition_but_other_strong_words_are():
              (13, "*현장방문신청불가하며서울특별시거주자만신청가능")]
     labels = [label for _, _, label in CL.classify(units, doc, CL.Known([]))]
     assert labels[0].startswith("무관") and labels[1] == CL.UNCLASSIFIED
+
+
+def test_child_words_and_house_lists_are_not_conditions():
+    """G1(2026-11-01): '출생한자녀'의 '한자'는 조건 표현이 아니고, 공급 주택 목록 표 머리글은 안내 — 진짜 제한은 그대로 미분류."""
+    doc = {"layers": {"청년": {"conditions": []}}, "tables": {}}
+    units = [(10, "•2년이내출생한자녀또는태아가있는신생아가구"),
+             (58, "58주택목록:시세의70%공급주택현황:128호월평균소득130%(맞벌이200%)이내인자"),
+             (3, "•(신청접수)청약신청은1개주택단지만신청하며동및호는전산추첨"),
+             (5, "•서울특별시에1년이상거주한자만신청할수있습니다")]
+    rows = {page: label for page, _, label in CL.classify(units, doc, CL.Known([]))}
+    assert 10 not in rows and rows[58].startswith("무관") and rows[3].startswith("무관") and rows[5] == CL.UNCLASSIFIED

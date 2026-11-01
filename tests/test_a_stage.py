@@ -58,7 +58,9 @@ def test_draft_report_snippet_rebuilds_the_notice(nid):
 
 
 def test_draft_report_shows_held_critical_field_for_happy_housing():
-    r = _report("N10")
+    # 1순위 지역 문장에 지역 표준 이름표에 없는 지명이 있으면 지역(핵심 빈칸)이 보류 → 초안 판정 불가(G1 이후 N10은 정상이라 지명을 바꿔 본다)
+    pages = [p.replace("의정부시", "가상시") for p in sv.pdf_pages("N10")]
+    r = ni.report(sv.pdf_path("N10"), pages=pages, with_draft=True)
     md = ni.to_markdown(r)
     assert r["draft"].status == draft.BLOCKED
     assert "`region` **(핵심 — 판정에 직접 쓰임)**" in md and "**대상**" in md      # 행복주택 공개(2026-11-01) — 지역 보류로 막힘
