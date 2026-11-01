@@ -218,6 +218,12 @@ class HouseholdProfile:
     child_facility_leaver: Optional[bool] = None          # 아목: 아동복지시설 퇴소자로 시설장 추천
     supports_elderly_parent: Optional[bool] = None
     # 사목: 만 65세 이상 직계존속(배우자 직계존속 포함)을 같은 세대별 주민등록표에서 부양(기간 무관)
+    # G4(공공임대 10년·분양전환): 「주택공급에 관한 규칙」 제54조 재당첨 제한 기간 중인지(본인·세대원이 과거 분양주택·분양전환
+    # 공공임대 등에 당첨되어 제한 기간이 남음). None = 모름. 없어야(False) 충족
+    rewin_restricted: Optional[bool] = None
+    # G3(분양): 본인·세대원이 과거에 특별공급(신혼희망타운·신혼부부·생애최초·다자녀·노부모부양 등, 옛 3자녀·노부모 우선공급
+    # 포함)을 받은 적이 있는지. 특별공급은 1회 한정 — 없어야(False) 충족. None = 모름
+    past_special_supply: Optional[bool] = None
     # C5b(SH 장기전세2): 신청자·배우자(예비배우자)가 공고일 기준 최근 5년 안에 주택을 소유한 적이 있는지 — 없어야(False) 충족
 
     def __post_init__(self):

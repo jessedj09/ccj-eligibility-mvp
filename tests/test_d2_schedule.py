@@ -45,18 +45,18 @@ def test_multi_window_notice_reports_next_rank():
 
 
 def test_all_sample_notices_closed_on_2026_10_22():
-    """처음 등록한 26건은 2026.10.22.에 모두 마감. B단계에 등록한 N27·N28(11월 접수)·G2 N35(11.16~20)는 접수 예정."""
+    """처음 등록한 26건은 2026.10.22.에 모두 마감. B단계에 등록한 N27·N28(11월 접수)·G2 N35(11.16~20)·G4 N43(11.3~4)·G3 N48(11.23~24)은 접수 예정."""
     st = schedule.statuses(notice_ids(), kst(2026, 10, 22, 12))
-    assert {n for n, s in st.items() if s.code != CLOSED} == {"N27", "N28", "N35"}
-    assert {st[n].code for n in ("N27", "N28", "N35")} == {UPCOMING}
+    assert {n for n, s in st.items() if s.code != CLOSED} == {"N27", "N28", "N35", "N43", "N48"}
+    assert {st[n].code for n in ("N27", "N28", "N35", "N43", "N48")} == {UPCOMING}
     later = schedule.statuses(notice_ids(), kst(2026, 11, 13, 12))
-    assert {n for n, s in later.items() if s.code != CLOSED} == {"N35"}
-    assert all(s.code == CLOSED for s in schedule.statuses(notice_ids(), kst(2026, 11, 21, 12)).values())
+    assert {n for n, s in later.items() if s.code != CLOSED} == {"N35", "N48"}
+    assert all(s.code == CLOSED for s in schedule.statuses(notice_ids(), kst(2026, 11, 25, 12)).values())
 
 
 def test_open_on_2026_10_14_noon():
     st = schedule.statuses(notice_ids(), kst(2026, 10, 14, 12))
-    assert {n for n, s in st.items() if s.code == OPEN} == {"N4", "N8", "N17", "N18", "N19", "N33"}   # N33: G2 영구임대
+    assert {n for n, s in st.items() if s.code == OPEN} == {"N4", "N8", "N17", "N18", "N19", "N33", "N41"}   # N33: G2 영구임대, N41: G4 대전천동
 
 
 def test_naive_datetime_is_taken_as_kst_and_unknown_notice():

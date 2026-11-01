@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "3d68dc3358850f22fb15773cd9d2bd62c138aaaf3d47198e28247b8bd549161e",
+  "file": "260609동해천곡5공임50년예비입주자모집공고문.pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "공공임대주택",
+  "announcement_date": "2026-06-09",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

@@ -33,7 +33,8 @@ from rule_engine import evaluate  # noqa: E402
 # 자동 판정 공개 사업. 뒤의 3종(행복주택·SH 신혼·미리내집·SH 장기미임대)은 2026-11-01 사용자 결정으로 공개 — 등록 공고 17건을 처음 보는
 # 공고처럼 다시 분석해 비교했을 때 위험 0(행복주택은 새 공고 N27·N28 포함). 1순위 지역만 모집하는 공고(지역 조항)는 계속 판정하지 않는다.
 PASSING = ("lh.youth_rental", "lh.newlywed_rental", "lh.deundeun", "sh.jeonse", "sh.jeonse2",
-           "lh.happy_housing", "sh.newlywed", "sh.vacant")
+           "lh.happy_housing", "sh.newlywed", "sh.vacant",
+           "lh.public_rental")     # G4(2026-11-01): 처음 보는 공고 5건 위험 0 — 공개 기준(3건) 충족
 OK, UNSUPPORTED, BLOCKED, UNREADABLE = "ok", "unsupported", "blocked", "unreadable"
 DRAFT_ID = "DRAFT"
 UPLOAD_NAME = "upload.pdf"

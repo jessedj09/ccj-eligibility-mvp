@@ -1,0 +1,349 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "ff527af4d8c895c64d6e0d2f81a226610c6f5617463b414f52ed7585107c69c0",
+  "file": "붙임_수원당수A-3블록신혼희망타운(공공분양)잔여세대입주자모집공고문(입주후해약세대).pdf",
+  "created": "2026-11-01",
+  "status": "ok",
+  "reason": "",
+  "template": "lh.newlywed_town_sale",
+  "program": "신혼희망타운(분양)",
+  "announcement_date": "2026-09-29",
+  "held_fields": [],
+  "held_conditions": {
+    "신혼부부": [],
+    "예비신혼부부": [],
+    "한부모": []
+  },
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": {
+    "notice_id": "DRAFT",
+    "title": "신혼희망타운(분양) (검증 전 초안)",
+    "announcement_date": "2026-09-29",
+    "issuer": "LH",
+    "program": "신혼희망타운(분양)",
+    "version": 1,
+    "valid_from": "2026-09-29",
+    "supersedes": null,
+    "source": {
+      "document": "upload.pdf",
+      "sha256": "ff527af4d8c895c64d6e0d2f81a226610c6f5617463b414f52ed7585107c69c0",
+      "pages": 14
+    },
+    "review": {
+      "status": "DRAFT",
+      "note": "G2 생성(tools/gen_c6_public.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+      "log": []
+    },
+    "notes": [],
+    "unsupported_layers": [],
+    "tables": {},
+    "layers": {
+      "신혼부부": {
+        "conditions": [
+          {
+            "id": "DRAFT-NM-marital",
+            "field": "marital_status",
+            "required": true,
+            "source": {
+              "quote": [
+                "혼인기간이7년이내또는6세이하자녀"
+              ],
+              "page": 1
+            },
+            "note": "혼인 중인지",
+            "check": {
+              "in": [
+                {
+                  "var": "marital_status"
+                },
+                [
+                  "혼인중"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-NM-duration",
+            "field": "marriage_duration_or_child",
+            "required": true,
+            "source": {
+              "quote": [
+                "혼인기간이7년이내또는6세이하자녀"
+              ],
+              "page": 1
+            },
+            "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아 포함)를 두었는지",
+            "check": {
+              "any": [
+                {
+                  "gte": [
+                    {
+                      "var": "marriage_date"
+                    },
+                    {
+                      "fn": "marriage_cutoff"
+                    }
+                  ]
+                },
+                {
+                  "if": [
+                    {
+                      "is": [
+                        {
+                          "var": "has_children"
+                        },
+                        false
+                      ]
+                    },
+                    false,
+                    {
+                      "gte": [
+                        {
+                          "var": "youngest_child_birth_date"
+                        },
+                        {
+                          "fn": "young_child_cutoff"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-NM-home",
+            "field": "home_ownership",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재전국에거주(주민등록표등본기준)하는만19세이상의무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+            "check": {
+              "eq": [
+                {
+                  "var": "home_ownership"
+                },
+                "무주택"
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-NM-adult",
+            "field": "age",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재전국에거주(주민등록표등본기준)하는만19세이상의무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "만 19세 이상인지",
+            "check": {
+              "gte": [
+                {
+                  "var": "age"
+                },
+                19
+              ]
+            }
+          }
+        ]
+      },
+      "예비신혼부부": {
+        "conditions": [
+          {
+            "id": "DRAFT-NP-marital",
+            "field": "marital_status",
+            "required": true,
+            "source": {
+              "quote": [
+                "혼인을계획중이며,입주전까지혼인사실을증명할수있는자"
+              ],
+              "page": 4
+            },
+            "note": "예비신혼부부(입주 전까지 혼인 사실 증명)인지",
+            "check": {
+              "in": [
+                {
+                  "var": "marital_status"
+                },
+                [
+                  "예비신혼"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-NP-home",
+            "field": "home_ownership",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재전국에거주(주민등록표등본기준)하는만19세이상의무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+            "check": {
+              "eq": [
+                {
+                  "var": "home_ownership"
+                },
+                "무주택"
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-NP-adult",
+            "field": "age",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재전국에거주(주민등록표등본기준)하는만19세이상의무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "만 19세 이상인지",
+            "check": {
+              "gte": [
+                {
+                  "var": "age"
+                },
+                19
+              ]
+            }
+          }
+        ]
+      },
+      "한부모": {
+        "conditions": [
+          {
+            "id": "DRAFT-NS-marital",
+            "field": "marital_status",
+            "required": true,
+            "source": {
+              "quote": [
+                "를둔부또는모"
+              ],
+              "page": 1
+            },
+            "note": "한부모가족인지",
+            "check": {
+              "in": [
+                {
+                  "var": "marital_status"
+                },
+                [
+                  "한부모"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-NS-child6",
+            "field": "youngest_child_birth_date",
+            "required": true,
+            "source": {
+              "quote": [
+                "를둔부또는모"
+              ],
+              "page": 1
+            },
+            "note": "6세 이하(만 7세 미만, 태아 포함) 자녀를 두었는지",
+            "check": {
+              "if": [
+                {
+                  "is": [
+                    {
+                      "var": "has_children"
+                    },
+                    false
+                  ]
+                },
+                false,
+                {
+                  "gte": [
+                    {
+                      "var": "youngest_child_birth_date"
+                    },
+                    {
+                      "fn": "young_child_cutoff"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-NS-home",
+            "field": "home_ownership",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재전국에거주(주민등록표등본기준)하는만19세이상의무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+            "check": {
+              "eq": [
+                {
+                  "var": "home_ownership"
+                },
+                "무주택"
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-NS-adult",
+            "field": "age",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재전국에거주(주민등록표등본기준)하는만19세이상의무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "만 19세 이상인지",
+            "check": {
+              "gte": [
+                {
+                  "var": "age"
+                },
+                19
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "unclassified": [
+    [
+      8,
+      "서),본인및대리인의신분증을추가로구비하여야합니다."
+    ],
+    [
+      10,
+      "–아파트와근린생활시설(상가)의대지는별도로구분되지않으며,아파트의일부대지는근린생활시설을이용하는사람및차량의통행등을위하여사용될수있음"
+    ],
+    [
+      11,
+      "–마이너스옵션의경우,욕실의급수,급탕매립박스및일부설비배관등이노출될수있으며추후입주자설치시유지관리에문제없도록주의하여야하며,부적절한배기팬설치로인해외부오염된공기또는냄새가욕실내부로유입될수있음"
+    ],
+    [
+      12,
+      "-마이너스옵션의경우,욕실의급수,급탕매립박스및일부설비배관등이노출될수있으며추후입주자설치시유지관리에문제없도록주의하여야하며,부적절한배기팬설치로인해외부오염된공기또는냄새가욕실내부로유입될수있음"
+    ],
+    [
+      13,
+      "-소유권보존등기및이전등기는입주일과관계없이지적공부정리절차등으로지연될수있음(특히대지의이전등기는상당기간지연될수있으며,이경우건물등기와대지권등기를별도로이행하여야함)"
+    ]
+  ]
+}

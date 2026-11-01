@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "5fae342e3aebe93b2118cd32e37d603c71670b7b78aad88b4b859e882a73ee3c",
+  "file": "김포한강Ac-01a블록(데세리브)10년공공임대주택리츠예비입주자모집공고문(26.06.19).pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "공공임대주택",
+  "announcement_date": "2026-06-19",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

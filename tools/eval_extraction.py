@@ -61,6 +61,8 @@ def _norm(x):
 
 
 def _cmp_text(gold, f):
+    if f.status == X.ABSENT and gold in (None, ""):      # 없는 게 정답인 문장(예: 재당첨 제한 문구가 없는 공고)
+        return OK_ABSENT
     if f.status != X.FILLED:
         return HELD
     if _norm(gold) == _norm(f.value) or (_dates_in(gold) and _dates_in(gold) == _dates_in(f.value)):

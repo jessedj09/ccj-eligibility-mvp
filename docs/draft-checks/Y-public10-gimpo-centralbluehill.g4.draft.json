@@ -1,0 +1,183 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "b0c5c614416bcefdea6f27d7eb88f9a6be6c9a728f9a8bc0380f9356db04e18d",
+  "file": "김포한강센트럴블루힐10년공공임대주택리츠예비입주자모집공고(25.10.28).pdf",
+  "created": "2026-11-01",
+  "status": "ok",
+  "reason": "",
+  "template": "lh.public_rental",
+  "program": "공공임대주택",
+  "announcement_date": "2025-10-28",
+  "held_fields": [],
+  "held_conditions": {
+    "일반": []
+  },
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": {
+    "notice_id": "DRAFT",
+    "title": "공공임대주택 (검증 전 초안)",
+    "announcement_date": "2025-10-28",
+    "issuer": "LH",
+    "program": "공공임대주택",
+    "version": 1,
+    "valid_from": "2025-10-28",
+    "supersedes": null,
+    "source": {
+      "document": "upload.pdf",
+      "sha256": "b0c5c614416bcefdea6f27d7eb88f9a6be6c9a728f9a8bc0380f9356db04e18d",
+      "pages": 15
+    },
+    "review": {
+      "status": "DRAFT",
+      "note": "G2 생성(tools/gen_c6_public.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+      "log": []
+    },
+    "notes": [],
+    "unsupported_layers": [],
+    "tables": {},
+    "layers": {
+      "일반": {
+        "conditions": [
+          {
+            "id": "DRAFT-PR-home",
+            "field": "home_ownership",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재수도권(서울특별시,인천광역시,경기도)에거주(주민등록표등본기준)하는성년자(만19세이상)인무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+            "check": {
+              "eq": [
+                {
+                  "var": "home_ownership"
+                },
+                "무주택"
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-PR-region",
+            "field": "residence_area",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재수도권(서울특별시,인천광역시,경기도)에거주(주민등록표등본기준)하는성년자(만19세이상)인무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "공고일 현재 수도권(서울특별시·인천광역시·경기도)에 주민등록이 되어 있는지",
+            "check": {
+              "in": [
+                {
+                  "var": "residence_area"
+                },
+                [
+                  "서울특별시",
+                  "인천광역시",
+                  "수원시",
+                  "성남시",
+                  "고양시",
+                  "용인시",
+                  "부천시",
+                  "안산시",
+                  "안양시",
+                  "남양주시",
+                  "화성시",
+                  "평택시",
+                  "의정부시",
+                  "시흥시",
+                  "파주시",
+                  "김포시",
+                  "광명시",
+                  "광주시",
+                  "군포시",
+                  "하남시",
+                  "오산시",
+                  "이천시",
+                  "안성시",
+                  "의왕시",
+                  "양주시",
+                  "구리시",
+                  "포천시",
+                  "여주시",
+                  "동두천시",
+                  "과천시",
+                  "가평군",
+                  "양평군",
+                  "연천군"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-PR-adult",
+            "field": "age",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재수도권(서울특별시,인천광역시,경기도)에거주(주민등록표등본기준)하는성년자(만19세이상)인무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+            "check": {
+              "any": [
+                {
+                  "gte": [
+                    {
+                      "var": "age"
+                    },
+                    19
+                  ]
+                },
+                {
+                  "lte": [
+                    {
+                      "var": "age"
+                    },
+                    18
+                  ],
+                  "review_if_true": {
+                    "code": "AMBIGUOUS_SOURCE",
+                    "detail": "미성년자는 자녀가 있는 미성년 세대주·형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청할 수 있습니다. 예외 해당 여부는 이 화면이 묻지 않습니다."
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-PR-rewin",
+            "field": "rewin_restricted",
+            "required": true,
+            "source": {
+              "quote": [
+                "재당첨제한기간중에해당할경우계약불가"
+              ],
+              "page": 1
+            },
+            "note": "재당첨 제한 기간 중이 아닌지(본인·세대원이 과거 분양주택·분양전환 공공임대 등에 당첨되어 제한 기간이 남았으면 신청·계약 불가)",
+            "check": {
+              "eq": [
+                {
+                  "var": "rewin_restricted"
+                },
+                false
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "unclassified": [
+    [
+      9,
+      "■「주택공급에관한규칙」제54조에의한재당첨제한적용주택(분양가상한제적용주택,분양전환되는임대주택,토지임대부분양주택,투기과열지구및청약과열지역에서공급되는주택등)에기당첨되어재당첨제한기간내에있는분및그세대에속한분과「주택공급에관한규칙」제58조에의한부적격당첨후입주자로선정될수없는기간(수도권은1년,수도권외는6개월,수도권외이지만투기·청약과열지구인경우1년,위축지역은3개월로함)내에있는분은금회공급하는주택에신청할수없습니다."
+    ]
+  ]
+}

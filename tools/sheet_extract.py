@@ -363,6 +363,10 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None if issuer == "SH" else "lh.permanent_rental"
     if "통합공공임대" in program:      # G2: LH 통합공공임대 일반형 — 일자리연계형 등 변형은 gate에서 막는다
         return None if issuer == "SH" else "lh.integrated_rental"
+    if program == "신혼희망타운(분양)":   # G3: LH 신혼희망타운 공공분양 — SH는 아직 검증 전
+        return None if issuer == "SH" else "lh.newlywed_town_sale"
+    if program == "공공임대주택":       # G4: LH 공공임대(10년·분양전환·50년) 예비입주자 — 최초 입주자 모집은 gate에서 막는다
+        return None if issuer == "SH" else "lh.public_rental"
     for key, t in PROGRAM_TEMPLATE:
         if key in program and t:
             return t
@@ -754,6 +758,95 @@ def _permanent_rental(pages):
     return f
 
 
+# ------------------------------------------------------------------ 공공임대 예비입주자(G4)
+# 신청 자격 문장: N37 "현재수도권에거주(주민등록표등본기준)하는무주택세대구성원", N39 "현재주택건설지역(경기도,서울특별시,
+# 인천광역시)에거주하는무주택세대구성원", 거주 요건이 없는 공고는 "현재무주택세대구성원으로서"
+ELIGIBILITY = r"현재(?P<area>[^■]{0,60}?)무주택세대구성원"
+CAPITAL_WORDS = ("서울", "인천", "경기")
+ACCOUNT_FREE = r"(?:청약저축|입주자저축)가입여부[^■]{0,40}?(?:관계없이|상관없|불문)"
+ACCOUNT_JOINED = r"2순위[^■]{0,60}?(?:청약저축포함\)|입주자저축)에가입되어있고"
+ACCOUNT_MIN = r"2순위[^■]{0,60}?에가입하여(?P<n>\d+)(?P<u>개월|월|년)이(?:지난|경과된)[^■]{0,40}?(?P<c>\d+)회이상"
+ADULT_SENT = r"「민법」상미성년자\(만?19세미만\)는공급신청할수없습니다"
+# 재당첨 제한: 계약·신청 불가 문구(N37·N38) + "재당첨제한기간내에있는분…신청할수없습니다"(G4 처음 보는 공고 결과를 본 뒤 보강 —
+# N42·N43에서 이 문장을 놓쳐 조항 장부가 '보류'로 막았다)
+REWIN = r"재당첨제한[^■.]{0,30}?(?:불가|없으며|없습니다)|재당첨제한기간내에있는분"
+
+
+def _public_rental(pages):
+    f = {}
+    hit = find_text(pages, ELIGIBILITY)
+    if hit is None:
+        f["eligibility_quote"] = Field(HELD, None, how="신청 자격 문장('현재 … 무주택세대구성원')을 찾지 못함")
+        f["residence"] = Field(HELD, None, how="신청 자격 문장 없음")
+    else:
+        area = re.match(ELIGIBILITY, hit[1]).group("area")
+        f["eligibility_quote"] = Field(FILLED, hit[1], hit[0], hit[1], "신청 자격 문장")
+        if "에거주" not in area:
+            f["residence"] = Field(FILLED, None, hit[0], hit[1], "자격 문장에 거주 요건 없음")
+        elif "수도권" in area or all(w in area for w in CAPITAL_WORDS):
+            f["residence"] = Field(FILLED, "수도권", hit[0], hit[1], "수도권(서울·인천·경기) 거주")
+        elif area.startswith("국내"):
+            f["residence"] = Field(FILLED, None, hit[0], hit[1], "국내 거주(지역 제한 없음)")
+        else:
+            f["residence"] = Field(HELD, None, hit[0], hit[1], f"거주 요건 지역을 알아보지 못함: {area[:30]}")
+    free, joined, least = find_text(pages, ACCOUNT_FREE), find_text(pages, ACCOUNT_JOINED), find_text(pages, ACCOUNT_MIN)
+    if free:
+        f["account"] = Field(FILLED, None, free[0], free[1], "청약저축 가입 여부와 관계없이 신청")
+        f["account_quote"] = Field(ABSENT, None, how="청약통장 요건 없음")
+    elif least:
+        m = re.search(ACCOUNT_MIN, least[1])
+        months = int(m.group("n")) * (12 if m.group("u") == "년" else 1)
+        f["account"] = Field(FILLED, {"months": months, "count": int(m.group("c"))}, least[0], least[1], "2순위 최소 가입기간·납입횟수")
+        f["account_quote"] = Field(FILLED, least[1], least[0], least[1], "2순위 요건 문장")
+    elif joined:
+        f["account"] = Field(FILLED, "가입", joined[0], joined[1], "2순위도 청약통장 가입 필요")
+        f["account_quote"] = Field(FILLED, joined[1], joined[0], joined[1], "2순위 요건 문장")
+    else:
+        f["account"] = Field(HELD, None, how="청약통장 요건(관계없음·2순위 가입 요건)을 원문에서 확인하지 못함")
+        f["account_quote"] = Field(ABSENT, None, how="청약통장 요건 문장 없음")
+    hit = find_text(pages, ADULT_SENT)
+    f["adult_quote"] = (Field(FILLED, hit[1], hit[0], hit[1], "성년 요건 문장") if hit else
+                        Field(ABSENT, None, how="성년 요건 별도 문장 없음(자격 문장을 인용)"))
+    hit = find_text(pages, REWIN)
+    f["rewin_quote"] = (Field(FILLED, hit[1], hit[0], hit[1], "재당첨 제한 문구") if hit else
+                        Field(ABSENT, None, how="재당첨 제한 문구 없음"))
+    return f
+
+
+# ------------------------------------------------------------------ 신혼희망타운 공공분양(G3)
+# 단순형(잔여세대): N45 "입주자저축가입여부,과거당첨여부,소득및자산요건을불문하며", "현재전국에거주(주민등록표등본기준)하는만19세
+# 이상의무주택세대구성원", <표1> 유형 문장. 정규형: N46 "현재수도권[…]에거주하면서아래조건(1~4)을모두갖춘신혼부부" 등
+NH_OPEN = r"(?:입주자|청약)저축가입여부[^■]{0,40}?불문"
+NH_HEAD = r"현재(?P<area>전국|수도권)에거주\(주민등록표등본기준\)하는만19세이상의무주택세대구성원"
+NH_TYPE_OPEN = {"신혼부부": "혼인기간이7년이내또는6세이하자녀", "예비신혼부부": "혼인을계획중이며,입주전까지혼인사실을증명할수있는자",
+                "한부모": "를둔부또는모"}
+NH_TYPE_FULL = r"현재수도권\[[^\]]{0,30}\]에거주하면서아래조건\(1~4\)을모두갖춘"
+NH_TYPE_NAME = {"신혼부부": "신혼부부", "예비신혼부부": "예비신혼부부", "한부모": "한부모가족"}
+
+
+def _newlywed_town_sale(pages):
+    f = {}
+    hit = find_text(pages, NH_OPEN)
+    f["open_quote"] = (Field(FILLED, hit[1], hit[0], hit[1], "저축·당첨·소득·자산 불문 문구 — 단순형") if hit else
+                       Field(ABSENT, None, how="불문 문구 없음 — 정규형"))
+    if hit:
+        head = find_text(pages, NH_HEAD)
+        f["eligibility_quote"] = (Field(FILLED, head[1], head[0], head[1], "거주·나이 문장") if head else
+                                  Field(HELD, None, how="단순형의 거주·나이 문장을 찾지 못함"))
+        area = re.match(NH_HEAD, head[1]).group("area") if head else None
+        f["residence"] = (Field(FILLED, "수도권" if area == "수도권" else None, head[0], head[1], f"{area} 거주") if head else
+                          Field(HELD, None, how="거주 요건을 확인하지 못함"))
+        found = {k: find_text(pages, re.escape(v)) for k, v in NH_TYPE_OPEN.items()}
+    else:
+        f["eligibility_quote"] = Field(ABSENT, None, how="정규형 — 유형별 자격 문장을 인용")
+        found = {k: find_text(pages, NH_TYPE_FULL + name) for k, name in NH_TYPE_NAME.items()}
+        f["residence"] = (Field(FILLED, "수도권", how="유형별 자격 문장이 모두 '수도권에 거주하면서'") if all(found.values()) else
+                          Field(HELD, None, how="유형별 자격 문장(수도권 거주)을 모두 찾지 못함"))
+    f["layer_quotes"] = {k: (Field(FILLED, v[1], v[0], v[1], "유형 자격 문장") if v else
+                             Field(HELD, None, how=f"{k} 자격 문장을 찾지 못함")) for k, v in found.items()}
+    return f
+
+
 # ------------------------------------------------------------------ 전체
 def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Dict:
     """siblings_of(template) → 형제 정답 시트 목록(같은 템플릿, 평가 시 다듬기용 공고만). llm이 있으면 결정론이 못 채운
@@ -772,6 +865,8 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
           "lh.newlywed_rental": lambda: _newlywed_rental(pages, ann, sib, program),
           "lh.deundeun": dict, "sh.vacant": dict, "lh.national_rental": lambda: _national_rental(pages),
           "lh.permanent_rental": lambda: _permanent_rental(pages), "lh.integrated_rental": dict,
+          "lh.public_rental": lambda: _public_rental(pages),
+          "lh.newlywed_town_sale": lambda: _newlywed_town_sale(pages),
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),
           "sh.jeonse2": lambda: _jeonse2(pages, ann, sib, program, llm),
           "sh.jeonse": lambda: _jeonse(pages, ann, sib, program, llm),
@@ -1070,14 +1165,24 @@ def new_restrictions(doc: Dict, pages: List[str]) -> List[tuple]:
 RELAXED = re.compile(r"입주자격완화|【완화조건】|완화기준은해당공고에한하여")
 
 
-# 통합공공임대 변형(G2): 일자리연계형 지원주택은 직업·근무지 요건과 거주기간이 일반형과 달라 일반형 틀로 판정하지 않는다
-VARIANT = {"lh.integrated_rental": re.compile(r"일자리연계형")}
+# 변형 공고: 통합공공임대 일자리연계형 지원주택은 직업·근무지 요건과 거주기간이 일반형과 달라 일반형 틀로 판정하지 않는다(G2).
+# 공공임대 틀은 예비입주자 모집만 — 최초 입주자 모집(특별·일반공급, 소득·자산 기준)은 다른 사업이다(G4).
+VARIANT = {"lh.integrated_rental": (re.compile(r"일자리연계형"), True,
+                                    "통합공공임대 '{}' 공고(p.1) — 직업·근무지 요건이 일반형과 달라 자동 판정하지 않습니다"),
+           "lh.public_rental": (re.compile(r"예비입주자"), False,
+                                "공공임대 최초 입주자 모집 공고(p.1에 '예비입주자' 없음) — 특별·일반공급과 소득·자산 기준이 있어 "
+                                "예비입주자 모집 틀로 판정하지 않습니다")}
 
 
 def variant_notice(template: Optional[str], pages: List[str]) -> Optional[str]:
-    rx = VARIANT.get(template)
-    m = rx.search("".join(pages[:1])) if rx else None
-    return (f"통합공공임대 '{m.group()}' 공고(p.1) — 직업·근무지 요건이 일반형과 달라 자동 판정하지 않습니다" if m else None)
+    """block_if_found=True면 표지(첫 쪽)에 그 표현이 있을 때, False면 없을 때 막는다."""
+    if template not in VARIANT:
+        return None
+    rx, block_if_found, msg = VARIANT[template]
+    m = rx.search("".join(pages[:1]))
+    if block_if_found:
+        return msg.format(m.group()) if m else None
+    return None if m else msg
 
 
 def relaxed_notice(pages: List[str]) -> Optional[str]:
