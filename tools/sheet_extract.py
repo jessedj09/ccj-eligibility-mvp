@@ -512,6 +512,57 @@ REGION_FIELDS = {"대학생": ["residence_area", "school_area"], "청년": ["res
 REGION_NOTE = "거주지·소득 근거지(대학생은 재학 대학 소재지) 중 하나가 해당 주택건설지역 또는 연접 지역인지(이 공고는 1순위만 모집)"
 
 
+# 1순위 지역 자격 문장: "해당 주택건설지역(서울특별시) 또는 연접지역(의정부시, 남양주시, …)이 거주지나 … 인 자"(띄어쓰기 없앤 원문)
+FIRST_RANK = re.compile(r"해당주택건설지역\(([^()]+)\)(?:또는|및)연접지역\(([^()]+)\)(?:이|가)거주지[가-힣·]{0,30}?인자")
+NOT_RECRUITED = re.compile(r"[0-9,·순위]{3,12}이번공고에서는모집하지않음")
+
+
+def first_rank_areas(sentence: str) -> Optional[List[str]]:
+    """1순위 자격 문장 → 지역 표준 이름 목록(주택건설지역 먼저). 이름 하나라도 지역 표준 이름표에 없으면 None(보류 — 모르는 지역을
+    빼고 판정하면 틀린 '불가'가 나온다)."""
+    m = FIRST_RANK.search(sentence)
+    if not m:
+        return None
+    std = {sv.normalize(n): n for n in region_names()}
+    out = []
+    for raw in [m.group(1)] + m.group(2).split(","):
+        n = re.sub(r"^(?:경기도|경기)(?=[가-힣]+[시군])", "", raw.strip())
+        if n not in std:
+            return None
+        out.append(std[n])
+    return out
+
+
+def _region_rules(pages, layers, heads) -> Optional[dict]:
+    """1순위만 모집하는 공고의 계층별 지역 자격(결정론, G1 2026-11-01). 계층 소제목 쪽부터 다음 소제목 전까지(최대 3쪽)에서
+    1순위 자격 문장과 '2·3순위 이번 공고에서는 모집하지 않음' 문장을 **둘 다** 찾고 지역 이름을 모두 알아볼 때만 — 아니면 None."""
+    out = {}
+    for layer in layers:
+        head = "신혼부부·한부모가족" if layer in ("신혼부부", "한부모") else layer
+        start = heads.get(head)
+        if not start:
+            return None
+        nxt = min([p for p in heads.values() if p > start], default=start + 3)
+        first = nore = areas = None
+        for i in range(start, min(nxt, start + 3) + 1):
+            if i > len(pages):
+                break
+            t = pages[i - 1]
+            m = FIRST_RANK.search(t)
+            if m and first is None:
+                areas = first_rank_areas(m.group(0))
+                if areas is None:
+                    return None
+                first = m.group(0)
+            n = NOT_RECRUITED.search(t)
+            if n and nore is None:
+                nore = n.group(0)
+        if not (first and nore):
+            return None
+        out[layer] = dict(fields=REGION_FIELDS[layer], quote=[first, nore], note=REGION_NOTE, areas=areas)
+    return out
+
+
 def _llm_region(pages, llm: LLM, layers, heads) -> Optional[dict]:
     """1순위만 모집하는 공고의 계층별 지역 자격 문장. 템플릿 지역 목록(서울특별시 + 연접 13개 시)이 문장에 **전부** 있고
     목록 밖 지역 이름이 **없을** 때만 쓴다 — 목록이 다른 공고에 서울 목록을 쓰면 틀린 '불가'가 나온다."""
@@ -534,7 +585,7 @@ def _llm_region(pages, llm: LLM, layers, heads) -> Optional[dict]:
             return None
         if not all(a in nf for a in adj) or any(o in nf for o in others):
             return None
-        out[layer] = dict(fields=REGION_FIELDS[layer], quote=[first, nore], note=REGION_NOTE)
+        out[layer] = dict(fields=REGION_FIELDS[layer], quote=[first, nore], note=REGION_NOTE, areas=list(T.C1.SEOUL_ADJ))
     return out
 
 
@@ -573,9 +624,12 @@ def _happy_housing(pages, ann, sib, program, title_text, llm=None):
     f["child"] = Field(FILLED, lit_c, hit[0], hit[1], "'…이후 출생' 리터럴(공고일−7년 무렵)") if lit_c else \
         Field(ABSENT, None, how="6세 기준일 리터럴 없음 — 공고일에서 도출")
     only_first = find_text(pages, r"이번공고에서는모집하지않음")
-    region = _llm_region(pages, llm, layers, heads) if (only_first and llm is not None and layers) else None
+    region = _region_rules(pages, layers, heads) if (only_first and layers) else None      # 결정론 먼저(G1)
+    llm_region = _llm_region(pages, llm, layers, heads) if (only_first and layers and not region and llm is not None) else None
     if region:
-        f["region"] = Field(FILLED, region, only_first[0], only_first[1], f"LLM({llm.slot.name}) — 지역 목록·원문 확인")
+        f["region"] = Field(FILLED, region, only_first[0], only_first[1], "1순위 자격 문장 — 지역 이름 모두 표준 이름표에 있음")
+    elif llm_region:
+        f["region"] = Field(FILLED, llm_region, only_first[0], only_first[1], f"LLM({llm.slot.name}) — 지역 목록·원문 확인")
     elif only_first:
         f["region"] = Field(HELD, None, only_first[0], only_first[1], "1순위 지역만 모집 — 계층별 지역 조건 문장을 확인하지 못함")
     else:
@@ -599,6 +653,24 @@ def _near_convention(hit, ann, years):
 DISABLED = "「장애인복지법」 제2조제2항에 해당하는 장애인"
 
 
+ELDER_ITEM = re.compile(r"고령자\(만?65세이상인(?:자|사람)\)(?!는위에표기하지않|는제외|제외)")
+ELDER_EXCLUDED = re.compile(r"고령자\(만?65세이상인(?:자|사람)\)(?:는위에표기하지않|는제외|제외)")
+
+
+def _weak_elderly(pages, page: int) -> Optional[bool]:
+    """주거약자 정의에 65세 이상 고령자가 들어가는가 — 그 쪽(과 다음 쪽)에서 항목으로 있으면 True, '표기하지 않음·제외'면 False,
+    둘 다 없으면 None(보류 — 단정하면 고령자에게 틀린 가능·불가가 난다). N5 p.11은 제외 문장, N2 p.6은 항목."""
+    text = "".join(pages[page - 1: page + 1])
+    if ELDER_EXCLUDED.search(text):
+        return False
+    return True if ELDER_ITEM.search(text) else None
+
+
+def _on(pages, pattern: str) -> Optional[str]:
+    hit = find_text(pages, pattern)
+    return hit[1] if hit else None
+
+
 def _happy_weak(pages, layers, heads) -> Field:
     # 가운뎃점 없이 쓴 공고도 있다(N28 p.9 "3-1.신혼부부한부모가족공급대상자의요건을…")
     hit = find_text(pages, r"신혼부부[·ㆍ.]?한부모가족[가-힣의 ]{0,12}요건을모두갖추고아래주거약?자의요건을갖춘(?:사람|자)")
@@ -608,8 +680,32 @@ def _happy_weak(pages, layers, heads) -> Field:
             quotes.append(DISABLED)
         return Field(FILLED, dict(bases=["신혼부부", "한부모"], elderly=bool(on_page(pages, "65세이상")), page=hit[0],
                                   quotes=quotes), hit[0], hit[1], "'…요건을 모두 갖추고 아래 주거약자의 요건을 갖춘' 문구")
+    # G1(2026-11-01): 다른 계층 묶음의 주거약자 문구
+    # N2 p.6 "대학생계층의입주자격요건을갖춘자로서아래의주거약자에해당하는자" → 그 계층 + 주거약자
+    one = find_text(pages, r"(대학생|청년)계층의입주자격요건을갖춘자로서아래의주거약자에해당하는자")
+    if one and re.search(r"(대학생|청년)", one[1]).group(1) in layers:
+        base = re.search(r"(대학생|청년)", one[1]).group(1)
+        elderly = _weak_elderly(pages, one[0])
+        if elderly is None:
+            return Field(HELD, None, one[0], one[1], "주거약자 정의에 고령자가 들어가는지 원문에서 확인하지 못함")
+        elder_q = ELDER_ITEM.search("".join(pages[one[0] - 1: one[0] + 1])) if elderly else None
+        quotes = [one[1]] + ([elder_q.group(0)] if elder_q else []) + ([DISABLED] if on_page(pages, DISABLED) else [])
+        return Field(FILLED, dict(bases=[base], elderly=elderly, page=one[0], quotes=quotes), one[0], one[1],
+                     "'○○계층의 입주자격요건을 갖춘 자로서 아래의 주거약자' 문구")
+    # N5 p.11 "지역전략산업종사자,청년,대학생중하나의자격요건을충족하면서주거약자(장애인등)에해당" → 트랙 중 하나 + 주거약자
+    names = r"(?:지역전략산업종사자|산업단지근로자|청년|대학생)"
+    tr = find_text(pages, rf"{names}(?:,{names})+중하나의자격요건을충족하면서주거약자(?:\(장애인등\))?에해당")
+    if tr:
+        tracks = re.findall(names, tr[1].split("중하나")[0])
+        if all(t in layers or t in heads for t in tracks):
+            elderly = _weak_elderly(pages, tr[0])
+            if elderly is None:
+                return Field(HELD, None, tr[0], tr[1], "주거약자 정의에 고령자가 들어가는지 원문에서 확인하지 못함")
+            quotes = [tr[1]] + ([DISABLED] if on_page(pages, DISABLED) else [])
+            return Field(FILLED, dict(tracks=tracks, elderly=elderly, page=tr[0], quotes=quotes), tr[0], tr[1],
+                         "'○○, ○○ 중 하나의 자격요건을 충족하면서 주거약자' 문구")
     if "주거약자" in heads:
-        return Field(HELD, None, heads["주거약자"], None, "주거약자 주택형 소제목 — 대상 계층 묶음은 결정론 추출 미구현")
+        return Field(HELD, None, heads["주거약자"], None, "주거약자 주택형 소제목 — 대상 계층 묶음을 원문에서 확인하지 못함")
     return Field(ABSENT, None, how="신혼부부·한부모 주거약자 요건 문구 없음(고령자 배정 주거약자용은 고령자 계층으로 판정)")
 
 
