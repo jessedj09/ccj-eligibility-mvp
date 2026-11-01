@@ -88,3 +88,15 @@ def test_whatif_errors():
     assert client.post("/whatif", json={"profile": body, "scenario": "bogus"}).status_code == 422
     assert client.post("/whatif", json={"profile": body, "scenario": "move", "region": "없는지역"}).status_code == 422
     assert client.post("/whatif", json={"profile": {"schema": "x"}, "scenario": "separate"}).status_code == 422
+
+
+def test_match_reports_missing_field_names_for_questions():
+    """피드백 B1: /match missing_fields — 보류(정보 부족)를 만든 프로필 항목 이름, 화면이 그 항목만 다시 묻는다."""
+    from api.main import app
+    from fastapi.testclient import TestClient
+    body = {"schema": "ccj-profile/1", "master": {"birth_date": "1996-01-01", "home_self": "무주택", "home_household": "무주택",
+                                                   "income_household": 4000000, "income_self": 4000000},
+            "common": {"marital_status": "미혼", "household_size": 1}}
+    j = TestClient(app).post("/match", json={"profile": body, "only_open": False}).json()
+    assert j["missing_fields"] and all(isinstance(v, int) and v > 0 for v in j["missing_fields"].values())
+    assert "residence_area" in j["missing_fields"] and "rewin_restricted" in j["missing_fields"]

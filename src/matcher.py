@@ -194,7 +194,16 @@ FIELD_LABELS = {
 
 
 def missing_inputs(matches: List[Match]) -> Dict[str, int]:
-    """'추가 정보 필요' 판정에서 정보 부족 조건이 읽는 항목별로, 그 항목 때문에 판정이 멈춘 공고·계층 수."""
+    """'추가 정보 필요' 판정에서 정보 부족 조건이 읽는 항목별로, 그 항목 때문에 판정이 멈춘 공고·계층 수(화면 표시 이름)."""
+    counts: Dict[str, int] = {}
+    for field, n in missing_fields(matches).items():
+        label = FIELD_LABELS.get(field, field)
+        counts[label] = max(counts.get(label, 0), n)
+    return dict(sorted(counts.items(), key=lambda kv: -kv[1]))
+
+
+def missing_fields(matches: List[Match]) -> Dict[str, int]:
+    """missing_inputs와 같되 프로필 항목 이름으로 — 공고 찾기 화면이 그 항목만 다시 묻는다(피드백 B1)."""
     counts: Dict[str, int] = {}
     for x in matches:
         if x.verdict != "NEEDS_INFO":
@@ -209,10 +218,9 @@ def missing_inputs(matches: List[Match]) -> Dict[str, int]:
             c = conds.get(rid)
             if c is None:
                 continue
-            for f in c.inputs:
-                labels.add(FIELD_LABELS.get(f, f))
-        for label in labels:
-            counts[label] = counts.get(label, 0) + 1
+            labels.update(c.inputs)
+        for field in labels:
+            counts[field] = counts.get(field, 0) + 1
     return dict(sorted(counts.items(), key=lambda kv: -kv[1]))
 
 

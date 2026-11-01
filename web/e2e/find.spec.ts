@@ -100,3 +100,18 @@ test("추가 정보는 접혀 있고, 생년월일 없이 판정하면 안내한
   await expect(page.getByRole("alert").filter({ hasText: "생년월일" })).toBeVisible();
   await expect(page.getByTestId("match-result")).toHaveCount(0);
 });
+
+test("보류를 만든 항목 중 비어 있는 것만 결과 아래에서 묻고, 넣으면 다시 판정한다(피드백 B1)", async ({ page }) => {
+  await fillSingle(page);
+  await page.getByRole("button", { name: "전체 공고 판정" }).click();
+  await page.getByLabel("기준일").fill(DAY);
+  await expect(page.getByTestId("schedule-counts")).toContainText("2026-10-14 12:00");
+  const q = page.getByTestId("find-questions");
+  await expect(q).toBeVisible();
+  await expect(q.locator('[data-field="residence_area"]')).toHaveCount(0);        // 이미 넣은 항목은 묻지 않는다
+  const before = Number(await page.getByTestId("count-HOLD").textContent());
+  await q.locator('[data-field="house_head_status"] select').selectOption("세대주");   // 그날 보류를 만든 항목(세대주/세대원)
+  await q.getByTestId("find-rejudge").click();
+  await expect(q.locator('[data-field="house_head_status"]')).toHaveCount(0);      // 답한 항목은 사라진다
+  await expect.poll(async () => Number(await page.getByTestId("count-HOLD").textContent())).toBeLessThan(before);
+});
