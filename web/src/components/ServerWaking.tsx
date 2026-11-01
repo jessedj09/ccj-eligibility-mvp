@@ -13,8 +13,9 @@ export default function ServerWaking() {
   if (!waking) return null;
   return (
     <div role="status" data-testid="server-waking"
-      className="sticky top-0 z-20 border-b border-amber-300 bg-amber-50 px-4 py-2.5 text-center text-sm font-medium text-amber-900">
-      ⏳ 서버 시동중입니다. 잠시만 기다려주세요.
+      className="sticky top-0 z-20 flex items-center justify-center gap-2 border-b border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-900">
+      <span className="hourglass text-base" aria-hidden="true" data-testid="hourglass">⏳</span>
+      <span>서버 시동 중입니다. 잠시만 기다려주세요.</span>
     </div>
   );
 }

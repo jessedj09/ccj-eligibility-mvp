@@ -1,7 +1,7 @@
 // 이용 안내 — 판정 범위·한계, 개인정보 처리, 올린 공고문 처리, 문의. 베타 공개 전 준비(C9).
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "이용 안내 · 공공주택 자격 판정" };
+export const metadata: Metadata = { title: "이용 안내 · 청약 포청천" };
 
 const card = "rounded-lg border border-slate-200 bg-white p-5 shadow-sm";
 
@@ -9,6 +9,7 @@ export default function About() {
   return (
     <div className="mx-auto max-w-3xl space-y-5 text-sm leading-relaxed text-slate-800">
       <h1 className="text-xl font-bold sm:text-2xl">이용 안내</h1>
+      <p className="text-slate-600">청약 포청천 — 청약 지원자격 판정 AI</p>
 
       <section className={card}>
         <h2 className="mb-2 text-base font-semibold">무엇을 판정하나요</h2>

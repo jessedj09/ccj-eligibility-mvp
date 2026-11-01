@@ -23,8 +23,8 @@ from schedule import CLOSED, KST, OPEN, UPCOMING, load_schedules, now_kst, statu
 import whatif  # noqa: E402
 from display_status import COMMON_NOTE  # noqa: E402
 
-st.set_page_config(page_title="내 조건으로 공고 찾기", page_icon="🔎", layout="wide")
-st.title("🔎 내 조건으로 공고 찾기")
+st.set_page_config(page_title="청약 흥신소(운영자용)", page_icon="🔎", layout="wide")
+st.title("청약 흥신소 — 내 조건으로 공고 찾기(운영자용)")
 st.caption(f"한 번 입력하면 공고 {len(ALL_NOTICES)}건의 모든 계층·주택형을 판정합니다. 모르는 항목은 '모름'으로 두세요 — "
            "그 정보가 필요한 공고는 '추가 정보 필요'로 표시되고, 무엇을 더 입력하면 되는지 알려 드립니다.")
 
