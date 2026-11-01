@@ -176,8 +176,14 @@ def keyword_pages(pages: List[str]) -> Dict[str, List[int]]:
             if any(k in t for t in pages)}
 
 
+# 여러 사업을 나열한 괄호 — LH 공고 첫머리 안내 "장기임대주택(통합공공임대,국민임대,영구임대,행복주택)입주시…"는 제목보다
+# 먼저 나오기도 해서(화성서부권 국민임대) 사업 이름으로 잡지 않는다.
+LISTED = re.compile(r"\([^()]*(?:임대|행복주택)[^()]*,[^()]*\)")
+
+
 def classify(pages: List[str]):
-    head = "".join(pages[:3])
+    head = LISTED.sub("", "".join(pages[:3]))
+    pages = [LISTED.sub("", pages[0])] + list(pages[1:]) if pages else pages
     issuer = "SH" if "i-sh.co.kr" in "".join(pages) else "LH" if "apply.lh.or.kr" in "".join(pages) else None
     # 제목이 맨 앞에 오므로 가장 먼저 나오는 사업 이름을 쓴다(본문은 다른 사업을 함께 언급한다 — 예: 미리내집 공고의
     # "아파트형 미리내집(장기전세주택Ⅱ)"). 같은 위치면 더 긴 이름(구체적인 것).

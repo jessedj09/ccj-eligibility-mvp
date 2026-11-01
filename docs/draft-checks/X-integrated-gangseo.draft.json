@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "ecf4a3f2da9a75976de662566050b04e2bfcd58c34a18a2bef3cfc61ab76c252",
+  "file": "강서염창통합공공임대입주자공고문(정정).pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "통합공공임대주택",
+  "announcement_date": "2026-09-17",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

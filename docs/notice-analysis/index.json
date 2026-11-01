@@ -194,5 +194,33 @@
     "file": "sample_lh/261027_구리갈매역세권A-1BL신혼희망타운행복주택_모집공고문_.pdf",
     "pages": 43,
     "sha256": "99e3939b0fb80c1bce9744278797a5869d9ba3360de42380a3b65231432951b5"
+  },
+  {
+    "key": "LH29",
+    "org": "LH",
+    "file": "sample_lh/26년3차신혼·신생아매입임대Ⅱ(전세형)입주자모집공고문(서울지역본부).pdf",
+    "pages": 25,
+    "sha256": "5273fa9dd35bfabf4fea4807538ed41819b794ca3be834879f7e66c48b14b7e5"
+  },
+  {
+    "key": "LH30",
+    "org": "LH",
+    "file": "sample_lh/국민임대예비입주자표준모집공고문(남양주마석)(최종).pdf",
+    "pages": 53,
+    "sha256": "eeaa789611b13dfa64c93ade5a5be37e442577d85d097f6565e8695cf189dd92"
+  },
+  {
+    "key": "LH31",
+    "org": "LH",
+    "file": "sample_lh/정정)김포지역국민임대예비입주자표준모집공고문(26.09.07.).pdf",
+    "pages": 28,
+    "sha256": "30a3ad8ae94b1d3c4aa80deca42cdb7e1c95bc5eb9d3d8eb9361f31b40e5bc46"
+  },
+  {
+    "key": "LH32",
+    "org": "LH",
+    "file": "sample_lh/20260907_부천시국민임대공고문(예비입주자).pdf",
+    "pages": 32,
+    "sha256": "07bc1e47eea8e800c97a6cea42ea504366a2c4f9194c500c156aa5b2c8b486fa"
   }
 ]

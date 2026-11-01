@@ -66,6 +66,11 @@ C4_BOOLS = {
     "disabled_spouse_qualifies": "배우자가 지적·정신장애인 또는 장애 정도가 심한 뇌병변장애인",
     "supports_elderly_parent_1y": "만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 1년 이상 부양 — 부모와 그 배우자도 무주택",
     "veteran_priority_notified": "국가보훈부로부터 장기전세 우선공급 대상자로 통보받음(국가유공자·유족 등)",
+    "livelihood_medical_recipient": "생계급여 또는 의료급여 수급자(본인 또는 세대) — 주거·교육급여만 받으면 '아니오'",
+    "merit_person": "국가유공자·보훈보상대상자·5·18민주유공자·특수임무유공자(또는 그 유족)·참전유공자",
+    "north_korean_defector": "북한이탈주민",
+    "child_facility_leaver": "아동복지시설에서 퇴소하며 시설장 추천을 받음",
+    "supports_elderly_parent": "만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 부양(기간 무관)",
 }
 C4_AMOUNTS = {
     "parents_monthly_income": "부모 월평균소득 합계(원)",
@@ -191,9 +196,11 @@ def master_form() -> Dict:
            options=CHOICE_FIELDS["regional_industry_type"][1], unknown=True, help=REGIONAL_INDUSTRY_NOTE),
         *[yes_no(f, C4_BOOLS[f]) for f in ("disabled_spouse_qualifies", "supports_elderly_parent_1y",
                                             "veteran_priority_notified")],
+        *[yes_no(f, C4_BOOLS[f]) for f in ("livelihood_medical_recipient", "merit_person", "north_korean_defector",
+                                            "child_facility_leaver", "supports_elderly_parent")],
     ]
     return {"announcement_date": None, "layer": None, "notes": [], "sections": [BASIC, MONEY, CHILDREN, REGION, EXTRA],
-            "section_titles": {EXTRA: "추가 정보(해당하는 것만) — 대학생·취업준비생, 복지 자격, 부모 정보, 주거약자, 특수 자격"},
+            "section_titles": {EXTRA: "추가 정보(해당하는 것만) — 대학생·취업준비생, 복지 자격, 부모 정보, 주거약자, 특수 자격(영구임대 신분 포함)"},
             "collapsed": [EXTRA], "region_options": region_options(),
             "region_groups": {g: list(names) for g, names in region_groups().items()}, "unknown": UNKNOWN,
             "fields": fields}

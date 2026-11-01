@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "f92745c1c83ece3acd5b07e0052263ffcc9db1bc5cf137cced315e60d87a354e",
+  "file": "화성서부권국민임대주택예비입주자모집공고[입주자격완화](2026.09.07.).pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "통합공공임대주택",
+  "announcement_date": "2026-09-07",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

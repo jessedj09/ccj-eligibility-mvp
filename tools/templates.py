@@ -38,6 +38,7 @@ def _load(name):
 
 C1, C3, C5A = _load("gen_c1_notices"), _load("gen_c3_layers"), _load("gen_c5_housing_weak")
 LH, SH, JS = _load("gen_c4_lh"), _load("gen_c4_sh"), _load("gen_c5_jeonse")
+PUB = _load("gen_c6_public")
 
 
 @dataclass(frozen=True)
@@ -81,6 +82,10 @@ TEMPLATES: Dict[str, Dict] = {
         Param("weak_quote", "text", "주거약자형 주택 신청자격 원문", critical=False),
         Param("income", "table", "면적대(60㎡ 이하/초과)별 소득 상한 원문 금액 — 기준 연도·비율에 따라 공고마다 다름"),
     ]),
+    # G2(2026-11-01): 공공임대 새 사업 — 공고마다 바뀌는 값은 공고일뿐(자산·자동차 한도는 리터럴, 다음 해 기준이면 인용문 보류)
+    "lh.national_rental": dict(module=PUB, builder="national_rental", issuer="LH", program="국민임대", params=[
+        Param("elderly_quote", "text", "고령자 전용 주택형 문구(있으면 65세 이상 계층을 더 만든다)", critical=False),
+    ]),
     "lh.happy_housing": dict(module=C1, builder=None, issuer="LH", program="행복주택", params=[
         Param("base", "choice", "기준 템플릿 — N3(일반 행복주택) / N1(신혼희망타운 행복주택)"),
         Param("layers", "layers", "공급 계층(대학생·청년·신혼부부·한부모 중 이 공고에 있는 것)"),
@@ -94,7 +99,8 @@ TEMPLATES: Dict[str, Dict] = {
 }
 _PLAN_TEMPLATE = {(LH, "youth_rental"): "lh.youth_rental", (LH, "newlywed_rental"): "lh.newlywed_rental",
                   (LH, "jeonse"): "lh.deundeun", (SH, "sh_newlywed"): "sh.newlywed", (SH, "sh_vacant"): "sh.vacant",
-                  (JS, "jeonse2"): "sh.jeonse2", (JS, "jeonse"): "sh.jeonse"}
+                  (JS, "jeonse2"): "sh.jeonse2", (JS, "jeonse"): "sh.jeonse",
+                  (PUB, "national_rental"): "lh.national_rental"}
 BASE_NOTICES = ("N1", "N2", "N3")      # 시트 없음(템플릿 원본·손으로 만든 공고)
 
 
@@ -103,7 +109,7 @@ def _plain(x):
 
 
 def _plan_of(nid: str):
-    for module in (LH, SH, JS):
+    for module in (LH, SH, JS, PUB):
         for plan in module.PLAN:
             if plan["nid"] == nid:
                 return module, plan

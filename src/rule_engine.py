@@ -210,6 +210,14 @@ class HouseholdProfile:
     # 만 65세 이상 직계존속(배우자의 직계존속 포함)을 같은 세대별 주민등록표에서 1년 이상 부양, 피부양자·그 배우자도 무주택
     veteran_priority_notified: Optional[bool] = None
     # 국가보훈부가 장기전세 우선공급 대상자로 선정·통보한 국가유공자 등(유족 포함)
+    # --- G2: 영구임대 입주자격(「공공주택 특별법 시행규칙」 별표3). None = 모름.
+    livelihood_medical_recipient: Optional[bool] = None   # 가목: 생계급여 또는 의료급여 수급자(주거·교육급여만은 아님)
+    merit_person: Optional[bool] = None
+    # 나목: 국가유공자·보훈보상대상자·5·18민주유공자·특수임무유공자(또는 그 유족)·참전유공자
+    north_korean_defector: Optional[bool] = None          # 마목: 북한이탈주민
+    child_facility_leaver: Optional[bool] = None          # 아목: 아동복지시설 퇴소자로 시설장 추천
+    supports_elderly_parent: Optional[bool] = None
+    # 사목: 만 65세 이상 직계존속(배우자 직계존속 포함)을 같은 세대별 주민등록표에서 부양(기간 무관)
     # C5b(SH 장기전세2): 신청자·배우자(예비배우자)가 공고일 기준 최근 5년 안에 주택을 소유한 적이 있는지 — 없어야(False) 충족
 
     def __post_init__(self):

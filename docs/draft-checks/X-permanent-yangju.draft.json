@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "04d577db6ff1528153f077a7455a19b4dc0221cf000364cfd6cb49fa1d6131c8",
+  "file": "양주회천A25BL_영구임대주택예비입주자모집공고문.pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "영구임대주택",
+  "announcement_date": "2026-09-21",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "9ab4b19476a5e32456e8cf4f1d4bfbf525868fbe6a037dc34a322421834d4cf1",
+  "file": "25 영구임대주택 예비입주자 모집공고문-수정.pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "영구임대주택",
+  "announcement_date": "2025-11-13",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}
