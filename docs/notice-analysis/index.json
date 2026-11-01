@@ -250,5 +250,89 @@
     "file": "sample_lh/강서염창통합공공임대입주자공고문(정정).pdf",
     "pages": 38,
     "sha256": "ecf4a3f2da9a75976de662566050b04e2bfcd58c34a18a2bef3cfc61ab76c252"
+  },
+  {
+    "key": "LH37",
+    "org": "LH",
+    "file": "sample_lh/(260528)파주운정3A12BL분양전환공공임대주택리츠예비입주자모집공고.pdf",
+    "pages": 13,
+    "sha256": "3b46a0a635a3643317cffc33cc201eed54ccf644c2393293f9b1df42fac540d7"
+  },
+  {
+    "key": "LH38",
+    "org": "LH",
+    "file": "sample_lh/양주옥정10년공공임대주택리츠예비입주자모집공고(26.06.24.공고).pdf",
+    "pages": 7,
+    "sha256": "24c500c6b4cee50b4b4aa63ab050e0edd56001e075d4526797e1980861fee4b3"
+  },
+  {
+    "key": "LH39",
+    "org": "LH",
+    "file": "sample_lh/(260610)오산운암6단지50년공공임대주택예비입주자모집공고문.pdf",
+    "pages": 21,
+    "sha256": "8a703c7734a2937580ce8f9bc627a0c5977a8375b21432c3276a3f8ddbd0d027"
+  },
+  {
+    "key": "LH40",
+    "org": "LH",
+    "file": "sample_lh/김포한강Ac-01a블록(데세리브)10년공공임대주택리츠예비입주자모집공고문(26.06.19).pdf",
+    "pages": 15,
+    "sha256": "5fae342e3aebe93b2118cd32e37d603c71670b7b78aad88b4b859e882a73ee3c"
+  },
+  {
+    "key": "LH41",
+    "org": "LH",
+    "file": "sample_lh/(게시용)대전천동35BL10년분양전환공공임대주택예비입주자모집공고(20260929).pdf",
+    "pages": 8,
+    "sha256": "178434b0fff24fada05408db4903d291d5ca4a732988b01db9e26552bf8fc536"
+  },
+  {
+    "key": "LH42",
+    "org": "LH",
+    "file": "sample_lh/김포한강센트럴블루힐10년공공임대주택리츠예비입주자모집공고(25.10.28).pdf",
+    "pages": 15,
+    "sha256": "b0c5c614416bcefdea6f27d7eb88f9a6be6c9a728f9a8bc0380f9356db04e18d"
+  },
+  {
+    "key": "LH43",
+    "org": "LH",
+    "file": "sample_lh/구리갈매S1블록10년공공임대주택예비입주자모집공고(2026.10.22공고).pdf",
+    "pages": 16,
+    "sha256": "a50e0c50243059b3d08fa99a712464f1aa73956263dc1198c8883588d3fe4ba0"
+  },
+  {
+    "key": "LH44",
+    "org": "LH",
+    "file": "sample_lh/260609동해천곡5공임50년예비입주자모집공고문.pdf",
+    "pages": 24,
+    "sha256": "3d68dc3358850f22fb15773cd9d2bd62c138aaaf3d47198e28247b8bd549161e"
+  },
+  {
+    "key": "LH45",
+    "org": "LH",
+    "file": "sample_lh/입주자모집공고문(평택고덕A57-2블록신혼희망타운(공공분양)).pdf",
+    "pages": 15,
+    "sha256": "f486b7f27dc9063be794bdebe62f6db6c070e7ffe4a969060dff04bd316141a0"
+  },
+  {
+    "key": "LH46",
+    "org": "LH",
+    "file": "sample_lh/시흥하중A-4블록신혼희망타운(공공분양)잔여세대입주자모집공고문.pdf",
+    "pages": 21,
+    "sha256": "faeb37bbf899ad69491410315b3888bcef50db68b2690c4ccf18fb991504c927"
+  },
+  {
+    "key": "LH47",
+    "org": "LH",
+    "file": "sample_lh/붙임_수원당수A-3블록신혼희망타운(공공분양)잔여세대입주자모집공고문(입주후해약세대).pdf",
+    "pages": 14,
+    "sha256": "ff527af4d8c895c64d6e0d2f81a226610c6f5617463b414f52ed7585107c69c0"
+  },
+  {
+    "key": "LH48",
+    "org": "LH",
+    "file": "sample_lh/(공고문)안산신길2A-6블록신혼희망타운(공공분양)입주자모집공고.pdf",
+    "pages": 33,
+    "sha256": "a8f9f4511ae2db83267f03ea5a1201789f33153e1aa8984db534fd410baa0553"
   }
 ]

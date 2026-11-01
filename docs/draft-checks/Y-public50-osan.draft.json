@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "8a703c7734a2937580ce8f9bc627a0c5977a8375b21432c3276a3f8ddbd0d027",
+  "file": "(260610)오산운암6단지50년공공임대주택예비입주자모집공고문.pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "공공임대주택",
+  "announcement_date": "2026-06-10",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

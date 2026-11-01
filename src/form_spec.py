@@ -71,6 +71,12 @@ C4_BOOLS = {
     "north_korean_defector": "북한이탈주민",
     "child_facility_leaver": "아동복지시설에서 퇴소하며 시설장 추천을 받음",
     "supports_elderly_parent": "만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 부양(기간 무관)",
+    "rewin_restricted": "재당첨 제한 기간 중(본인·세대원이 과거 분양주택·분양전환 공공임대 등에 당첨되어 제한 기간이 남음)",
+    "past_special_supply": "본인·세대원이 과거에 특별공급(신혼희망타운·신혼부부·생애최초·다자녀·노부모부양 등)을 받은 적 있음",
+}
+SUBSCRIPTION_INTS = {
+    "subscription_months": "청약통장 가입 기간(개월, 순위확인서 기준)",
+    "subscription_payment_count": "청약통장 납입 인정 횟수(회, 순위확인서 기준)",
 }
 C4_AMOUNTS = {
     "parents_monthly_income": "부모 월평균소득 합계(원)",
@@ -123,6 +129,8 @@ def fields_for(inputs) -> List[Dict]:
         _f("car_value", "자동차가액(원)", "car", MONEY, default=0),
         _f("has_subscription_account", "청약통장 가입 여부(현재)", "bool", MONEY, default=False, help=SUBSCRIPTION_HELP),
     ]
+    out += [_f(f, label, "int", MONEY, min=0, max=600, default=0, show_if={"field": "has_subscription_account", "in": [True]})
+            for f, label in SUBSCRIPTION_INTS.items() if f in inputs]
     regions = [f for f in REGION_LABELS if f in inputs]
     for i, f in enumerate(regions):
         out.append(_f(f, REGION_LABELS[f], "region", REGION, unknown=True, **({"help": REGION_HELP} if i == 0 else {})))
@@ -170,6 +178,9 @@ def master_form() -> Dict:
         _f(MASTER + "assets_self", "본인 총자산(원)", "amount", MONEY),
         _f(MASTER + "car_household", "세대 보유 자동차 중 가장 높은 차량가액(원, 없으면 0)", "amount", MONEY),
         _f(MASTER + "car_self", "본인 자동차가액(원, 없으면 0)", "amount", MONEY),
+        _f("has_subscription_account", "청약통장 가입(현재)", "bool", MONEY, default=False),
+        *[_f(f, label, "int", MONEY, min=0, max=600, default=0, show_if={"field": "has_subscription_account", "in": [True]})
+          for f, label in SUBSCRIPTION_INTS.items()],
         _f("children_birth_dates", "세대별 주민등록표에 등재된 미성년 자녀 생년월일(태아는 출산예정일)", "children", CHILDREN,
            help=CHILD_HELP, max=8),
     ]
@@ -197,7 +208,8 @@ def master_form() -> Dict:
         *[yes_no(f, C4_BOOLS[f]) for f in ("disabled_spouse_qualifies", "supports_elderly_parent_1y",
                                             "veteran_priority_notified")],
         *[yes_no(f, C4_BOOLS[f]) for f in ("livelihood_medical_recipient", "merit_person", "north_korean_defector",
-                                            "child_facility_leaver", "supports_elderly_parent")],
+                                            "child_facility_leaver", "supports_elderly_parent", "rewin_restricted",
+                                            "past_special_supply")],
     ]
     return {"announcement_date": None, "layer": None, "notes": [], "sections": [BASIC, MONEY, CHILDREN, REGION, EXTRA],
             "section_titles": {EXTRA: "추가 정보(해당하는 것만) — 대학생·취업준비생, 복지 자격, 부모 정보, 주거약자, 특수 자격(영구임대 신분 포함)"},

@@ -52,7 +52,7 @@ def test_match_adds_display_schedule_and_near_misses():
     groups = {"ELIGIBLE": "지원 가능", "INELIGIBLE": "지원 불가", "NEEDS_INFO": "보류", "MANUAL_REVIEW": "보류"}
     assert all(m["display"]["group"] == groups[m["verdict"]] for m in j["matches"])
     assert sum(j["schedule_counts"].values()) == j["notices_total"] == len(ALL_NOTICES)
-    assert j["schedule_counts"]["OPEN"] == 6         # 2026.10.14. 정오에 접수 중인 공고(test_d2b와 같은 날, G2 N33 포함)
+    assert j["schedule_counts"]["OPEN"] == 7         # 2026.10.14. 정오에 접수 중인 공고(test_d2b와 같은 날, G2 N33·G4 N41 포함)
     assert all(m["windows"] for m in j["matches"] if m["schedule"]["window"])
     want = whatif.near_misses(SINGLE, matches)
     assert [(n["notice_id"], n["layer"]) for n in j["near_misses"]] == [(n.match.notice.notice_id, n.match.layer)

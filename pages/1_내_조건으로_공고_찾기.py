@@ -110,6 +110,10 @@ with col3:
     school = region("재학 중인 대학 캠퍼스 소재지", "m_school")
     spouse_res = region("배우자(예비배우자) 거주지", "m_sp_res")
     spouse_inc = region("배우자(예비배우자) 소득 근거지", "m_sp_inc")
+    st.subheader("청약통장")
+    account = st.checkbox("청약통장 가입(현재)", key="m_account")
+    sub_months = st.number_input("가입 기간(개월)", min_value=0, max_value=600, key="m_submonths", disabled=not account)
+    sub_count = st.number_input("납입 인정 횟수(회)", min_value=0, max_value=600, key="m_subcount", disabled=not account)
 
 with st.expander("추가 정보(해당하는 것만) — 대학생·취업준비생, 복지 자격, 부모 정보, 주거약자, 특수 자격"):
     a, b, c = st.columns(3)
@@ -149,6 +153,8 @@ with st.expander("추가 정보(해당하는 것만) — 대학생·취업준비
         defector = yes_no("북한이탈주민", "m_defector")
         facility = yes_no("아동복지시설 퇴소자(시설장 추천)", "m_facility")
         eparent0 = yes_no("만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 부양(기간 무관)", "m_eparent0")
+        rewin = yes_no("재당첨 제한 기간 중(과거 분양주택·분양전환 공공임대 등 당첨)", "m_rewin")
+        special = yes_no("본인·세대원이 과거에 특별공급(신혼희망타운·신혼부부·생애최초 등)을 받은 적 있음", "m_special")
 
 master = MasterProfile(
     home_self=home_self, home_household=home_household, income_self=income_self, income_household=income_household,
@@ -166,7 +172,10 @@ master = MasterProfile(
                 industrial_workplace=workplace, industrial_affiliation=affiliation, regional_industry_type=regional,
                 disabled_spouse_qualifies=spouse_disabled, supports_elderly_parent_1y=elderly_parent,
                 veteran_priority_notified=veteran, livelihood_medical_recipient=lmr, merit_person=merit,
-                north_korean_defector=defector, child_facility_leaver=facility, supports_elderly_parent=eparent0))
+                north_korean_defector=defector, child_facility_leaver=facility, supports_elderly_parent=eparent0,
+                rewin_restricted=rewin, past_special_supply=special, has_subscription_account=account,
+                subscription_months=int(sub_months) if account else 0,
+                subscription_payment_count=int(sub_count) if account else 0))
 
 b1, b2 = st.columns([1, 3])
 with b1:

@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "8d14b5165b9fbe702b4cb5e7d58f1b9d4bff90a7e1cad3ecd8d0cbaf4a4bc1b0",
+  "file": "위례지구 A1-14블록 이익공유형(나눔형) 분양주택 사전예약 입주자 모집공고문.pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "공공분양(나눔형)",
+  "announcement_date": "2023-12-29",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

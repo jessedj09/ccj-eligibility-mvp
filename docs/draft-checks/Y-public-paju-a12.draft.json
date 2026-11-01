@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "3b46a0a635a3643317cffc33cc201eed54ccf644c2393293f9b1df42fac540d7",
+  "file": "(260528)파주운정3A12BL분양전환공공임대주택리츠예비입주자모집공고.pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "공공임대주택",
+  "announcement_date": "2026-05-28",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

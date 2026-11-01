@@ -81,6 +81,17 @@ DATES = {
                 grad=date(2024, 10, 30), adult=date(2007, 10, 30)),
     "N36": dict(ann=date(2026, 9, 17), marriage=date(2019, 9, 17), child=date(2019, 9, 18),
                 grad=date(2024, 9, 17), adult=date(2007, 9, 17)),
+    # G4 공공임대 예비입주자 — 공고일만 쓴다(날짜 기준 조건 없음)
+    **{nid: dict(ann=a, marriage=date(a.year - 7, a.month, a.day), child=date(a.year - 7, a.month, a.day),
+                 grad=date(a.year - 2, a.month, a.day), adult=date(a.year - 19, a.month, a.day))
+       for nid, a in (("N37", date(2026, 5, 28)), ("N38", date(2026, 6, 24)), ("N39", date(2026, 6, 10)),
+                      ("N40", date(2026, 6, 19)), ("N41", date(2026, 9, 29)), ("N42", date(2025, 10, 28)),
+                      ("N43", date(2026, 10, 22)), ("N44", date(2026, 6, 9)))},
+    # G3 신혼희망타운 — 혼인 7년(공고일 당일 포함)·6세 이하(공고일−7년+1일, N46 p.11 "2019.09.18.~2026.09.18.")
+    **{nid: dict(ann=a, marriage=date(a.year - 7, a.month, a.day), child=date(a.year - 7, a.month, a.day + 1),
+                 grad=date(a.year - 2, a.month, a.day), adult=date(a.year - 19, a.month, a.day))
+       for nid, a in (("N45", date(2026, 9, 8)), ("N46", date(2026, 9, 18)), ("N47", date(2026, 9, 29)),
+                      ("N48", date(2026, 10, 30)))},
     "N16": dict(ann=date(2026, 5, 22), marriage=date(2019, 5, 22), child=date(2019, 5, 23),
                 grad=date(2024, 5, 22), adult=date(2007, 5, 22)),
     "N17": dict(ann=date(2026, 10, 1), marriage=date(2019, 10, 1), child=date(2019, 10, 2),
@@ -128,7 +139,9 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               "N23": "sh_jeonse2", "N24": "sh_jeonse2", "N25": "sh_jeonse", "N26": "sh_jeonse",
               "N29": "newlywed_rental", "N30": "national_rental", "N31": "national_rental",
               "N32": "national_rental", "N33": "permanent_rental", "N34": "permanent_rental",
-              "N35": "integrated_rental", "N36": "integrated_rental"}
+              "N35": "integrated_rental", "N36": "integrated_rental",
+              **{f"N{n}": "public_rental" for n in range(37, 45)},
+              **{f"N{n}": "newlywed_town_sale" for n in range(45, 49)}}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -159,6 +172,10 @@ PERM_INCOME = [None, 0, 1] + [v + d for v in (2_669_354, 3_432_027, 4_576_036, 3
                                               4_084_215, 5_717_900, 8_168_429, 4_901_057, 9_802_115, 5_242_771, 12_582_649)
                               for d in (-1, 0, 1)] + [30_000_000]
 PERM_ASSETS = [None, 0, 1] + [v + d for v in (245_000_000, 270_000_000, 294_000_000) for d in (0, 1)]
+# G3 신혼희망타운: 2025 도시근로자 130·140·150·200·210·220%(3인 이하·4인·8인) 경계 ±1원, 총자산 3단계
+NH_INCOME_POOL = [None, 0, 1] + [v + d for v in (9_793_892, 10_547_268, 11_300_645, 15_067_526, 15_820_902, 16_574_279,
+                                                11_442_863, 17_604_404, 14_384_265, 22_129_638) for d in (-1, 0, 1)] + [40_000_000]
+NH_ASSETS_POOL = [None, 0, 1] + [v + d for v in (362_000_000, 397_000_000, 431_000_000) for d in (0, 1)]
 # G2 통합공공임대: 2026 기준중위소득 150~200% 열(가구원수·출산자녀·맞벌이 가산이 만드는 칸) 경계 ±1원
 INT_INCOME = [None, 0, 1] + [v + d for v in (4_359_205, 6_718_867, 7_138_796, 7_978_655, 8_038_554, 8_574_458, 9_646_265,
                                             10_182_168, 9_742_107, 10_391_581, 11_041_055, 12_989_476, 14_272_725,
@@ -213,6 +230,31 @@ def _program_attributes(program: str, layer: str, pools) -> Dict[str, Tuple[list
             "income": (PERM_INCOME, 1), "assets": (PERM_ASSETS, 1), "car": (CARS, 0),
             "welfare": (WELFARE, "해당없음"), "supported": tri, "weak": (WEAK, "해당없음"), "spouse_dis": tri,
             "lmr": tri, "merit": tri, "defector": tri, "facility": tri, "eparent0": tri,
+        }
+    if program == "public_rental":     # G4: 소득·자산을 보지 않는다 — 흔들어도 판정이 바뀌지 않는지 함께 기록
+        tri = ([None, False, True], False)
+        return {
+            "home": (["무주택", "주택보유"], "무주택"), "marital": (MARITALS, "미혼"), "age": ([17, 18, 19, 40, 70], 40),
+            "size": ([1, 3], 1), "kids": (pools["kids"][:3], []), "count": (COUNTS[:1], 0),
+            "income": ([None, 0, 90_000_000], 1), "assets": ([None, 0, 900_000_000], 1), "car": (CARS[:3], 0),
+            "residence_area": ([None, "서울특별시", "인천광역시", "고양시", "가평군", "부산광역시", "강원특별자치도", "해당없음"],
+                               "서울특별시"),
+            "account": ([True, False], True), "submonths": ([0, 5, 6, 12, 24], 12), "subcount": ([0, 5, 6, 12, 24], 12),
+            "rewin": tri,
+        }
+    if program == "newlywed_town_sale":   # G3: 3인 이하 한 칸·맞벌이 200%·출산 가산 경계, 저축 6개월·6회
+        tri = ([None, False, True], False)
+        return {
+            "home": (["무주택", "주택보유"], "무주택"), "age": ([17, 18, 19, 33], 33),
+            "marital": (MARITALS, {"신혼부부": "혼인중", "예비신혼부부": "예비신혼", "한부모": "한부모"}[layer]),
+            "size": ([1, 2, 3, 4, 8, 9], 3), "kids": (pools["kids"], [AFTER] if layer == "한부모" else []),
+            "count": (COUNTS[:1], 0), "dual": ([True, False], False),
+            "income": (NH_INCOME_POOL, 1), "assets": (NH_ASSETS_POOL, 1), "car": (CARS[:3], 0),
+            "marriage": (pools["marriage"], date(2025, 1, 1)), "has_children": (HAS_CHILDREN, None),
+            "youngest": (pools["youngest"], None),
+            "residence_area": ([None, "서울특별시", "고양시", "부산광역시", "해당없음"], "서울특별시"),
+            "account": ([True, False], True), "submonths": ([0, 5, 6, 24], 12), "subcount": ([0, 5, 6, 24], 12),
+            "rewin": tri, "special": tri,
         }
     if program == "integrated_rental":
         attrs = {
@@ -288,6 +330,8 @@ GROUPS: List[Tuple[str, str]] = [
     ("N33", "일반"), ("N33", "일반(주거약자용)"), ("N34", "일반"),
     ("N35", "청년"), ("N35", "신혼부부"), ("N35", "한부모"), ("N35", "고령자"), ("N35", "일반"),
     ("N36", "청년"), ("N36", "신혼부부"), ("N36", "한부모"), ("N36", "고령자"), ("N36", "일반"),
+    *[(f"N{n}", "일반") for n in range(37, 45)],
+    *[(f"N{n}", layer) for n in range(45, 49) for layer in ("신혼부부", "예비신혼부부", "한부모")],
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -468,7 +512,11 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
                                             ("veteran", "veteran_priority_notified"),
                                             ("lmr", "livelihood_medical_recipient"), ("merit", "merit_person"),
                                             ("defector", "north_korean_defector"), ("facility", "child_facility_leaver"),
-                                            ("eparent0", "supports_elderly_parent")) if key in v})
+                                            ("eparent0", "supports_elderly_parent"), ("rewin", "rewin_restricted"),
+                                            ("special", "past_special_supply"),
+                                            ("account", "has_subscription_account"),
+                                            ("submonths", "subscription_months"),
+                                            ("subcount", "subscription_payment_count")) if key in v})
 
 
 # 통과 값에 가중해서 '모든 조건이 통과 근처'인 영역(경계가 실제로 판정을 가르는 영역)을 충분히 뽑는다

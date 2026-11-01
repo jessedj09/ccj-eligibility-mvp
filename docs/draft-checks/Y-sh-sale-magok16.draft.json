@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "f2fb7fd4a0fe1231634c0d79fcea44f8aa5e2acd87b77e108c0fe70bc553367f",
+  "file": "마곡지구 16단지 토지임대부(나눔형) 분양주택 사전예약 입주자모집공고문.pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "공공분양(나눔형)",
+  "announcement_date": "2023-12-29",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

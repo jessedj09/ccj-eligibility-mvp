@@ -94,6 +94,24 @@ TEMPLATES: Dict[str, Dict] = {
     ]),
     # 통합공공임대 일반형: 공고별 값 없음(날짜 기준은 공고일에서, 소득표·자산 한도는 같은 연도 공고에서 같다)
     "lh.integrated_rental": dict(module=PUB, builder="integrated_rental", issuer="LH", program="통합공공임대", params=[]),
+    # G4 공공임대(10년·분양전환·50년) 예비입주자: 거주 지역·청약통장 요건·재당첨 제한 문구를 공고에서 읽는다
+    "lh.public_rental": dict(module=PUB, builder="public_rental", issuer="LH", program="공공임대(10년·분양전환·50년) 예비입주자",
+                             params=[
+        Param("eligibility_quote", "text", "신청 자격 문장('현재 ○○에 거주하는 … 무주택세대구성원')"),
+        Param("residence", "choice", "거주 요건 — '수도권' 또는 없음(국내·거주 요건 없음)"),
+        Param("account", "choice", "청약통장 요건 — 없음(관계없음) / '가입' / {months, count}(2순위 최소)"),
+        Param("account_quote", "text", "청약통장 요건 문장", critical=False),
+        Param("adult_quote", "text", "성년 요건 문장", critical=False),
+        Param("rewin_quote", "text", "재당첨 제한 문구(있으면 그 조건)", critical=False),
+    ]),
+    # G3 신혼희망타운(공공분양): 잔여세대 '불문' 단순형 / 정규형(수도권·저축·소득·자산·재당첨·특별공급 이력)
+    "lh.newlywed_town_sale": dict(module=PUB, builder="newlywed_town_sale", issuer="LH", program="신혼희망타운(공공분양)",
+                                  params=[
+        Param("open_quote", "text", "'입주자저축 가입 여부 … 소득 및 자산 요건 불문' 문구(있으면 단순형)", critical=False),
+        Param("eligibility_quote", "text", "단순형의 거주·나이 문장", critical=False),
+        Param("residence", "choice", "거주 요건 — '수도권' 또는 없음(전국)"),
+        Param("layer_quotes", "quotes", "유형(신혼부부·예비신혼부부·한부모)별 자격 문장"),
+    ]),
     "lh.happy_housing": dict(module=C1, builder=None, issuer="LH", program="행복주택", params=[
         Param("base", "choice", "기준 템플릿 — N3(일반 행복주택) / N1(신혼희망타운 행복주택)"),
         Param("layers", "layers", "공급 계층(대학생·청년·신혼부부·한부모 중 이 공고에 있는 것)"),
@@ -109,7 +127,8 @@ _PLAN_TEMPLATE = {(LH, "youth_rental"): "lh.youth_rental", (LH, "newlywed_rental
                   (LH, "jeonse"): "lh.deundeun", (SH, "sh_newlywed"): "sh.newlywed", (SH, "sh_vacant"): "sh.vacant",
                   (JS, "jeonse2"): "sh.jeonse2", (JS, "jeonse"): "sh.jeonse",
                   (PUB, "national_rental"): "lh.national_rental", (PUB, "permanent_rental"): "lh.permanent_rental",
-                  (PUB, "integrated_rental"): "lh.integrated_rental"}
+                  (PUB, "integrated_rental"): "lh.integrated_rental", (PUB, "public_rental"): "lh.public_rental",
+                  (PUB, "newlywed_town_sale"): "lh.newlywed_town_sale"}
 BASE_NOTICES = ("N1", "N2", "N3")      # 시트 없음(템플릿 원본·손으로 만든 공고)
 
 

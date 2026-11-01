@@ -58,9 +58,9 @@ def _date(p: str) -> str:
     return rf"(?:'?(?P<{p}y>20\d\d|\d\d)\.)?(?P<{p}m>\d{{1,2}})\.(?P<{p}d>\d{{1,2}})\.?\({WEEK}\)"
 
 
-RANGE = re.compile(_date("s") + r"(?P<st>\d{1,2}:\d\d)[~∼](?:" + _date("e") + r")?(?P<et>\d{1,2}:\d\d)")
+RANGE = re.compile(_date("s") + r"\(?(?P<st>\d{1,2}:\d\d)[~∼](?:" + _date("e") + r")?(?P<et>\d{1,2}:\d\d)")   # N43: (09:00~16:00)
 # 날짜 범위 + 매일 시간(N33 "2026.10.12.(월)~10.16(금)10:00~17:00") — 첫날 시작 시각 ~ 마지막 날 마감 시각
-DAILY = re.compile(_date("s") + r"[~∼]" + _date("e") + r"(?P<st>\d{1,2}:\d\d)[~∼](?P<et>\d{1,2}:\d\d)")
+DAILY = re.compile(_date("s") + r"[~∼]" + _date("e") + r"\(?(?P<st>\d{1,2}:\d\d)[~∼](?P<et>\d{1,2}:\d\d)")   # N42: 시각이 괄호 안
 ANN = re.compile(r"(?:입주자모집공고일|모집공고일|공고일)[:：|]?\(?(20\d\d)\.(\d{1,2})\.(\d{1,2})")
 ANY_DATE = re.compile(r"(20\d\d)\.(\d{1,2})\.(\d{1,2})\.?(?:\(" + WEEK + r"(?:요일)?\))?")
 CUTOFF = re.compile(r"(?:\[|\()?((?:19|20)\d\d|'\d\d)\.(\d{1,2})\.(\d{1,2})\.?(?:\(" + WEEK + r"\))?(이후|이전|~)")

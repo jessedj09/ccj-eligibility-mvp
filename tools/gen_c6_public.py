@@ -9,6 +9,12 @@
 | N34 | LH34 | 영구임대 부천시 예비입주자 | 2026-09-04 |
 | N35 | LH35 | 통합공공임대 평창장평(일반형) | 2026-10-30 |
 | N36 | LH36 | 통합공공임대 강서염창(정정) — 처음 보는 공고 검증 | 2026-09-17 |
+| N37 | LH37 | 분양전환 공공임대(리츠) 파주운정3 A12 예비입주자 (G4 개발용) | 2026-05-28 |
+| N38 | LH38 | 10년 공공임대(리츠) 양주옥정 예비입주자 (G4 개발용) | 2026-06-24 |
+| N39 | LH39 | 50년 공공임대 오산운암6단지 예비입주자 (G4 개발용) | 2026-06-10 |
+| N45·N46 | LH45·46 | 신혼희망타운(공공분양) 평택고덕 A-57-2(불문 잔여)·시흥하중 A-4(정규 잔여) (G3 개발용) | |
+| N47·N48 | LH47·48 | G3 처음 보는 공고: 수원당수 A-3(불문 잔여)·안산신길2 A-6(정규, 사전청약 당첨자 유형은 미지원) | |
+| N40~N44 | LH40~44 | G4 처음 보는 공고: 김포 Ac-01a·대전천동 35BL·김포 센트럴블루힐(10년)·구리갈매 S1(10년)·동해천곡5(50년) | |
 
 - 판정 범위는 신청 자격(무주택·성년·소득·자산·자동차)이다. 순위(청약저축 납입 횟수·거주지)와 배점은 경쟁이 있을 때의
   선정 순서라 판정하지 않는다(notes에 적는다).
@@ -389,6 +395,163 @@ INTEGRATED_NOTES = [
 ]
 
 
+# ------------------------------------------------------------------------------------------------
+# 공공임대(10년·분양전환·50년) 예비입주자 (G4 — LH 표준 공고: 파주운정3 A12·양주옥정·오산운암6)
+# ------------------------------------------------------------------------------------------------
+# 예비입주자 모집은 신청 자격이 단순하다: (지역) 거주 + 성년 + 무주택세대구성원 + (공고에 따라) 청약통장, 재당첨 제한.
+# 소득·자산은 보지 않는 공고가 대부분이다(리츠·분양전환 "청약저축 가입여부, 소득 및 자산 기준 충족여부와 관계없이") —
+# 소득·자산을 보는 공공임대(최초 입주자 모집의 특별·일반공급)는 이 틀이 아니다(sheet_extract가 막는다).
+CAPITAL = "수도권"
+
+
+def capital_areas():
+    """수도권 = 서울·인천 + 경기도 시·군(지역 표준 이름 — rules/reference/regions.json)."""
+    from rule_data import region_groups
+    g = region_groups()
+    return list(g["서울·인천"]) + list(g["경기도"])
+
+
+def public_rental(nid, eligibility_quote, residence=None, account=None, account_quote=None, adult_quote=None,
+                  rewin_quote=None):
+    """residence: '수도권' 또는 None(거주 요건 없음·국내). account: None(관계없음) / '가입'(2순위도 가입은 필요) /
+    {'months': N, 'count': N}(2순위 최소 가입기간·납입횟수). rewin_quote: 재당첨 제한 문구(있으면 그 조건)."""
+    p = f"{nid}-PR"
+    conds = [cond(f"{p}-home", "home_ownership", [eligibility_quote],
+                  "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)", HOME)]
+    if residence == CAPITAL:
+        conds.append(cond(f"{p}-region", "residence_area", [eligibility_quote],
+                          "공고일 현재 수도권(서울특별시·인천광역시·경기도)에 주민등록이 되어 있는지",
+                          {"in": [{"var": "residence_area"}, capital_areas()]}))
+    conds.append(cond(f"{p}-adult", "age", [adult_quote or eligibility_quote],
+                      "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+                      {"any": [{"gte": [{"var": "age"}, 19]},
+                               {"lte": [{"var": "age"}, 18],
+                                "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                                   "detail": "미성년자는 자녀가 있는 미성년 세대주·형제자매를 부양하는 미성년 세대주 등 "
+                                                             "예외에 해당할 때만 신청할 수 있습니다. 예외 해당 여부는 이 화면이 묻지 "
+                                                             "않습니다."}}]}))
+    if account == "가입":
+        conds.append(cond(f"{p}-account", "has_subscription_account", [account_quote],
+                          "주택청약종합저축(청약저축 포함)에 가입되어 있는지(2순위도 가입은 필요)",
+                          {"eq": [{"var": "has_subscription_account"}, True]}))
+    elif isinstance(account, dict):
+        conds.append(cond(f"{p}-account", "has_subscription_account/subscription_months/subscription_payment_count",
+                          [account_quote],
+                          f"청약통장에 가입해 {account['months']}개월이 지났고 월납입금을 {account['count']}회 이상 냈는지"
+                          "(2순위 최소 요건)",
+                          {"all": [{"eq": [{"var": "has_subscription_account"}, True]},
+                                   {"gte": [{"var": "subscription_months"}, account["months"]]},
+                                   {"gte": [{"var": "subscription_payment_count"}, account["count"]]}]}))
+    if rewin_quote:
+        conds.append(cond(f"{p}-rewin", "rewin_restricted", [rewin_quote],
+                          "재당첨 제한 기간 중이 아닌지(본인·세대원이 과거 분양주택·분양전환 공공임대 등에 당첨되어 제한 기간이 "
+                          "남았으면 신청·계약 불가)", {"eq": [{"var": "rewin_restricted"}, False]}))
+    return {"일반": {"conditions": conds}}, {}
+
+
+# ------------------------------------------------------------------------------------------------
+# 신혼희망타운(공공분양) (G3 — LH: 평택고덕 A57-2 잔여세대·시흥하중 A-4 잔여세대)
+# ------------------------------------------------------------------------------------------------
+# 두 갈래: ① 잔여세대 추가모집 중 '입주자저축 가입 여부, 과거 당첨 여부, 소득 및 자산 요건 불문' 공고 — 거주·만19세·무주택·유형만,
+# ② 정규형(최초·잔여) — 수도권 거주 + 유형 + 무주택 + 입주자저축 6개월·6회 + 소득 130%(맞벌이 200%, 출산 가산) + 총자산
+# 3억6,200만(출산 가산) + 재당첨 제한 아님 + 과거 특별공급 이력 없음(특별공급은 1회).
+# 1·2단계(우선·일반)의 소득 130%(맞벌이 140%)·배점은 선정 순서 — 3단계 추첨(130%/맞벌이 200%)까지 신청할 수 있으므로 그 기준으로 판정.
+NH_ASSET = [362000000, 397000000, 431000000]
+NH_INCOME = {"lte": [{"var": "monthly_income"},
+                     {"lookup": ["income_standard_nhtown", {"fn": "max", "args": [{"var": "household_size"}, 3]},
+                                 {"term": "ratio"}]}]}
+NH_CHILD6 = {"if": [{"is": [{"var": "has_children"}, False]}, False,
+                    {"gte": [{"var": "youngest_child_birth_date"}, {"fn": "young_child_cutoff"}]}]}
+NH_DURATION = {"any": [{"gte": [{"var": "marriage_date"}, {"fn": "marriage_cutoff"}]}, NH_CHILD6]}
+NH_PREFIX = {"신혼부부": "M", "예비신혼부부": "P", "한부모": "S"}
+
+
+def newlywed_town_sale(nid, open_quote=None, eligibility_quote=None, residence=None, layer_quotes=None):
+    """open_quote: '입주자저축 … 소득 및 자산 요건 불문' 문구(있으면 잔여세대 단순형 — 저축·소득·자산·재당첨·특별공급 이력을 보지
+    않는다). eligibility_quote: 거주·나이 문장(단순형). residence: '수도권' 또는 None(전국). layer_quotes: 계층별 자격 문장 머리."""
+    q = layer_quotes or {}
+    types = {
+        "신혼부부": [cond(f"{nid}-NM-marital", "marital_status", [q["신혼부부"]], "혼인 중인지",
+                      {"in": [{"var": "marital_status"}, ["혼인중"]]}),
+                 cond(f"{nid}-NM-duration", "marriage_duration_or_child", [q["신혼부부"]],
+                      "혼인기간 7년 이내이거나 6세 이하 자녀(태아 포함)를 두었는지", NH_DURATION)],
+        "예비신혼부부": [cond(f"{nid}-NP-marital", "marital_status", [q["예비신혼부부"]],
+                        "예비신혼부부(입주 전까지 혼인 사실 증명)인지", {"in": [{"var": "marital_status"}, ["예비신혼"]]})],
+        "한부모": [cond(f"{nid}-NS-marital", "marital_status", [q["한부모"]], "한부모가족인지",
+                     {"in": [{"var": "marital_status"}, ["한부모"]]}),
+                cond(f"{nid}-NS-child6", "youngest_child_birth_date", [q["한부모"]],
+                     "6세 이하(만 7세 미만, 태아 포함) 자녀를 두었는지", NH_CHILD6)],
+    }
+    layers, tables = {}, {}
+    for layer, tcs in types.items():
+        p = f"{nid}-N{NH_PREFIX[layer]}"
+        head = eligibility_quote or q[layer]
+        conds = list(tcs) + [cond(f"{p}-home", "home_ownership", [head],
+                                  "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)", HOME)]
+        if residence == CAPITAL:
+            conds.append(cond(f"{p}-region", "residence_area", [head],
+                              "공고일 현재 수도권(서울특별시·인천광역시·경기도)에 주민등록이 되어 있는지",
+                              {"in": [{"var": "residence_area"}, capital_areas()]}))
+        if open_quote:
+            conds.append(cond(f"{p}-adult", "age", [head], "만 19세 이상인지", {"gte": [{"var": "age"}, 19]}))
+        else:
+            table = "nhtown_single" if layer == "한부모" else "nhtown_terms"
+            conds += [
+                cond(f"{p}-account", "has_subscription_account/subscription_months/subscription_payment_count",
+                     ["입주자저축에가입하여6개월이경과되고,매월약정납입일에월납입금을6회이상납입한분"],
+                     "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+                     {"all": [{"eq": [{"var": "has_subscription_account"}, True]},
+                              {"gte": [{"var": "subscription_months"}, 6]},
+                              {"gte": [{"var": "subscription_payment_count"}, 6]}]}),
+                cond(f"{p}-income", "monthly_income", ["의130%(단,본인및배우자가모두소득이있는경우"],
+                     "세대 월평균소득이 전년도 도시근로자 월평균소득의 130%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 "
+                     "+10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준", NH_INCOME, table=table),
+                cond(f"{p}-assets", "total_assets", ["합계액에서5를차감한금액이362"],
+                     "세대 총자산이 3억6,200만원(출산자녀 1명 3억9,700만원·2명 이상 4억3,100만원) 이하인지",
+                     {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table=table),
+                cond(f"{p}-rewin", "rewin_restricted", ["재당첨제한기간내에있는분"],
+                     "본인·세대원이 재당첨 제한 기간 중이 아닌지", {"eq": [{"var": "rewin_restricted"}, False]}),
+                cond(f"{p}-special", "past_special_supply", ["특별공급은1회에한하여공급함"],
+                     "본인·세대원이 과거에 특별공급(신혼희망타운·신혼부부·생애최초·다자녀·노부모부양 등)을 받은 적이 없는지",
+                     {"eq": [{"var": "past_special_supply"}, False]}),
+            ]
+        layers[layer] = {"conditions": conds}
+    if not open_quote:
+        tables["nhtown_terms"] = {
+            "label": "신혼희망타운 소득 비율·총자산 한도: 출산자녀수 × 맞벌이(본인·배우자 모두 근로·사업소득)",
+            "columns": ["child", "dual"],
+            "inputs": {"child": {"fn": "child_bonus_count"}, "dual": {"var": "dual_income"}},
+            "outputs": ["ratio", "asset_limit"],
+            "rows": [r({"child": 0, "dual": False}, [130, NH_ASSET[0]]), r({"child": 1, "dual": False}, [140, NH_ASSET[1]]),
+                     r({"child": "2+", "dual": False}, [150, NH_ASSET[2]]), r({"child": 0, "dual": True}, [200, NH_ASSET[0]]),
+                     r({"child": 1, "dual": True}, [210, NH_ASSET[1]]), r({"child": "2+", "dual": True}, [220, NH_ASSET[2]])],
+            "source": {"quote": ["합계액에서5를차감한금액이397", "합계액에서5를차감한금액이431"]}}
+        tables["nhtown_single"] = {
+            "label": "신혼희망타운 한부모가족 소득 비율·총자산 한도: 출산자녀수(배우자가 없어 맞벌이 가산 없음)",
+            "columns": ["child"], "inputs": {"child": {"fn": "child_bonus_count"}},
+            "outputs": ["ratio", "asset_limit"],
+            "rows": [r({"child": 0}, [130, NH_ASSET[0]]), r({"child": 1}, [140, NH_ASSET[1]]),
+                     r({"child": "2+"}, [150, NH_ASSET[2]])],
+            "source": {"quote": ["합계액에서5를차감한금액이397", "합계액에서5를차감한금액이431"]}}
+    return layers, tables
+
+
+NHTOWN_NOTES = [
+    "1단계 우선공급·2단계 일반공급의 소득 기준(130%, 맞벌이 140%)과 배점·지역 우선(해당 시 거주기간)은 선정 순서다 — "
+    "3단계 추첨까지 신청할 수 있으므로 판정은 추첨 기준(130%, 맞벌이 200%)으로 한다.",
+    "신혼희망타운에 당첨되면 신혼부부 특별공급을 받은 것으로 보아 이후 다른 주택의 특별공급을 받을 수 없다.",
+    "공급가격이 총자산 기준(3억6,200만원)을 넘는 주택은 신혼희망타운 전용 주택담보 장기대출(수익공유형) 가입이 필요하다.",
+]
+
+
+PUBLIC_RENTAL_NOTES = [
+    "순위(청약통장 가입기간·납입횟수)·무주택기간·저축총액은 신청자가 모집 인원보다 많을 때의 선정 순서라 판정하지 않는다.",
+    "해당 단지 기계약자와 그 세대원은 같은 단지를 신청할 수 없고, 1세대에서 2명 이상 신청하면 모두 부적격이다.",
+    "과거 공공임대주택에서 불법 양도·전대로 적발된 뒤 4년이 지나지 않은 세대구성원이 있으면 선정될 수 없다 — 이 판정은 묻지 않는다.",
+    "예비입주자는 순번에 따라 입주까지 오래 걸릴 수 있고, 분양전환이 시작되면 예비입주자 지위가 없어진다.",
+]
+
+
 PERMANENT_NOTES = [
     "판정하지 않는 입주자격: 다목(일본군위안부 피해자)·카목(국토교통부장관 또는 시·도지사가 입주가 필요하다고 인정하는 자) — "
     "해당하면 공고문 문의처에 확인한다.",
@@ -445,6 +608,99 @@ PLAN = [
              "이 공고의 우선공급은 청년·신혼부부 등만 있고, 31A·36A·46A 주택형마다 우선·일반 배정 호수가 다르다(p.4) — "
              "배정이 없는 입주자격 구분·주택형은 신청할 수 없다.",
              "고령자복지주택 36호는 별도 공고다(p.1)."]),
+    # G3 신혼희망타운(공공분양) — 개발용
+    dict(nid="N45", key="LH45", title="평택고덕 A-57-2블록 신혼희망타운(공공분양) 추가 입주자", ann="2026-09-08",
+         program="신혼희망타운(분양)", template="newlywed_town_sale",
+         params={"open_quote": "입주자저축가입여부,과거당첨여부,소득및자산요건을불문",
+                 "eligibility_quote": "현재전국에거주(주민등록표등본기준)하는만19세이상의무주택세대구성원", "residence": None,
+                 "layer_quotes": {"신혼부부": "혼인기간이7년이내또는6세이하자녀",
+                                  "예비신혼부부": "혼인을계획중이며,입주전까지혼인사실을증명할수있는자", "한부모": "를둔부또는모"}},
+         notes=["입주자저축 가입 여부·과거 당첨 여부·소득·자산 요건을 불문하며 당첨·계약해도 재당첨 제한을 적용하지 않는다(p.1).",
+                "이 단지 당첨자·계약자(본인·세대원)는 신청할 수 없다(p.1). 3세대(전용 55㎡) 무작위 추첨."]),
+    dict(nid="N46", key="LH46", title="시흥하중 A-4블록 신혼희망타운(공공분양) 잔여세대", ann="2026-09-18",
+         program="신혼희망타운(분양)", template="newlywed_town_sale",
+         params={"open_quote": None, "eligibility_quote": None, "residence": CAPITAL,
+                 "layer_quotes": {
+                     "신혼부부": "현재수도권[서울특별시,인천광역시,경기도]에거주하면서아래조건(1~4)을모두갖춘신혼부부",
+                     "예비신혼부부": "현재수도권[서울특별시,인천광역시,경기도]에거주하면서아래조건(1~4)을모두갖춘예비신혼부부",
+                     "한부모": "현재수도권[서울특별시,인천광역시,경기도]에거주하면서아래조건(1~4)을모두갖춘한부모가족"}},
+         notes=NHTOWN_NOTES + ["시흥시 1년 이상 거주자가 우선이며 재당첨 제한은 10년, 전매 제한은 3년이다(p.2)."]),
+    # G3 처음 보는 공고 — 판정 틀을 만든 뒤 등록 전에 초안을 얼림(docs/draft-checks/Y-nhtown-*.g3.draft.json)
+    dict(nid="N47", key="LH47", title="수원당수 A-3블록 신혼희망타운(공공분양) 잔여세대(입주 후 해약)", ann="2026-09-29",
+         program="신혼희망타운(분양)", template="newlywed_town_sale",
+         params={"open_quote": "청약저축가입여부,소득·자산요건,과거당첨사실여부를불문",
+                 "eligibility_quote": "현재전국에거주(주민등록표등본기준)하는만19세이상의무주택세대구성원", "residence": None,
+                 "layer_quotes": {"신혼부부": "혼인기간이7년이내또는6세이하자녀",
+                                  "예비신혼부부": "혼인을계획중이며,입주전까지혼인사실을증명할수있는자", "한부모": "를둔부또는모"}},
+         notes=["청약저축 가입 여부·소득·자산 요건·과거 당첨 사실 여부를 불문하며 당첨·계약해도 재당첨 제한을 적용하지 않는다(p.1).",
+                "이 단지 최초·추가 모집 기당첨자와 계약자(본인·세대원)는 신청할 수 없다(p.1). 해약 세대가 고른 옵션 그대로 공급한다."]),
+    dict(nid="N48", key="LH48", title="안산신길2 A-6블록 신혼희망타운(공공분양) 입주자", ann="2026-10-30",
+         program="신혼희망타운(분양)", template="newlywed_town_sale",
+         params={"open_quote": None, "eligibility_quote": None, "residence": CAPITAL,
+                 "layer_quotes": {
+                     "신혼부부": "현재수도권[서울특별시,인천광역시,경기도]에거주하면서아래조건(1~4)을모두갖춘신혼부부",
+                     "예비신혼부부": "현재수도권[서울특별시,인천광역시,경기도]에거주하면서아래조건(1~4)을모두갖춘예비신혼부부",
+                     "한부모": "현재수도권[서울특별시,인천광역시,경기도]에거주하면서아래조건(1~4)을모두갖춘한부모가족"}},
+         unsupported=[{"name": "사전청약당첨자", "page": 15,
+                       "note": "2021.12.29. 사전청약 당첨자(입주예약자)의 본청약 — 사전청약 당시 자격·거주기간 기준이 따로 있어 판정하지 "
+                               "않는다(공고문 III-1)."}],
+         notes=NHTOWN_NOTES + ["안산시 거주자가 우선이며, 사전청약 당첨자(입주예약자)가 먼저 주택형을 배정받는다(p.15)."]),
+    # G4 공공임대(10년·분양전환·50년) 예비입주자 — 개발용
+    dict(nid="N37", key="LH37", title="파주운정3 A12BL 분양전환 공공임대주택(리츠) 예비입주자", ann="2026-05-28",
+         program="공공임대주택", template="public_rental",
+         params={"eligibility_quote": "현재수도권에거주(주민등록표등본기준)하는무주택세대구성원", "residence": CAPITAL,
+                 "account": None, "account_quote": None, "adult_quote": None,
+                 "rewin_quote": "재당첨제한자추후계약체결불가"},
+         notes=PUBLIC_RENTAL_NOTES + ["청약저축 가입 여부, 소득·자산 기준과 상관없이 신청할 수 있다(p.1)."]),
+    dict(nid="N38", key="LH38", title="양주옥정 10년 공공임대주택(리츠) 예비입주자", ann="2026-06-24",
+         program="공공임대주택", template="public_rental",
+         params={"eligibility_quote": "현재서울특별시,인천광역시및경기도지역에거주(주민등록표등본기준)하는성년자(19세이상)인무주택세대구성원",
+                 "residence": CAPITAL, "account": None, "account_quote": None, "adult_quote": None,
+                 "rewin_quote": "재당첨제한기간중에있는경우청약및계약할수없으며"},
+         notes=PUBLIC_RENTAL_NOTES + ["A-20(2)·A-20(3)·A-21(1)·A-21(2)BL 4개 단지 — 인터넷·모바일 청약만(현장 접수 없음, p.1)."]),
+    dict(nid="N39", key="LH39", title="오산운암6단지 50년 공공임대주택 예비입주자", ann="2026-06-10",
+         program="공공임대주택", template="public_rental",
+         params={"eligibility_quote": "현재주택건설지역(경기도,서울특별시,인천광역시)에거주하는무주택세대구성원", "residence": CAPITAL,
+                 "account": "가입", "account_quote": "2순위예비입주자모집공고일(2026.06.10)현재주택청약종합저축(청약저축포함)에가입되어있고",
+                 "adult_quote": "「민법」상미성년자(만19세미만)는공급신청할수없습니다", "rewin_quote": None},
+         notes=PUBLIC_RENTAL_NOTES[:1] + PUBLIC_RENTAL_NOTES[2:3] + [
+             "동일 순위에서는 오산시 거주자가 먼저이고, 1순위(가입 1년·12회 이상) 접수에서 모집 수를 넘으면 2순위는 받지 않는다(p.5~6)."]),
+    # G4 처음 보는 공고 검증 — 판정 틀을 만든 뒤 등록 전에 초안을 얼림(docs/draft-checks/Y-*.g4.draft.json, 구리는 X-…g4)
+    dict(nid="N40", key="LH40", title="김포한강 Ac-01a블록 10년 공공임대주택(리츠) 예비입주자", ann="2026-06-19",
+         program="공공임대주택", template="public_rental",
+         params={"eligibility_quote": "현재수도권(서울특별시,인천광역시,경기도)에거주(주민등록표등본기준)하는무주택세대구성원",
+                 "residence": CAPITAL, "account": None, "account_quote": None, "adult_quote": None,
+                 "rewin_quote": "재당첨제한기간중에해당할경우계약불가"},
+         notes=PUBLIC_RENTAL_NOTES + ["청약저축 가입 여부·과거 당첨 사실·소득·자산과 상관없이 신청할 수 있으나, 계약일이 재당첨 제한 "
+                                      "기간 중이면 계약할 수 없다(p.1)."]),
+    dict(nid="N41", key="LH41", title="대전천동 35BL 10년 분양전환 공공임대주택 예비입주자", ann="2026-09-29",
+         program="공공임대주택", template="public_rental",
+         params={"eligibility_quote": "현재국내에거주하는성년자인무주택세대구성원", "residence": None, "account": None,
+                 "account_quote": None, "adult_quote": None, "rewin_quote": None},
+         notes=PUBLIC_RENTAL_NOTES + ["청약저축 가입 여부·과거 당첨 사실·소득·자산 요건을 불문한다(p.1). 계약하면 계약자와 세대원은 "
+                                      "3년 동안 다른 분양주택에 당첨될 수 없다(재당첨 제한 3년, p.1)."]),
+    dict(nid="N42", key="LH42", title="김포한강 센트럴블루힐 10년 공공임대주택(리츠) 예비입주자", ann="2025-10-28",
+         program="공공임대주택", template="public_rental",
+         params={"eligibility_quote": "현재수도권(서울특별시,인천광역시,경기도)에거주(주민등록표등본기준)하는성년자(만19세이상)인무주택세대구성원",
+                 "residence": CAPITAL, "account": None, "account_quote": None, "adult_quote": None,
+                 "rewin_quote": "재당첨제한기간중에해당할경우계약불가"},
+         notes=PUBLIC_RENTAL_NOTES + ["예비입주자 순번은 무작위 추첨으로 정한다(p.9)."]),
+    dict(nid="N43", key="LH43", title="구리갈매 S1블록 10년 공공임대주택 예비입주자", ann="2026-10-22",
+         program="공공임대주택", template="public_rental",
+         params={"eligibility_quote": "현재수도권(서울특별시,경기도,인천광역시)에거주(주민등록표등본기준)하는성년자(만19세이상)인무주택세대구성원",
+                 "residence": CAPITAL, "account": {"months": 6, "count": 6},
+                 "account_quote": "2순위입주자저축(주택청약종합저축,청약저축)에가입하여6월이경과된분으로서매월약정납입일에월납입금을6회이상",
+                 "adult_quote": None, "rewin_quote": "재당첨제한기간내에있는분"},
+         notes=PUBLIC_RENTAL_NOTES[:1] + PUBLIC_RENTAL_NOTES[2:] + [
+             "1순위는 입주자저축 가입 2년·24회 이상, 2순위는 6개월·6회 이상 — 선순위 접수에서 모집 호수를 넘으면 후순위는 받지 않는다(p.6·p.9).",
+             "부적격 당첨 후 입주자로 선정될 수 없는 기간 중인 사람도 신청할 수 없다(p.5) — 이 판정은 묻지 않는다."]),
+    dict(nid="N44", key="LH44", title="동해천곡5 50년 공공임대주택 예비입주자", ann="2026-06-09",
+         program="공공임대주택", template="public_rental",
+         params={"eligibility_quote": "현재무주택세대구성원", "residence": None, "account": "가입",
+                 "account_quote": "2순위예비입주자모집공고일(2026.06.09)현재주택청약종합저축(청약저축포함)에가입되어있고",
+                 "adult_quote": "「민법」상미성년자(만19세미만)는공급신청할수없습니다", "rewin_quote": None},
+         notes=PUBLIC_RENTAL_NOTES[:1] + PUBLIC_RENTAL_NOTES[2:3] + [
+             "1순위(가입 6개월·6회 이상) 접수에서 모집 수를 넘으면 2순위는 받지 않는다(p.5~6)."]),
     # G2 처음 보는 공고 검증 — 초안은 등록 전에 docs/draft-checks/X-integrated-gangseo.g2.draft.json에 얼림
     dict(nid="N36", key="LH36", title="강서염창 통합공공임대주택(정정)", ann="2026-09-17",
          program="통합공공임대주택", template="integrated_rental", params={},
@@ -457,7 +713,8 @@ PLAN = [
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
 # 통합공공임대는 계층 이름(일반 등)이 다른 사업과 겹치고, 같은 문구가 우선공급(p.15~16)·일반공급(p.16~18)에 다 있어
 # 일반공급 쪽을 가리키는 기준점을 템플릿별로 둔다(인용문·기준표 모두).
-TEMPLATE_ANCHOR = {"integrated_rental": ("신혼부부,한부모가족을제외한모든계층", 17)}
+TEMPLATE_ANCHOR = {"integrated_rental": ("신혼부부,한부모가족을제외한모든계층", 17), "public_rental": ("무주택세대구성원", 1),
+                   "newlywed_town_sale": ("신혼부부신청자격", 11)}
 
 
 def pdf_for(key):
@@ -473,8 +730,10 @@ def walk(conditions):
 
 
 # 템플릿(사업별 규칙 생성 함수) — 공고별 값은 PLAN의 params(파라미터 시트, P1 docs/09 §5)
-BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_rental, "integrated_rental": integrated_rental}
-ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH"}
+BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_rental, "integrated_rental": integrated_rental,
+            "public_rental": public_rental, "newlywed_town_sale": newlywed_town_sale}
+ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH", "public_rental": "LH",
+          "newlywed_town_sale": "LH"}
 
 
 def make_doc(plan, pdf, pages):
@@ -498,7 +757,7 @@ def make_doc(plan, pdf, pages):
         "source": {"document": pdf.name, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(), "pages": len(pages)},
         "review": {"status": "DRAFT", "note": "G2 생성(tools/gen_c6_public.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
                    "log": []},
-        "notes": plan["notes"], "unsupported_layers": [], "tables": tables, "layers": layers,
+        "notes": plan["notes"], "unsupported_layers": plan.get("unsupported", []), "tables": tables, "layers": layers,
     }
     return doc, missing
 

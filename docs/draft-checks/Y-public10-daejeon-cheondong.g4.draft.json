@@ -1,0 +1,117 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "178434b0fff24fada05408db4903d291d5ca4a732988b01db9e26552bf8fc536",
+  "file": "(게시용)대전천동35BL10년분양전환공공임대주택예비입주자모집공고(20260929).pdf",
+  "created": "2026-11-01",
+  "status": "ok",
+  "reason": "",
+  "template": "lh.public_rental",
+  "program": "공공임대주택",
+  "announcement_date": "2026-09-29",
+  "held_fields": [],
+  "held_conditions": {
+    "일반": []
+  },
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": {
+    "notice_id": "DRAFT",
+    "title": "공공임대주택 (검증 전 초안)",
+    "announcement_date": "2026-09-29",
+    "issuer": "LH",
+    "program": "공공임대주택",
+    "version": 1,
+    "valid_from": "2026-09-29",
+    "supersedes": null,
+    "source": {
+      "document": "upload.pdf",
+      "sha256": "178434b0fff24fada05408db4903d291d5ca4a732988b01db9e26552bf8fc536",
+      "pages": 8
+    },
+    "review": {
+      "status": "DRAFT",
+      "note": "G2 생성(tools/gen_c6_public.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+      "log": []
+    },
+    "notes": [],
+    "unsupported_layers": [],
+    "tables": {},
+    "layers": {
+      "일반": {
+        "conditions": [
+          {
+            "id": "DRAFT-PR-home",
+            "field": "home_ownership",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재국내에거주하는성년자인무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+            "check": {
+              "eq": [
+                {
+                  "var": "home_ownership"
+                },
+                "무주택"
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-PR-adult",
+            "field": "age",
+            "required": true,
+            "source": {
+              "quote": [
+                "현재국내에거주하는성년자인무주택세대구성원"
+              ],
+              "page": 1
+            },
+            "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+            "check": {
+              "any": [
+                {
+                  "gte": [
+                    {
+                      "var": "age"
+                    },
+                    19
+                  ]
+                },
+                {
+                  "lte": [
+                    {
+                      "var": "age"
+                    },
+                    18
+                  ],
+                  "review_if_true": {
+                    "code": "AMBIGUOUS_SOURCE",
+                    "detail": "미성년자는 자녀가 있는 미성년 세대주·형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청할 수 있습니다. 예외 해당 여부는 이 화면이 묻지 않습니다."
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "unclassified": [
+    [
+      1,
+      "■입주자모집공고일(2026.09.29.)기준대전천동35BL10년분양전환공공임대주택지구주민·특별공급·일반공급기계약자및그세대원(신혼부부특별공급예비신혼부부계약자의경우'혼인으로구성될세대'),최초입주자모집공고(2022.06.24.)및추가입주자모집공고시계약여부와관계없이당첨자및그세대원,부적격당첨자로그기간에있는자는신청할수없으며,계약체결이후라도적발시계약취소됩니다.알려드립니다"
+    ],
+    [
+      4,
+      "■실입주일이입주예정일보다앞당겨질경우,미도래잔금은입주전에함께납부하여야합니다."
+    ],
+    [
+      4,
+      "•입주자모집공고일(2026.09.29.)기준대전천동35BL10년분양전환공공임대주택기계약자(지구주민우선공급계약자포함)및그세대원(신혼부부특별공급예비신혼부부계약자의경우'혼인으로구성될세대'),최초입주자모집공고(2022.06.24.)및추가입주자모집공고시계약여부와관계없이당첨자및그세대원,부적격당첨자로그기간에있는자는신청할수없으며,계약체결이후라도적발시계약취소됩니다."
+    ]
+  ]
+}

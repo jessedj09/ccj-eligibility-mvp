@@ -26,7 +26,7 @@ from rule_engine import (
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
 LAYERS = ("대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자",
-          "취업준비생", "신혼·신생아", "일반", "주거약자")
+          "취업준비생", "신혼·신생아", "일반", "주거약자", "예비신혼부부")      # G3: 신혼희망타운 분양 유형
 REVIEW_STATUSES = ("DRAFT", "REVIEWED", "PUBLISHED", "RETIRED")
 CTX_KEYS = ("announcement_date",)
 TIMINGS = ("NOW", "BEFORE_MOVE_IN")

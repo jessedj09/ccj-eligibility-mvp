@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "b0c5c614416bcefdea6f27d7eb88f9a6be6c9a728f9a8bc0380f9356db04e18d",
+  "file": "김포한강센트럴블루힐10년공공임대주택리츠예비입주자모집공고(25.10.28).pdf",
+  "created": "2026-11-01",
+  "status": "unsupported",
+  "reason": "공고문에서 사업 유형을 알아보지 못했습니다.",
+  "template": null,
+  "program": "공공임대주택",
+  "announcement_date": "2025-10-28",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}
