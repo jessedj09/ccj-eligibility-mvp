@@ -110,3 +110,12 @@ def test_registered_notices_keep_their_program():
         issuer, program = nc.classify(pages)
         assert nc.looks_like_notice(pages), nid
         assert program and program.replace("SH ", "") in n.meta["program"].replace("SH ", ""), (nid, program)
+
+
+def test_same_day_same_program_other_site_is_not_bound_to_the_registered_notice():
+    """G2: 같은 날 같은 사업의 미등록 공고(화성동탄 행복주택 10-27 ↔ 구리갈매 N28 10-27)를 등록 공고로 묶으면 사용자가
+    확인란을 누르는 순간 다른 공고의 규칙으로 판정한다 — 후보가 하나여도 단지 이름이 앞쪽에 없으면 미등록으로."""
+    pages = [p.replace("구리갈매역세권", "화성동탄").replace("구리갈매", "화성동탄") for p in sv.pdf_pages("N28")]
+    r = ni.identify_pages(FAKE_SHA, pages)
+    assert r.status == ni.UNREGISTERED and r.notice_id is None
+    assert "N28" in r.reason
