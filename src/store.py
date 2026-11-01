@@ -34,7 +34,7 @@ MAX_PDF = 20 * 1024 * 1024   # 파일당 상한
 MAX_PDF_TOTAL = 300 * 1024 * 1024   # 보관 중인 PDF 합계 상한(무료 1GB의 일부)
 PDF_TTL_DAYS = 14            # 분석이 끝나지 않아도 이 기간이 지나면 지운다
 MAX_ATTEMPTS = 3             # 작업 재시도 상한 — 넘으면 failed(운영자 검토로)
-KINDS = ("enhance", "review", "register")
+KINDS = ("enhance", "review", "register", "reference")   # reference: 기준 연도가 바뀐 공고 — 새 기준표 후보 검토(docs/09 §21)
 USAGE = ("uploads", "judged", "unjudged")
 
 SCHEMA = """
@@ -60,7 +60,7 @@ CREATE INDEX IF NOT EXISTS analyses_lookup ON analyses (sha256, engine_version, 
 CREATE TABLE IF NOT EXISTS jobs (
     id bigserial PRIMARY KEY,
     sha256 text NOT NULL REFERENCES notices(sha256) ON DELETE CASCADE,
-    kind text NOT NULL,                              -- enhance / review / register
+    kind text NOT NULL,                              -- enhance / review / register / reference
     status text NOT NULL DEFAULT 'pending',          -- pending / running / done / failed
     priority int NOT NULL DEFAULT 0,
     attempts int NOT NULL DEFAULT 0,

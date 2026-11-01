@@ -18,18 +18,6 @@ import pdf_tables as P  # noqa: E402
 import reference_candidates as R  # noqa: E402
 
 
-def describe(c: R.Candidate) -> str:
-    n = sum(len(r) for r in c.table.values())
-    change = ", ".join(f"{s}인 {v:+.1%}" for s, v in sorted(c.change.items()))
-    lines = [f"[{'후보 완성' if c.ok else '확인 필요'}] {c.ref_id} — 칸 {n}개 찾음 · 없음 {len(c.missing)}개 · 쪽 {c.pages} · "
-             f"기준 연도 {c.year or '원문에서 못 찾음'}",
-             f"    100% 기준액 변화: {change or '—'}"]
-    if c.missing:
-        lines.append("    원문에 없는 칸: " + ", ".join(f"{s}인 {r}%" for s, r in c.missing[:12]) + (" …" if len(c.missing) > 12 else ""))
-    lines += [f"    문제: {p}" for p in c.problems]
-    return "\n".join(lines)
-
-
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("pdf", nargs="+")
@@ -46,7 +34,7 @@ def main(argv=None):
         return 0
     for rid, items in by_ref.items():
         cand = items[0][1] if len(items) == 1 else R.combine([c for _, c in items], refs[rid])
-        print(describe(cand) + (f"\n    공고 {len(items)}건 합침: {[n for n, _ in items]}" if len(items) > 1 else ""))
+        print(R.describe(cand) + (f"\n    공고 {len(items)}건 합침: {[n for n, _ in items]}" if len(items) > 1 else ""))
         if a.out:
             out = Path(a.out)
             out.mkdir(parents=True, exist_ok=True)

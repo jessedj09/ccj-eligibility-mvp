@@ -7,7 +7,7 @@
 - 엔진 판(analysis_version): 분석에 쓰는 코드 파일과 형제 공고(정답 시트)의 해시. 코드나 등록 공고가 바뀌면 판이 바뀌어
   예전 분석을 쓰지 않는다(손으로 올리는 버전 번호 없음).
 - 후속 작업: 결정론이 못 채운 값이 있으면 enhance(PC 작업기가 로컬 LLM으로 보강), 규칙이 모르는 문장·대상 아닌 LH·SH 사업이면
-  review(운영자). 작업을 넣을 때만 PDF를 잠시 둔다 — **LH·SH 공고로 식별된 것만**(개인 문서 보관 방지).
+  review(운영자), 기준 연도가 바뀌어 기준표 금액이 원문에 없으면 reference(새 기준표 후보 검토). 작업을 넣을 때만 PDF를 잠시 둔다 — **LH·SH 공고로 식별된 것만**(개인 문서 보관 방지).
 """
 import dataclasses
 import hashlib
@@ -23,7 +23,7 @@ from store import get_store
 
 ROOT = Path(__file__).resolve().parent.parent
 CODE = ("src/draft.py", "src/grading.py", "src/rule_data.py", "tools/sheet_extract.py", "tools/templates.py",
-        "tools/clause_ledger.py")
+        "tools/clause_ledger.py", "src/pdf_tables.py")
 KEEP_PDF = ("LH", "SH")
 
 
@@ -50,6 +50,8 @@ def follow_up(d: draft.Draft, issuer: Optional[str]) -> Optional[Tuple[str, int]
     """(작업 종류, 우선순위) 또는 None. 우선순위가 클수록 먼저."""
     if issuer not in KEEP_PDF:
         return None
+    if d.status == draft.OK and d.stale:
+        return "reference", 8              # 기준 연도가 바뀐 공고 — LLM으로 풀 수 없고, 운영자가 새 기준표 후보를 검토(docs/09 §21)
     if d.status == draft.BLOCKED or (d.status == draft.OK and (d.missing or d.held_fields)):
         return "enhance", 10 if d.status == draft.BLOCKED else 5
     if d.status == draft.OK and overall_grade(d) == grading.PARTIAL:
