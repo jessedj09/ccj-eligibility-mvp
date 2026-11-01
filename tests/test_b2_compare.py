@@ -46,6 +46,10 @@ def test_registered_notice_as_draft_has_no_danger(n12_snapshot):
     assert dc.danger_count(res) == 0
     assert all(c[dc.SAME] == LIMIT and c["exact"] == LIMIT for c in res["counts"].values())
     assert "✅ 위험 0건" in dc.to_markdown(res)
+    n = LIMIT * len(res["counts"])
+    assert dc.summary_line(res, holdout=True) == (
+        f"평가 공고 1건 · 신청자 {n:,}명 · 틀린 지원 가능 0 · 틀린 지원 불가 0 · 그 밖의 다른 확정 0 · "
+        f"보류(초안이 더 조심) 0 · 초안 판정 없음 0 · 개발에 안 쓴 공고 1건")
 
 
 def test_missing_condition_in_draft_is_caught_as_wrong_eligible(n12_snapshot):
@@ -59,6 +63,7 @@ def test_missing_condition_in_draft_is_caught_as_wrong_eligible(n12_snapshot):
     assert ex["draft"] == "ELIGIBLE" and dropped["id"].split("-", 1)[1] in ex["registered_failed"]
     md = dc.to_markdown(res)
     assert "❌ 위험" in md and "위험 사례" in md
+    assert f"틀린 지원 가능 {res['counts']['청년'][dc.WRONG_ELIGIBLE]:,} ·" in md     # 보고 공통 형식(B4)
 
 
 def test_new_restriction_counts_as_cautious_not_danger(n12_snapshot):
