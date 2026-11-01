@@ -196,8 +196,8 @@ def test_match_equals_matcher_and_filters_by_schedule():
     # 2026.10.22.에는 11월 접수 공고(N27·N28·N35·N43 — 접수 예정)만, 10.14.에는 그날 접수 중인 공고 + 접수 예정
     upcoming = {m["notice_id"] for m in client.post("/match", json={"profile": body, "at": "2026-10-22T12:00:00",
                                                                     "only_open": True}).json()["matches"]}
-    assert upcoming == {"N27", "N28", "N35", "N43", "N48", "N50"}
+    assert upcoming == {"N27", "N28", "N35", "N43", "N48", "N50", "N52"}
     open_ids = {m["notice_id"] for m in client.post("/match", json={"profile": body, "at": "2026-10-14T12:00:00",
                                                                    "only_open": True}).json()["matches"]}
-    assert open_ids == {"N4", "N8", "N17", "N18", "N19", "N33", "N41", "N27", "N28", "N35", "N43", "N48", "N50"}
+    assert open_ids == {"N4", "N8", "N17", "N18", "N19", "N33", "N41", "N27", "N28", "N35", "N43", "N48", "N50", "N52"}
     assert client.post("/match", json={"profile": {"schema": "x"}}).status_code == 422

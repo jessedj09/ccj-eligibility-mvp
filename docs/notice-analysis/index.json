@@ -348,5 +348,19 @@
     "file": "sample_lh/안산신길2B-1입주자공고문(최종).pdf",
     "pages": 52,
     "sha256": "b94cc3af6edc8340988d26d0cf2cf97772e94a2da971180b0442dccc35de2dae"
+  },
+  {
+    "key": "SH51",
+    "org": "SH",
+    "file": "sample_sh/[정정] 마곡지구 17단지 토지임대부 분양주택 입주자모집공고문.pdf",
+    "pages": 72,
+    "sha256": "ca426c650967639923551055b61b878191714eefa553e15e7467e13de8570705"
+  },
+  {
+    "key": "SH52",
+    "org": "SH",
+    "file": "sample_sh/고덕강일지구 3단지 토지임대부 분양주택 입주자모집공고문.pdf",
+    "pages": 136,
+    "sha256": "55910d4df47f4f836ad0c8091d46dea8767220ca3a878796b7133a23dfe007d5"
   }
 ]

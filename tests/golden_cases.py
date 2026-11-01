@@ -96,7 +96,8 @@ DATES = {
     **{nid: dict(ann=a, marriage=date(a.year - 7, a.month, a.day), child=date(a.year - 7, a.month, a.day + 1),
                  grad=date(a.year - 2, a.month, a.day), adult=date(a.year - 19, a.month, a.day + 1),
                  newborn=date(a.year - 2, a.month, a.day))
-       for nid, a in (("N49", date(2026, 8, 27)), ("N50", date(2026, 10, 30)))},
+       for nid, a in (("N49", date(2026, 8, 27)), ("N50", date(2026, 10, 30)), ("N51", date(2026, 2, 27)),
+                      ("N52", date(2026, 10, 16)))},
     "N16": dict(ann=date(2026, 5, 22), marriage=date(2019, 5, 22), child=date(2019, 5, 23),
                 grad=date(2024, 5, 22), adult=date(2007, 5, 22)),
     "N17": dict(ann=date(2026, 10, 1), marriage=date(2019, 10, 1), child=date(2019, 10, 2),
@@ -147,7 +148,7 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               "N35": "integrated_rental", "N36": "integrated_rental",
               **{f"N{n}": "public_rental" for n in range(37, 45)},
               **{f"N{n}": "newlywed_town_sale" for n in range(45, 49)},
-              "N49": "public_sale", "N50": "public_sale"}
+              "N49": "public_sale", "N50": "public_sale", "N51": "sh_land_sale", "N52": "sh_land_sale"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -182,6 +183,9 @@ PERM_ASSETS = [None, 0, 1] + [v + d for v in (245_000_000, 270_000_000, 294_000_
 SALE_INCOME_POOL = [None, 0, 1] + [v + d for v in (7_533_763, 8_287_139, 9_040_516, 9_793_892, 10_547_268, 11_300_645,
                                                   15_067_526, 15_820_902, 16_574_279, 10_562_642, 17_604_404, 22_129_638)
                                    for d in (-1, 0, 1)] + [40_000_000]
+SH_ASSETS_POOL = [None, 0] + [v + d for v in (276_000_000, 311_000_000, 345_000_000, 362_000_000, 397_000_000, 431_000_000)
+                              for d in (0, 1)]
+SH_YOUTH_INCOME_POOL = [None, 0] + [v + d for v in (5_338_708, 5_720_045, 6_101_381) for d in (-1, 0, 1)] + [20_000_000]
 SALE_RE_POOL = [None, 0] + [v + d for v in (215_500_000, 237_050_000, 258_600_000) for d in (0, 1)]
 # G3 신혼희망타운: 2025 도시근로자 130·140·150·200·210·220%(3인 이하·4인·8인) 경계 ±1원, 총자산 3단계
 NH_INCOME_POOL = [None, 0, 1] + [v + d for v in (9_793_892, 10_547_268, 11_300_645, 15_067_526, 15_820_902, 16_574_279,
@@ -253,6 +257,15 @@ def _program_attributes(program: str, layer: str, pools) -> Dict[str, Tuple[list
             "account": ([True, False], True), "submonths": ([0, 5, 6, 12, 24], 12), "subcount": ([0, 5, 6, 12, 24], 12),
             "rewin": tri,
         }
+    if program == "sh_land_sale":   # G3-3: 총자산·청년 본인 소득·부모 자산·투기과열 1순위
+        attrs = _program_attributes("public_sale", layer, pools)
+        tri = ([None, False, True], False)
+        attrs.update(assets=(SH_ASSETS_POOL, 1), realestate=([None], None), selfown=tri, won5=tri,
+                     parents_assets=([None, 0, 1_035_000_000, 1_035_000_001], 0))
+        if layer == "청년":
+            attrs.update(marital=(MARITALS, "미혼"), age=([18, 19, 39, 40], 30), size=([1, 2, 3], 1),
+                         income=(SH_YOUTH_INCOME_POOL, 1))
+        return attrs
     if program == "public_sale":   # G3: 유형별 소득 비율·맞벌이 200%·출산 가산, 부동산·자동차, 유형 요건
         tri = ([None, False, True], False)
         attrs = {
@@ -367,6 +380,7 @@ GROUPS: List[Tuple[str, str]] = [
     *[("N49", layer) for layer in ("다자녀가구", "노부모부양", "생애최초", "신혼부부", "신생아", "일반공급(전용 60㎡ 이하)",
                                    "일반공급(전용 60㎡ 초과)")],
     *[("N50", layer) for layer in ("다자녀가구", "노부모부양", "생애최초", "신혼부부", "신생아", "일반공급(전용 60㎡ 초과)")],
+    *[(nid, layer) for nid in ("N51", "N52") for layer in ("청년", "신혼부부", "생애최초", "신생아", "일반공급")],
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -446,6 +460,8 @@ def _pools(nid: str) -> Dict[str, list]:
 
 def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, object]]:
     """계층별 (값 풀, 기준 프로필의 기본값). 기본값은 '모든 조건이 통과'하는 쪽."""
+    if PROGRAM_OF.get(nid) == "sh_land_sale":
+        return _program_attributes("sh_land_sale", layer, pools)
     if PROGRAM_OF.get(nid) == "public_sale":                # G3: 일반공급(전용 60㎡ 이하/초과)도 사업 전용 풀
         return _program_attributes("public_sale", layer, pools)
     if PROGRAM_OF.get(nid) == "national_rental":            # G2: 변형 계층(고령자 주택형)도 사업 전용 풀
@@ -553,6 +569,7 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
                                             ("special", "past_special_supply"), ("realestate", "real_estate_value"),
                                             ("everown", "household_ever_owned_home"), ("deposit", "subscription_deposit"),
                                             ("tax5", "income_tax_5y"), ("eparent3", "supports_elderly_parent_3y"),
+                                            ("selfown", "self_ever_owned_home"), ("won5", "household_won_5y"),
                                             ("account", "has_subscription_account"),
                                             ("submonths", "subscription_months"),
                                             ("subcount", "subscription_payment_count")) if key in v})
