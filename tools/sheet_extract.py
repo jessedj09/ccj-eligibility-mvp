@@ -363,6 +363,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None if issuer == "SH" else "lh.permanent_rental"
     if "통합공공임대" in program:      # G2: LH 통합공공임대 일반형 — 일자리연계형 등 변형은 gate에서 막는다
         return None if issuer == "SH" else "lh.integrated_rental"
+    if program == "공공분양주택":       # G3: LH 공공분양 — SH 분양은 아직 검증 전
+        return None if issuer == "SH" else "lh.public_sale"
     if program == "신혼희망타운(분양)":   # G3: LH 신혼희망타운 공공분양 — SH는 아직 검증 전
         return None if issuer == "SH" else "lh.newlywed_town_sale"
     if program == "공공임대주택":       # G4: LH 공공임대(10년·분양전환·50년) 예비입주자 — 최초 입주자 모집은 gate에서 막는다
@@ -847,6 +849,29 @@ def _newlywed_town_sale(pages):
     return f
 
 
+# ------------------------------------------------------------------ LH 공공분양(G3)
+# 유형별 자격 문장 "현재수도권[서울특별시,경기도,인천광역시]에거주하면서아래조건(1~N)을모두갖춘분"(N49), 공급대상의 전용면적
+SALE_RESIDENCE = r"현재(?P<area>[^■]{0,40}?)에거주하면서아래조건"
+SALE_SUPPLY = r"공급대상:[^❚■]{0,160}"
+
+
+def _public_sale(pages):
+    f = {}
+    hits = [m.group("area") for p in pages for m in re.finditer(SALE_RESIDENCE, p)]
+    if hits and all("수도권" in a or all(w in a for w in CAPITAL_WORDS) for a in hits):
+        f["residence"] = Field(FILLED, "수도권", how=f"유형별 자격 문장 {len(hits)}개 모두 수도권 거주")
+    else:
+        f["residence"] = Field(HELD, None, how="유형별 자격 문장의 거주 요건을 확인하지 못함" if hits else "유형별 자격 문장 없음")
+    hit = find_text(pages[:2], SALE_SUPPLY)
+    sizes = [int(x) for x in re.findall(r"(\d{2,3})(?:\.\d+)?m2", hit[1])] if hit else []
+    if sizes:
+        f["small"] = Field(FILLED, any(x <= 60 for x in sizes), hit[0], hit[1], f"공급대상 전용면적 {sizes}")
+        f["large"] = Field(FILLED, any(x > 60 for x in sizes), hit[0], hit[1], f"공급대상 전용면적 {sizes}")
+    else:
+        f["small"] = f["large"] = Field(HELD, None, how="공급대상 전용면적을 찾지 못함")
+    return f
+
+
 # ------------------------------------------------------------------ 전체
 def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Dict:
     """siblings_of(template) → 형제 정답 시트 목록(같은 템플릿, 평가 시 다듬기용 공고만). llm이 있으면 결정론이 못 채운
@@ -867,6 +892,7 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
           "lh.permanent_rental": lambda: _permanent_rental(pages), "lh.integrated_rental": dict,
           "lh.public_rental": lambda: _public_rental(pages),
           "lh.newlywed_town_sale": lambda: _newlywed_town_sale(pages),
+          "lh.public_sale": lambda: _public_sale(pages),
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),
           "sh.jeonse2": lambda: _jeonse2(pages, ann, sib, program, llm),
           "sh.jeonse": lambda: _jeonse(pages, ann, sib, program, llm),

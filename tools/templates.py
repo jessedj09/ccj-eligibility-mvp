@@ -112,6 +112,12 @@ TEMPLATES: Dict[str, Dict] = {
         Param("residence", "choice", "거주 요건 — '수도권' 또는 없음(전국)"),
         Param("layer_quotes", "quotes", "유형(신혼부부·예비신혼부부·한부모)별 자격 문장"),
     ]),
+    # G3 LH 공공분양: 다자녀·노부모·생애최초·신혼부부·신생아 특별공급 + 일반공급(전용 60㎡ 이하/초과)
+    "lh.public_sale": dict(module=PUB, builder="public_sale", issuer="LH", program="공공분양", params=[
+        Param("residence", "choice", "거주 요건 — '수도권' 또는 없음"),
+        Param("small", "choice", "전용 60㎡ 이하 주택형이 있는지(일반공급 소득·자산 기준 계층)"),
+        Param("large", "choice", "전용 60㎡ 초과 주택형이 있는지"),
+    ]),
     "lh.happy_housing": dict(module=C1, builder=None, issuer="LH", program="행복주택", params=[
         Param("base", "choice", "기준 템플릿 — N3(일반 행복주택) / N1(신혼희망타운 행복주택)"),
         Param("layers", "layers", "공급 계층(대학생·청년·신혼부부·한부모 중 이 공고에 있는 것)"),
@@ -128,7 +134,7 @@ _PLAN_TEMPLATE = {(LH, "youth_rental"): "lh.youth_rental", (LH, "newlywed_rental
                   (JS, "jeonse2"): "sh.jeonse2", (JS, "jeonse"): "sh.jeonse",
                   (PUB, "national_rental"): "lh.national_rental", (PUB, "permanent_rental"): "lh.permanent_rental",
                   (PUB, "integrated_rental"): "lh.integrated_rental", (PUB, "public_rental"): "lh.public_rental",
-                  (PUB, "newlywed_town_sale"): "lh.newlywed_town_sale"}
+                  (PUB, "newlywed_town_sale"): "lh.newlywed_town_sale", (PUB, "public_sale"): "lh.public_sale"}
 BASE_NOTICES = ("N1", "N2", "N3")      # 시트 없음(템플릿 원본·손으로 만든 공고)
 
 
