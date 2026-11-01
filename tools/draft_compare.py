@@ -77,6 +77,7 @@ def compare(snapshot: Dict, nid: Optional[str] = None, limit: Optional[int] = No
             kind = classify(dr.verdict if dr else None, r.verdict)
             c[kind] += 1
             c["exact"] += bool(dr and dr.verdict == r.verdict)
+            c["wrong_ineligible"] += kind == WRONG_OTHER and dr.verdict == "INELIGIBLE"
             if kind in DANGER and len(examples.setdefault(layer, [])) < EXAMPLES:
                 examples[layer].append(dict(profile=p.profile_id, draft=dr.verdict, registered=r.verdict,
                                             draft_failed=_ids(dr.failed), registered_failed=_ids(r.failed),
@@ -98,7 +99,19 @@ def record(res: Dict, store) -> Optional[str]:
     return d.template
 
 
-def to_markdown(res: Dict) -> str:
+def summary_line(res: Dict, holdout: bool = False) -> str:
+    """평가 보고 공통 형식(피드백 B4): 평가 공고·신청자·틀린 지원 가능·틀린 지원 불가·그 밖의 다른 확정·보류·개발에 안 쓴 공고."""
+    t = Counter()
+    for c in res["counts"].values():
+        t.update(c)
+    n = sum(t[k] for k in LABEL)
+    other = t[WRONG_OTHER] - t["wrong_ineligible"]
+    return (f"평가 공고 1건 · 신청자 {n:,}명 · 틀린 지원 가능 {t[WRONG_ELIGIBLE]:,} · 틀린 지원 불가 {t['wrong_ineligible']:,} · "
+            f"그 밖의 다른 확정 {other:,} · 보류(초안이 더 조심) {t[CAUTIOUS]:,} · 초안 판정 없음 {t[NOT_JUDGED]:,} · "
+            f"개발에 안 쓴 공고 {1 if holdout else 0}건")
+
+
+def to_markdown(res: Dict, holdout: bool = False) -> str:
     d, s = res["draft"], res["snapshot"]
     total = Counter()
     for c in res["counts"].values():
@@ -112,6 +125,7 @@ def to_markdown(res: Dict) -> str:
            f"- 초안의 보류 빈칸 {len(d.held_fields)}개 · 찾지 못한 인용문 {len(d.missing)}개 · 기준표 연도 다름 {len(d.stale)}개 · "
            f"새 제한 문구 {len(d.restrictions)}개", "",
            f"## 결과: {'✅ 위험 0건' if not danger else f'❌ 위험 {danger}건'} (가상 신청자 {n:,}명)", "",
+           f"> {summary_line(res, holdout)}", "",
            "| 계층 | 신청자 | 같음 | 초안이 더 조심 | ⚠️ 틀린 지원 가능 | ⚠️ 다른 확정 판정 | 초안 판정 없음 | 5상태까지 같음 |",
            "|---|---|---|---|---|---|---|---|"]
     for layer, c in list(res["counts"].items()) + [("**합계**", total)]:
@@ -149,9 +163,10 @@ def main(argv=None):
     ap.add_argument("--limit", type=int, help="계층마다 골든 입력 앞 N건만(빠른 확인용)")
     ap.add_argument("--out", help="결과를 저장할 .md 경로(없으면 화면에 출력)")
     ap.add_argument("--record", action="store_true", help="결과를 공유 저장소의 사업별 정확도에 더한다(위험이면 자동 판정 멈춤)")
+    ap.add_argument("--holdout", action="store_true", help="이 공고를 판정 틀 개발에 쓰지 않았다(처음 보는 공고 검증) — 보고 줄에 표시")
     a = ap.parse_args(argv)
     res = compare(json.loads(Path(a.snapshot).read_text(encoding="utf-8")), a.nid, a.limit)
-    md = to_markdown(res)
+    md = to_markdown(res, a.holdout)
     if a.out:
         Path(a.out).write_text(md + "\n", encoding="utf-8")
         print("비교 결과:", a.out)

@@ -361,6 +361,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None if issuer == "SH" else "lh.national_rental"
     if "영구임대" in program:          # G2: LH 영구임대 표준 공고 — SH 영구임대는 아직 검증 전
         return None if issuer == "SH" else "lh.permanent_rental"
+    if "통합공공임대" in program:      # G2: LH 통합공공임대 일반형 — 일자리연계형 등 변형은 gate에서 막는다
+        return None if issuer == "SH" else "lh.integrated_rental"
     for key, t in PROGRAM_TEMPLATE:
         if key in program and t:
             return t
@@ -769,7 +771,7 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
     fn = {"lh.youth_rental": lambda: _youth_rental(pages, ann, sib),
           "lh.newlywed_rental": lambda: _newlywed_rental(pages, ann, sib, program),
           "lh.deundeun": dict, "sh.vacant": dict, "lh.national_rental": lambda: _national_rental(pages),
-          "lh.permanent_rental": lambda: _permanent_rental(pages),
+          "lh.permanent_rental": lambda: _permanent_rental(pages), "lh.integrated_rental": dict,
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),
           "sh.jeonse2": lambda: _jeonse2(pages, ann, sib, program, llm),
           "sh.jeonse": lambda: _jeonse(pages, ann, sib, program, llm),
@@ -971,7 +973,7 @@ def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW", llm: Optional[LLM] 
     if not ext["template"]:
         out["blocked"] = "사업 유형(템플릿)을 정하지 못함"
         return out
-    relaxed = relaxed_notice(pages)
+    relaxed = relaxed_notice(pages) or variant_notice(ext["template"], pages)
     if relaxed:
         out["blocked"] = relaxed
         return out
@@ -1066,6 +1068,16 @@ def new_restrictions(doc: Dict, pages: List[str]) -> List[tuple]:
 # 입주자격 완화 공고(G2 2026-11-01 — 화성동탄 행복주택·화성서부권 국민임대): 이번 공고에 한해 소득·자산 요건을 빼거나 기간 요건을
 # 넓힌다. 템플릿은 평상시 요건이라 '지원 불가'가 틀릴 수 있으므로 자동 판정하지 않는다(등록 28건에는 이 표현이 없다).
 RELAXED = re.compile(r"입주자격완화|【완화조건】|완화기준은해당공고에한하여")
+
+
+# 통합공공임대 변형(G2): 일자리연계형 지원주택은 직업·근무지 요건과 거주기간이 일반형과 달라 일반형 틀로 판정하지 않는다
+VARIANT = {"lh.integrated_rental": re.compile(r"일자리연계형")}
+
+
+def variant_notice(template: Optional[str], pages: List[str]) -> Optional[str]:
+    rx = VARIANT.get(template)
+    m = rx.search("".join(pages[:1])) if rx else None
+    return (f"통합공공임대 '{m.group()}' 공고(p.1) — 직업·근무지 요건이 일반형과 달라 자동 판정하지 않습니다" if m else None)
 
 
 def relaxed_notice(pages: List[str]) -> Optional[str]:

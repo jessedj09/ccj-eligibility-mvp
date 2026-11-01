@@ -13,6 +13,8 @@ export type Identification = {
   pages: number;
   windows: Window[];
   similar: string[];
+  /** 이 등록 공고의 정정 공고로 보임(파일 이름) — 옛 등록 규칙 대신 이 파일로 판정(피드백 B3) */
+  corrects?: string | null;
 };
 
 export type UnsupportedLayer = { name: string; note: string; page: number | null };
@@ -77,6 +79,12 @@ export type Result = {
   display: { group: string; title: string; icon: string; todo: string };
   checks: { kind: string; page: number | null; text: string }[];
   common_note: string;
+  /** 무엇으로 판정했는가(피드백 B2) — 판정 시각·계층·공고일·엔진 판, 등록 공고면 규칙 판·원문 지문, 올린 공고면 분석 판. */
+  basis?: {
+    judged_at: string; layer: string; announcement_date: string; engine_version: string;
+    by: "registered" | "analysis"; notice_id?: string; title?: string; rule_version?: string; source_sha256?: string;
+    sha256?: string; program?: string; analysis_version?: string;
+  };
 };
 
 export type NoticeSummary = {

@@ -75,6 +75,12 @@ DATES = {
                 grad=date(2024, 9, 21), adult=date(2007, 9, 21)),
     "N34": dict(ann=date(2026, 9, 4), marriage=date(2019, 9, 4), child=date(2019, 9, 5),
                 grad=date(2024, 9, 4), adult=date(2007, 9, 4)),
+    # G2 통합공공임대(N35 평창장평 2026.10.30, N36 강서염창 2026.09.17) — N35 p.16 "6세이하자녀(2019.10.31.이후출생)",
+    # N36 p.17 "(2019.9.18.이후출생)". 혼인 7년은 원문에 날짜가 없어 공고일−7년(당일 포함).
+    "N35": dict(ann=date(2026, 10, 30), marriage=date(2019, 10, 30), child=date(2019, 10, 31),
+                grad=date(2024, 10, 30), adult=date(2007, 10, 30)),
+    "N36": dict(ann=date(2026, 9, 17), marriage=date(2019, 9, 17), child=date(2019, 9, 18),
+                grad=date(2024, 9, 17), adult=date(2007, 9, 17)),
     "N16": dict(ann=date(2026, 5, 22), marriage=date(2019, 5, 22), child=date(2019, 5, 23),
                 grad=date(2024, 5, 22), adult=date(2007, 5, 22)),
     "N17": dict(ann=date(2026, 10, 1), marriage=date(2019, 10, 1), child=date(2019, 10, 2),
@@ -121,7 +127,8 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               "N18": "sh_newlywed", "N19": "sh_newlywed", "N20": "sh_newlywed", "N21": "sh_newlywed", "N22": "jeonse",
               "N23": "sh_jeonse2", "N24": "sh_jeonse2", "N25": "sh_jeonse", "N26": "sh_jeonse",
               "N29": "newlywed_rental", "N30": "national_rental", "N31": "national_rental",
-              "N32": "national_rental", "N33": "permanent_rental", "N34": "permanent_rental"}
+              "N32": "national_rental", "N33": "permanent_rental", "N34": "permanent_rental",
+              "N35": "integrated_rental", "N36": "integrated_rental"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -152,6 +159,10 @@ PERM_INCOME = [None, 0, 1] + [v + d for v in (2_669_354, 3_432_027, 4_576_036, 3
                                               4_084_215, 5_717_900, 8_168_429, 4_901_057, 9_802_115, 5_242_771, 12_582_649)
                               for d in (-1, 0, 1)] + [30_000_000]
 PERM_ASSETS = [None, 0, 1] + [v + d for v in (245_000_000, 270_000_000, 294_000_000) for d in (0, 1)]
+# G2 통합공공임대: 2026 기준중위소득 150~200% 열(가구원수·출산자녀·맞벌이 가산이 만드는 칸) 경계 ±1원
+INT_INCOME = [None, 0, 1] + [v + d for v in (4_359_205, 6_718_867, 7_138_796, 7_978_655, 8_038_554, 8_574_458, 9_646_265,
+                                            10_182_168, 9_742_107, 10_391_581, 11_041_055, 12_989_476, 14_272_725,
+                                            15_711_522) for d in (-1, 0, 1)] + [40_000_000]
 
 
 def _program_attributes(program: str, layer: str, pools) -> Dict[str, Tuple[list, object]]:
@@ -203,6 +214,25 @@ def _program_attributes(program: str, layer: str, pools) -> Dict[str, Tuple[list
             "welfare": (WELFARE, "해당없음"), "supported": tri, "weak": (WEAK, "해당없음"), "spouse_dis": tri,
             "lmr": tri, "merit": tri, "defector": tri, "facility": tri, "eparent0": tri,
         }
+    if program == "integrated_rental":
+        attrs = {
+            "home": (["무주택", "주택보유"], "무주택"), "size": ([1, 2, 3, 4, 7, 8, 9], 3),
+            "kids": (pools["kids"], []), "count": (COUNTS, 0),
+            "income": (INT_INCOME, 1), "assets": (NAT_ASSETS, 1), "car": (CARS, 0),
+        }
+        if layer == "청년":
+            attrs.update(marital=(MARITALS, "미혼"), age=([17, 18, 19, 39, 40], 30), head=(HEADS, "세대주"),
+                         size=([1, 2, 3, 4, 7, 8, 9], 1))
+        elif layer in ("신혼부부", "한부모"):
+            attrs.update(marital=(MARITALS, "혼인중" if layer == "신혼부부" else "한부모"), age=([17, 18, 19, 40], 33),
+                         dual=([True, False], False), marriage=(pools["marriage"], date(2025, 1, 1)),
+                         has_children=(HAS_CHILDREN, None), youngest=(pools["youngest"], None))
+            if layer == "한부모":     # 6세 이하 자녀가 통과 쪽 기본값
+                attrs["kids"] = (pools["kids"], [AFTER])
+        else:
+            attrs.update(marital=(MARITALS, "혼인중"),
+                         age=([17, 18, 19, 40, 64, 65, 70], 70 if layer == "고령자" else 40))
+        return attrs
     if program == "national_rental":
         return {
             "home": (["무주택", "주택보유"], "무주택"), "marital": (MARITALS, "혼인중"),
@@ -256,6 +286,8 @@ GROUPS: List[Tuple[str, str]] = [
     ("N29", "신혼·신생아"),
     ("N30", "일반"), ("N31", "일반"), ("N32", "일반"), ("N32", "일반(고령자 주택형)"),
     ("N33", "일반"), ("N33", "일반(주거약자용)"), ("N34", "일반"),
+    ("N35", "청년"), ("N35", "신혼부부"), ("N35", "한부모"), ("N35", "고령자"), ("N35", "일반"),
+    ("N36", "청년"), ("N36", "신혼부부"), ("N36", "한부모"), ("N36", "고령자"), ("N36", "일반"),
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 

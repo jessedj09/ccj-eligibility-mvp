@@ -12,6 +12,7 @@ import { reveal, revealOnNarrow } from "@/lib/reveal";
 type Picked = { target: Target; title: string; layers: string[]; unsupported: UnsupportedLayer[] };
 
 const READING = "공고문을 읽고 분석하는 중입니다…";
+const MAX_MB = 20;   // 서버 한도(api/main.py MAX_UPLOAD)와 같다 — 넘으면 올리기 전에 알린다(피드백 A6)
 
 /** 기다린 시간(초) — 큰 공고문은 읽는 데 오래 걸려 멈춘 것처럼 보이지 않게. */
 function Elapsed() {
@@ -51,18 +52,26 @@ function Identified({ up, confirmed, onConfirm }: { up: UploadResult; confirmed:
         <p className="text-xs text-slate-600">같은 공고를 다시 내려받은 파일이면 결과가 같습니다. 정정 공고면 다를 수 있습니다.</p>
       </div>
     );
+  const correction = id.corrects && (
+    <p className="text-xs text-amber-800" data-testid="correction">
+      등록 공고 {id.corrects}의 정정 공고로 보입니다(파일 이름). 조건이 바뀌었을 수 있어 등록된 규칙이 아니라 이 파일로 판단합니다.
+    </p>
+  );
   if (j.by === "analysis")
     return (
       <div className="text-sm" data-testid="ident">
         <p>📄 올린 공고문: <b>{j.program}</b> · 공고일 {j.announcement_date}</p>
         <p className="mt-1 text-xs text-slate-600">공고문 원문에서 조건을 읽어 판정합니다.</p>
+        {correction}
         {windows}
       </div>
     );
+  // '판정하지 않음'은 '지원 불가'와 다르다 — 빨강 대신 회색 ➖(피드백 A2)
   return (
-    <div className="space-y-1 text-sm" data-testid="ident">
-      <p className="font-semibold">📄 아직 판정할 수 없는 공고</p>
+    <div className="space-y-1 rounded-md border-l-4 border-slate-400 bg-slate-50 p-3 text-sm" data-testid="ident">
+      <p className="font-semibold text-slate-800" data-testid="none-title">➖ 판정하지 않음 <span className="font-normal text-slate-500">(지원 불가라는 뜻이 아닙니다)</span></p>
       <p className="text-slate-700" data-testid="none-reason">{j.reason}</p>
+      {correction}
       {j.supported_programs && j.supported_programs.length > 0 && (
         <p className="text-xs text-slate-600">
           새 공고 자동 판정 지원 사업: {j.supported_programs.join(", ")}. 다른 사업은 정확도를 검증하며 차례로 추가합니다.
@@ -95,6 +104,7 @@ export default function Home() {
   const [form, setForm] = useState<Form | null>(null);
   const [values, setValues] = useState<Values>({});
   const [result, setResult] = useState<Result | null>(null);
+  const [judgedProfile, setJudgedProfile] = useState<Record<string, unknown> | null>(null);
   const formRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
@@ -121,6 +131,10 @@ export default function Home() {
     reset();
     setUp(null);
     setConfirmed(false);
+    if (file.size > MAX_MB * 1024 * 1024) {
+      setError(`파일이 너무 큽니다(${(Math.ceil(file.size / 1024 / 1024 * 10) / 10).toFixed(1)}MB). 공고문 PDF는 ${MAX_MB}MB까지 올릴 수 있습니다.`);
+      return;
+    }
     setBusy(READING);
     try {
       const r = await upload(file);
@@ -179,6 +193,7 @@ export default function Home() {
     setBusy("판정하는 중입니다…");
     try {
       setResult(await evaluate(picked.target, layer, profile));
+      setJudgedProfile(profile);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -187,6 +202,18 @@ export default function Home() {
   }
 
   const unsupported = picked?.unsupported.find((u) => u.name === layer);
+
+  /** 판정 결과 보관(피드백 B2) — 입력·결과·판정 근거의 판을 이 기기에 파일로. 서버에는 남지 않는다. */
+  function saveResult() {
+    if (!result) return;
+    const file = { format: "ccj-result/1", basis: result.basis, notice: picked?.title, input: judgedProfile, result };
+    const blob = new Blob([JSON.stringify(file, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `판정결과_${result.basis?.notice_id ?? "올린공고"}_${layer}_${(result.basis?.judged_at ?? "").slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 
   return (
     <div className="space-y-5">
@@ -210,7 +237,7 @@ export default function Home() {
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => { e.preventDefault(); onFile(e.dataTransfer.files[0]); }}>
                 <span className="font-medium text-slate-800">공고문 PDF를 끌어 놓거나 눌러서 고르세요</span>
-                <span className="mt-1 text-xs">LH 청약플러스·SH 인터넷청약의 입주자모집공고문 PDF(20MB까지)</span>
+                <span className="mt-1 text-xs">LH 청약플러스·SH 인터넷청약의 입주자모집공고문 PDF({MAX_MB}MB까지)</span>
                 <input type="file" accept="application/pdf,.pdf" className="hidden" data-testid="pdf-input"
                   onChange={(e) => onFile(e.target.files?.[0])} />
               </label>
@@ -293,8 +320,14 @@ export default function Home() {
         )}
         {result && (
           <div ref={resultRef} className={`${card} scroll-mt-4`}>
-            <h2 className="mb-4 text-base font-semibold">4. 판정 결과</h2>
-            <ResultView result={result} />
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-base font-semibold">4. 판정 결과</h2>
+              <button type="button" onClick={saveResult} data-testid="save-result"
+                className="rounded-md border border-slate-300 px-3 py-1 text-xs text-slate-700 hover:border-blue-500">
+                결과 파일로 저장
+              </button>
+            </div>
+            <ResultView result={result} source={picked && "notice_id" in picked.target ? "registered" : "analysis"} />
           </div>
         )}
       </main>

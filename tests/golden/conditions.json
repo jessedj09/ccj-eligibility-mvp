@@ -4874,5 +4874,505 @@
    "note": "「공공주택 특별법 시행규칙」 별표3의 영구임대 입주자격(1순위 가~자, 2순위 차·타) 중 하나 이상에 해당하는지 (신분마다 소득 기준이 다름 — 수급자 등 없음 / 70% / 50% / 100%)",
    "timing": "NOW"
   }
+ ],
+ "N35/청년": [
+  {
+   "id": "N35-IY-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "무주택자인지(본인 기준 — 세대 내 다른 구성원의 주택 소유는 무관)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IY-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "공고일 현재 만 18세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IY-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "혼인 중이 아닌지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IY-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "본인 월평균소득(세대원이 있는 세대주는 세대 전체)이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IY-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "본인 총자산(세대원이 있는 세대주는 세대 전체)이 3억4,500만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IY-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "자동차가액이 4,542만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N35/신혼부부": [
+  {
+   "id": "N35-IM-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "혼인 중이거나 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IM-duration",
+   "field": "marriage_duration_or_child",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아 포함)를 두었는지(예비신혼부부는 이 요건이 없음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IM-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IM-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IM-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "세대 월평균소득(예비신혼부부는 혼인으로 구성될 세대 합계)이 기준중위소득 150%(2인 +10%p, 출산자녀 가산, 부부 모두 근로·사업소득이 있으면 +30%p) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IM-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IM-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "자동차가액이 4,542만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N35/한부모": [
+  {
+   "id": "N35-IS-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IS-child6",
+   "field": "youngest_child_birth_date",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "6세 이하 자녀(같은 주민등록표에 등재)를 둔 한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IS-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IS-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IS-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "세대 월평균소득이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산 반영) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IS-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IS-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N35/고령자": [
+  {
+   "id": "N35-IE-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "무주택세대구성원인지(혼인 중이 아닌 단독세대주는 본인만 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IE-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "공고일 현재 만 65세 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IE-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "세대 월평균소득이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산 반영) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IE-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IE-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N35/일반": [
+  {
+   "id": "N35-IG-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IG-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IG-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "세대 월평균소득이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산 반영) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IG-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N35-IG-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N36/청년": [
+  {
+   "id": "N36-IY-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "무주택자인지(본인 기준 — 세대 내 다른 구성원의 주택 소유는 무관)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IY-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "공고일 현재 만 18세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IY-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "혼인 중이 아닌지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IY-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "본인 월평균소득(세대원이 있는 세대주는 세대 전체)이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IY-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "본인 총자산(세대원이 있는 세대주는 세대 전체)이 3억4,500만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IY-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "자동차가액이 4,542만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N36/신혼부부": [
+  {
+   "id": "N36-IM-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "혼인 중이거나 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IM-duration",
+   "field": "marriage_duration_or_child",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아 포함)를 두었는지(예비신혼부부는 이 요건이 없음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IM-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IM-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IM-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "세대 월평균소득(예비신혼부부는 혼인으로 구성될 세대 합계)이 기준중위소득 150%(2인 +10%p, 출산자녀 가산, 부부 모두 근로·사업소득이 있으면 +30%p) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IM-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IM-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "자동차가액이 4,542만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N36/한부모": [
+  {
+   "id": "N36-IS-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IS-child6",
+   "field": "youngest_child_birth_date",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "6세 이하 자녀(같은 주민등록표에 등재)를 둔 한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IS-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IS-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IS-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "세대 월평균소득이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산 반영) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IS-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IS-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N36/고령자": [
+  {
+   "id": "N36-IE-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "무주택세대구성원인지(혼인 중이 아닌 단독세대주는 본인만 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IE-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "공고일 현재 만 65세 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IE-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "세대 월평균소득이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산 반영) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IE-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IE-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N36/일반": [
+  {
+   "id": "N36-IG-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IG-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IG-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.17",
+   "note": "세대 월평균소득이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산 반영) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IG-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N36-IG-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.16",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
  ]
 }

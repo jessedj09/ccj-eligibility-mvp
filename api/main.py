@@ -26,6 +26,7 @@ import os
 import sys
 import threading
 from collections import OrderedDict
+from functools import lru_cache
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -45,7 +46,7 @@ from notices_data import ALL_NOTICES  # noqa: E402
 from profile_io import ProfileFormatError, household_from_dict, master_from_dict  # noqa: E402
 from rule_engine import evaluate, validate_profile  # noqa: E402
 from schedule import CLOSED, KST, OPEN, UPCOMING, load_schedules, now_kst, statuses  # noqa: E402
-from store import get_store  # noqa: E402
+from store import UNKNOWN_DEMOTED, get_store  # noqa: E402
 import whatif  # noqa: E402
 
 app = FastAPI(title="공공임대 자격 판정 API", version="1",
@@ -158,7 +159,21 @@ def _ident_json(ident) -> Dict[str, Any]:
     return {"status": ident.status, "notice_id": ident.notice_id, "reason": ident.reason, "issuer": ident.issuer,
             "program": ident.program, "announcement": ident.announcement, "pages": ident.pages,
             "windows": [{"start": w["start"], "end": w["end"], "page": w["page"]} for w in ident.windows[:3]],
-            "similar": ident.similar}
+            "similar": ident.similar, "corrects": ident.corrects}
+
+
+def _correction(ident, filename: Optional[str]):
+    """정정 공고(피드백 B3): LH·SH 정정 공고는 본문에 '정정' 표시가 없고 내려받은 파일 이름에만 붙는다. 등록 공고와 공고일·사업·단지가
+    같은 다른 파일인데 파일 이름에 '정정'이 있고 등록 원문은 정정본이 아니면, 옛 등록 규칙으로 판정하자고 묻지 않고 이 파일(최신 판)을
+    새로 분석한다. 파일 이름이 없거나 바뀌었으면 지금처럼 경고와 함께 사용자 확인을 받는다."""
+    if ident.status != SAME_NOTICE_OTHER_FILE or "정정" not in (filename or ""):
+        return ident
+    n = ALL_NOTICES[ident.notice_id]
+    if "정정" in n.meta.get("source", {}).get("document", ""):
+        return ident
+    return dataclasses.replace(ident, status=UNREGISTERED, notice_id=None, corrects=ident.notice_id, reason=(
+        f"등록 공고 {ident.notice_id}({n.title})의 정정 공고로 보입니다(파일 이름). 정정으로 조건이 바뀌었을 수 있어 "
+        "등록된 규칙 대신 이 파일을 새로 읽어 판정합니다."))
 
 
 def _identify(data: bytes, store):
@@ -177,12 +192,20 @@ def _identify(data: bytes, store):
     return ident
 
 
-def _paused(d, store) -> bool:
-    """그 사업(템플릿)의 자동 판정을 멈췄는가 — 비교에서 위험이 나와 자동 강등됐거나 운영자가 멈춤(A3, program_health)."""
-    return bool(d is not None and d.template and d.template in store.demoted_programs())
+def _paused(d, store) -> Optional[str]:
+    """그 사업(템플릿)의 자동 판정을 멈췄으면 그 이유 — 비교에서 위험이 나와 자동 강등됐거나 운영자가 멈춤(A3, program_health).
+    멈춘 사업 목록을 읽지 못하면(DB 장애) 모든 사업을 멈춘 것으로 본다(피드백 A4) — 등록 공고 판정은 계속된다."""
+    if d is None or not d.template:
+        return None
+    demoted = store.demoted_programs()
+    if demoted is UNKNOWN_DEMOTED:
+        return STORE_DOWN
+    return PAUSED.format(d.program) if d.template in demoted else None
 
 
 PAUSED = "이 사업({})은 정확도 점검 중이라 자동 판정을 잠시 멈췄습니다. 점검이 끝나면 다시 판정합니다."
+STORE_DOWN = ("서버 점검 중이라 새 공고 자동 판정을 잠시 멈췄습니다. 등록된 공고는 목록에서 그대로 판정할 수 있습니다. "
+              "잠시 뒤 다시 올려 주세요.")
 
 
 def _client(request: Request) -> str:
@@ -222,7 +245,7 @@ def upload(request: Request, file: UploadFile = File(...)):
         raise HTTPException(422, "PDF 파일이 아닙니다. 공고문 PDF를 올려 주세요.")
     _rate_limit(request)                 # 형식 오류는 세지 않는다 — 실제로 읽는 업로드만
     store = get_store()
-    ident = _identify(data, store)
+    ident = _correction(_identify(data, store), file.filename)
     store.count("uploads")
     body = {"sha256": ident.sha256, "identification": _ident_json(ident)}
     if ident.status in (REGISTERED, SAME_NOTICE_OTHER_FILE):
@@ -241,7 +264,7 @@ def upload(request: Request, file: UploadFile = File(...)):
         import draft
         store.count("unjudged")
         if paused:
-            reason = PAUSED.format(d.program)
+            reason = paused
         elif d is not None:
             reason = d.reason
         elif ident.status == UNREGISTERED:
@@ -302,8 +325,9 @@ def _target(notice_id: Optional[str], sha256: Optional[str], layer: str):
         d = _draft_for(sha256)
         if d is None or d.notice is None:
             raise HTTPException(404, "이 공고의 분석 결과가 없습니다. 공고문을 다시 올려 주세요(/upload).")
-        if _paused(d, get_store()):
-            raise HTTPException(403, PAUSED.format(d.program))
+        paused = _paused(d, get_store())
+        if paused:
+            raise HTTPException(403, paused)
         notice, where = d.notice, "이 공고"
     else:
         d, notice, where = None, ALL_NOTICES.get(notice_id), notice_id
@@ -325,6 +349,42 @@ def form(layer: str, notice_id: Optional[str] = None, sha256: Optional[str] = No
     return form_spec.form_for(notice, layer)
 
 
+ROOT = Path(__file__).resolve().parent.parent
+ENGINE_FILES = ("src/rule_engine.py", "src/rule_data.py", "src/explainability.py", "src/display_status.py")
+
+
+def _digest(paths) -> str:
+    h = hashlib.sha256()
+    for p in paths:
+        h.update(p.read_bytes().replace(b"\r\n", b"\n"))
+    return h.hexdigest()[:12]
+
+
+@lru_cache(maxsize=1)
+def engine_version() -> str:
+    """판정 엔진·기준표의 판 — 엔진 코드나 소득 기준표가 바뀌면 달라진다(결과 보관·재현성, 피드백 B2)."""
+    return "e-" + _digest([ROOT / f for f in ENGINE_FILES] + sorted((ROOT / "rules" / "reference").glob("*.json")))
+
+
+@lru_cache(maxsize=None)
+def rule_version(nid: str) -> str:
+    """등록 공고 규칙의 판 — 규칙 파일이 바뀌면 달라진다."""
+    return "r-" + _digest([ROOT / "rules" / "notices" / f"{nid}.json"])
+
+
+def _basis(req: "EvaluateRequest", notice, d) -> Dict[str, Any]:
+    """무엇으로 판정했는가 — '같은 공고·같은 입력·같은 규칙(또는 분석)·같은 엔진 판이면 같은 결과'를 확인할 수 있게(피드백 B2)."""
+    out = {"judged_at": now_kst().isoformat(timespec="seconds"), "layer": req.layer,
+           "announcement_date": str(notice.announcement_date), "engine_version": engine_version()}
+    if d is None:
+        out.update(by="registered", notice_id=req.notice_id, title=notice.title, rule_version=rule_version(req.notice_id),
+                   source_sha256=notice.meta.get("source", {}).get("sha256"))
+    else:
+        import analysis
+        out.update(by="analysis", sha256=req.sha256, program=d.program, analysis_version=analysis.analysis_version())
+    return out
+
+
 @app.post("/evaluate")
 def evaluate_one(req: EvaluateRequest):
     notice, d = _target(req.notice_id, req.sha256, req.layer)
@@ -335,7 +395,7 @@ def evaluate_one(req: EvaluateRequest):
     else:
         result, checks = evaluate(profile, notice, req.layer), []
     get_store().count("judged")
-    return _result_json(result, notice, checks)
+    return dict(_result_json(result, notice, checks), basis=_basis(req, notice, d))
 
 
 @app.get("/match/form")

@@ -33,8 +33,21 @@ function Reasons({ title, items, tone }: { title: string; items: (Reason | Revie
   );
 }
 
-export default function ResultView({ result }: { result: Result }) {
+// 판정이 확인하지 않는 것 — 결론 바로 옆에 둔다(피드백 A1: '지원 가능'을 '당첨 가능'으로 읽지 않게)
+const NOT_CHECKED = [
+  "공통 결격사유(과거 공공임대 불법 양도·전대 이력, 1세대 중복 신청 등)",
+  "순위·배점·추첨과 당첨 여부",
+  "서류 심사 — 입력하신 값과 실제 증빙(소득·자산 조회 결과)의 차이",
+];
+
+const SOURCE_LABEL = {
+  registered: "검증된 등록 규칙(사람이 원문과 대조한 규칙)으로 판정",
+  analysis: "자동으로 읽은 공고(올린 공고문에서 읽은 조건)로 판정",
+};
+
+export default function ResultView({ result, source }: { result: Result; source?: "registered" | "analysis" }) {
   const d = result.display;
+  const checked = result.matched.length + result.failed.length + result.unknown.length + result.review.length;
   return (
     <div className="space-y-5" data-testid="result">
       <div className={`rounded-lg border-l-4 p-4 ${GROUP_STYLE[d.group] ?? GROUP_STYLE["해당 없음"]}`}>
@@ -50,6 +63,25 @@ export default function ResultView({ result }: { result: Result }) {
             ))}
           </ul>
         )}
+      </div>
+      <div className="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 text-xs text-slate-700 sm:grid-cols-2" data-testid="scope">
+        <div>
+          <p className="mb-1 font-semibold text-slate-800">이 판정이 확인한 것</p>
+          <p>입력하신 정보 기준으로, 이 공고·계층의 신청 자격(필수요건) {checked}개 조건을 공고문 원문과 대조했습니다.</p>
+          {source && <p className="mt-1 text-slate-500" data-testid="source">{SOURCE_LABEL[source]}</p>}
+          {result.basis && (
+            <p className="mt-1 text-slate-400" data-testid="basis">
+              {result.basis.judged_at.replace("T", " ").slice(0, 16)} 판정 ·{" "}
+              {result.basis.rule_version ?? result.basis.analysis_version} · {result.basis.engine_version}
+            </p>
+          )}
+        </div>
+        <div>
+          <p className="mb-1 font-semibold text-slate-800">확인하지 않은 것</p>
+          <ul className="list-disc space-y-0.5 pl-4">
+            {NOT_CHECKED.map((x) => <li key={x}>{x}</li>)}
+          </ul>
+        </div>
       </div>
       <p className="text-xs text-slate-600">{result.common_note}</p>
 

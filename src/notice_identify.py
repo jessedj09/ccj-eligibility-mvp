@@ -13,6 +13,7 @@
 업로드 파일은 디스크에 남기지 않는다.
 """
 import hashlib
+import re
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -40,6 +41,7 @@ class Identification:
     windows: List[dict] = field(default_factory=list)      # 청약 접수기간 후보(청약·신청·접수 문맥만)
     similar: List[str] = field(default_factory=list)       # 같은 사업의 등록 공고(같은 공고는 아님)
     ambiguous: List[str] = field(default_factory=list)     # 공고일·사업이 같은데 단지를 가리지 못한 등록 공고
+    corrects: Optional[str] = None                         # 이 등록 공고의 정정 공고로 보임(파일 이름 — API가 정함)
 
 
 def _same_program(issuer: Optional[str], program: Optional[str], nid: str) -> bool:
@@ -49,8 +51,13 @@ def _same_program(issuer: Optional[str], program: Optional[str], nid: str) -> bo
 
 
 def _site(nid: str) -> str:
-    """제목 첫 단어(단지·지역 이름) — 공고일·사업이 같은 등록 공고끼리 가를 때 쓴다(예: 서울금천 vs 서울오류)."""
-    return load_notice(nid).title.split()[0]
+    """제목 첫 단어(단지·지역 이름, SH 사업 공고는 'SH' 다음 단어) — 공고일·사업이 같은 등록 공고끼리 가를 때 쓴다
+    (예: 서울금천 vs 서울오류)."""
+    words = load_notice(nid).title.split()
+    return words[1] if words[0] == "SH" and len(words) > 1 else words[0]
+
+
+DOTS = re.compile("[⦁・‧•∙ㆍ]")      # 원문 가운뎃점 변형(하남감일⦁위례) — 제목의 '·'와 맞춘다
 
 
 def identify_pages(sha: str, pages: List[str]) -> Identification:
@@ -73,13 +80,19 @@ def identify_pages(sha: str, pages: List[str]) -> Identification:
 
     same = [nid for nid in notice_ids()
             if ann and str(load_notice(nid).announcement_date) == ann and _same_program(issuer, program, nid)]
+    head = DOTS.sub("·", "".join(pages[:2]))
     if len(same) > 1:
         # 같은 날 같은 사업이 여럿 — 앞 두 쪽에서 단지 이름이 **가장 먼저** 나오는 공고(제목이 맨 앞에 온다).
         # 본문이 다른 단지를 함께 언급하기도 한다(예: 금천 공고 1쪽 "서울오류 행복주택과 중복신청 불가").
-        head = "".join(pages[:2])
         found = sorted((head.find(_site(nid)), nid) for nid in same if _site(nid) in head)
         if found and (len(found) == 1 or found[0][0] < found[1][0]):
             same = [found[0][1]]
+    elif len(same) == 1 and _site(same[0]) not in head:
+        # 후보가 하나여도 단지 이름이 앞 두 쪽에 없으면 다른 공고다 — 같은 날 같은 사업의 미등록 공고를 등록 공고로 잘못
+        # 묶어 그 규칙으로 판정하는 것을 막는다(G2: 화성동탄 행복주택 10-27 ↔ 구리갈매 N28 10-27).
+        return Identification(UNREGISTERED, reason=(
+            f"공고일·사업 유형이 같은 등록 공고 {same[0]}({load_notice(same[0]).title})가 있지만 단지 이름이 달라 "
+            "다른 공고로 봅니다."), **base)
     if len(same) == 1:
         nid = same[0]
         return Identification(SAME_NOTICE_OTHER_FILE, nid, reason=(

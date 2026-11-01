@@ -144,6 +144,21 @@ def test_evaluate_matches_engine(nid, layer, kw):
     assert {i["rule_id"] for i in r.json()["failed"]} == set(direct.failed)
 
 
+def test_evaluate_reports_what_it_judged_with(monkeypatch):
+    """피드백 B2: 결과에 판정 근거의 판(규칙·엔진)과 시각 — 같은 공고·입력·판이면 같은 결과를 확인할 수 있게."""
+    body = {"age": 25, "marital_status": "미혼", "home_ownership": "무주택", "household_size": 1}
+    a = client.post("/evaluate", json={"notice_id": "N12", "layer": "청년", "profile": body}).json()
+    b = client.post("/evaluate", json={"notice_id": "N12", "layer": "청년", "profile": body}).json()
+    basis = a["basis"]
+    assert basis["by"] == "registered" and basis["notice_id"] == "N12" and basis["layer"] == "청년"
+    assert basis["rule_version"].startswith("r-") and basis["engine_version"].startswith("e-")
+    assert basis["source_sha256"] == ALL_NOTICES["N12"].meta["source"]["sha256"]
+    assert {k: v for k, v in basis.items() if k != "judged_at"} == {k: v for k, v in b["basis"].items() if k != "judged_at"}
+    assert a["verdict"] == b["verdict"]
+    import api.main as m
+    assert m.rule_version("N12") != m.rule_version("N13")
+
+
 def test_evaluate_errors():
     assert client.post("/evaluate", json={"notice_id": "N999", "layer": "청년", "profile": {}}).status_code == 404
     assert client.post("/evaluate", json={"notice_id": "N1", "layer": "없음", "profile": {}}).status_code == 404
@@ -161,11 +176,11 @@ def test_match_equals_matcher_and_filters_by_schedule():
     got = [(m["notice_id"], m["layer"], m["verdict"]) for m in r.json()["matches"]]
     assert got == [(x.notice.notice_id, x.layer, x.verdict) for x in match_all(NEWLYWED, ALL_NOTICES)]
     assert sum(r.json()["counts"].values()) == len(got)
-    # 2026.10.22.에는 11월 접수 공고(N27·N28 — 접수 예정)만, 10.14.에는 그날 접수 중인 공고 + 접수 예정(N27·N28)
+    # 2026.10.22.에는 11월 접수 공고(N27·N28·N35 — 접수 예정)만, 10.14.에는 그날 접수 중인 공고 + 접수 예정(N27·N28·N35)
     upcoming = {m["notice_id"] for m in client.post("/match", json={"profile": body, "at": "2026-10-22T12:00:00",
                                                                     "only_open": True}).json()["matches"]}
-    assert upcoming == {"N27", "N28"}
+    assert upcoming == {"N27", "N28", "N35"}
     open_ids = {m["notice_id"] for m in client.post("/match", json={"profile": body, "at": "2026-10-14T12:00:00",
                                                                    "only_open": True}).json()["matches"]}
-    assert open_ids == {"N4", "N8", "N17", "N18", "N19", "N33", "N27", "N28"}
+    assert open_ids == {"N4", "N8", "N17", "N18", "N19", "N33", "N27", "N28", "N35"}
     assert client.post("/match", json={"profile": {"schema": "x"}}).status_code == 422

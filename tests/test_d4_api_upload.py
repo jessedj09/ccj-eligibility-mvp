@@ -16,6 +16,7 @@ from display_status import COMMON_NOTE
 from profile_io import HOUSEHOLD_FIELDS, _dump
 from rule_data import load_notice
 from rule_engine import evaluate
+import store as S
 from store import NullStore
 
 pytest.importorskip("fastapi")
@@ -204,3 +205,46 @@ def test_upload_rate_limit_per_client(monkeypatch):
     assert r.status_code == 429 and "한 시간에 2건" in r.json()["detail"]
     assert client.post("/upload", files={"file": ("n.pdf", pdf, "application/pdf")}, headers=b).status_code == 200
     assert all("203.0.113.5" not in k for k in api._uploads)
+
+
+def test_store_outage_pauses_auto_judging_but_not_registered(n12, unregistered, monkeypatch):
+    """피드백 A4: 멈춘 사업 목록을 읽지 못하면(DB 장애) 빈 목록이 아니라 '모두 멈춤' — 위험 때문에 멈춘 사업이 장애 중에
+    다시 판정되지 않게. 등록 공고(원문 지문 일치)는 계속 판정한다."""
+    monkeypatch.setenv(api.PUBLIC_ENV, "1")
+    mem = Memory()
+    monkeypatch.setattr(api, "get_store", lambda: mem)
+    assert _post(n12).json()["judge"]["by"] == "analysis"
+    mem.demoted = S.UNKNOWN_DEMOTED
+    j = _post(n12).json()
+    assert j["judge"]["by"] == "none" and "서버 점검 중" in j["judge"]["reason"]
+    p = next(p for _, _, p in gc.cases(only=[("N12", "청년")]))
+    r = client.post("/evaluate", json={"sha256": j["sha256"], "layer": "청년", "profile": _body(p)})
+    assert r.status_code == 403 and "서버 점검 중" in r.json()["detail"]
+    # 등록 공고: fixture의 '미등록으로 보기'와 식별 캐시를 걷어 내고 같은 장애 상태에서 올린다
+    monkeypatch.setattr(api, "identify_pdf", ni.identify_pdf)
+    down = Memory(demoted=())
+    down.demoted = S.UNKNOWN_DEMOTED
+    monkeypatch.setattr(api, "get_store", lambda: down)
+    reg = _post(n12).json()
+    assert reg["judge"]["by"] == "registered"
+    assert client.post("/evaluate", json={"notice_id": "N12", "layer": "청년", "profile": _body(p)}).status_code == 200
+
+
+def test_correction_by_file_name_is_analyzed_not_bound_to_old_rules(monkeypatch):
+    """피드백 B3: 등록 공고의 다른 파일인데 파일 이름에 '정정'이 있으면(LH·SH 정정 공고는 이름에만 표시) 옛 등록 규칙으로 판정하자고
+    묻지 않고 새로 분석한다. 이름에 없으면 지금처럼 확인(confirm)."""
+    import io
+    from pypdf import PdfReader, PdfWriter
+    w = PdfWriter()
+    for page in PdfReader(str(sv.pdf_path("N12"))).pages:
+        w.add_page(page)
+    buf = io.BytesIO()
+    w.write(buf)
+    data = buf.getvalue()
+    assert data != sv.pdf_path("N12").read_bytes()
+    monkeypatch.setattr(api, "get_store", lambda: NullStore())
+    plain = client.post("/upload", files={"file": ("청년매입.pdf", data, "application/pdf")}).json()
+    assert plain["identification"]["status"] == ni.SAME_NOTICE_OTHER_FILE and plain["judge"]["by"] == "confirm"
+    fixed = client.post("/upload", files={"file": ("정정)청년매입.pdf", data, "application/pdf")}).json()
+    assert fixed["identification"]["status"] == ni.UNREGISTERED and fixed["identification"]["corrects"] == "N12"
+    assert "정정 공고" in fixed["identification"]["reason"] and fixed["judge"]["by"] in ("analysis", "none")

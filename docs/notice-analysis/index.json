@@ -236,5 +236,19 @@
     "file": "sample_lh/부천시영구임대예비입주자모집공고문.pdf",
     "pages": 34,
     "sha256": "e227f0f6b1e3267ffbffea1bac8b9e842f10ab06517c3aa3568a91682c7e7663"
+  },
+  {
+    "key": "LH35",
+    "org": "LH",
+    "file": "sample_lh/261030평창장평통합공공임대주택공고문(일반)_최종.pdf",
+    "pages": 40,
+    "sha256": "3c261a133465796ff66317213805e909849d07e71dba25f1d81e4ceb9d95ce72"
+  },
+  {
+    "key": "LH36",
+    "org": "LH",
+    "file": "sample_lh/강서염창통합공공임대입주자공고문(정정).pdf",
+    "pages": 38,
+    "sha256": "ecf4a3f2da9a75976de662566050b04e2bfcd58c34a18a2bef3cfc61ab76c252"
   }
 ]

@@ -7,6 +7,8 @@
 | N32 | LH32 | 국민임대 부천시지역 예비입주자(고령자 주택형 포함) — 처음 보는 공고 검증 | 2026-09-07 |
 | N33 | LH33 | 영구임대 양주회천 A25BL 예비입주자(주거약자용 포함) | 2026-09-21 |
 | N34 | LH34 | 영구임대 부천시 예비입주자 | 2026-09-04 |
+| N35 | LH35 | 통합공공임대 평창장평(일반형) | 2026-10-30 |
+| N36 | LH36 | 통합공공임대 강서염창(정정) — 처음 보는 공고 검증 | 2026-09-17 |
 
 - 판정 범위는 신청 자격(무주택·성년·소득·자산·자동차)이다. 순위(청약저축 납입 횟수·거주지)와 배점은 경쟁이 있을 때의
   선정 순서라 판정하지 않는다(notes에 적는다).
@@ -214,6 +216,179 @@ def permanent_rental(nid, city, residence_quote, adult_quote, weak_quote=None):
     return layers, tables
 
 
+# ------------------------------------------------------------------------------------------------
+# 통합공공임대 일반형 (LH 표준 공고 — 평창장평 p.9·p.12·p.14~18)
+# ------------------------------------------------------------------------------------------------
+# 판정은 일반공급 기준(기준중위소득 150% + 가산)이다. 우선공급(청년·신혼부부 등, 100% + 가산)은 일반공급보다 기준이 낮은
+# 선정 순서라 판정하지 않는다 — 우선공급 신청자는 일반공급에도 자동 신청된다(p.4).
+INT_B1, INT_B2, INT_B3 = B1, B2, B3        # 총자산 3억4,500만·3억7,900만·4억1,300만, 자동차 4,542만·4,996만·5,451만(p.12)
+INT_ASSETS_Q = "총자산345,000,000원및자동차45,420,000원이하"
+INT_INCOME = {"lte": [{"var": "monthly_income"},
+                      {"lookup": ["income_standard_median", {"var": "household_size"}, {"term": "ratio"}]}]}
+INT_ADULT = {"any": [{"gte": [{"var": "age"}, 19]},
+                     {"lte": [{"var": "age"}, 18],
+                      "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                         "detail": "미성년자는 자녀를 양육하는 미성년 세대주·형제자매를 부양하는 미성년 세대주·"
+                                                   "예비신혼부부 등 예외에 해당할 때만 신청할 수 있습니다(법정대리인 동의). "
+                                                   "예외 해당 여부는 이 화면이 묻지 않습니다."}}]}
+D_NEWLYWED_ONE = ("신혼부부·예비신혼부부의 가구원수는 부부 2인 이상이어야 합니다(예비신혼부부는 혼인으로 구성될 세대). "
+                  "가구원수를 확인해 주세요.")
+D_COUPLE_CHILD = "가구원수가 2인(부부만)인데 출생자녀 가산 대상 자녀가 있습니다(부부+자녀면 3인 이상). 입력을 확인해 주세요."
+D_COUPLE3_KIDS = "부부 3인 가구인데 출생자녀 가산 대상 자녀가 2명 이상입니다(부부+자녀 2명이면 4인 이상). 입력을 확인해 주세요."
+
+
+def _int_rows(base=150):
+    """가구원수 × 출산자녀수 — 기준 150%에 1인 +20%p·2인 +10%p, 출산자녀 1명 +10%p·2명 이상 +20%p(p.17 표)."""
+    return [
+        r({"size": 1, "child": 0}, [base + 20] + INT_B1),
+        r({"size": 1, "child": "1+"}, **no_row(C3.D_ALONE_CHILD)),
+        r({"size": 2, "child": 0}, [base + 10] + INT_B1),
+        r({"size": 2, "child": 1}, [base + 20] + INT_B2),
+        r({"size": 2, "child": "2+"}, **no_row(C3.D_TWO_KIDS)),
+        r({"size": "3+", "child": 0}, [base] + INT_B1),
+        r({"size": "3+", "child": 1}, [base + 10] + INT_B2),
+        r({"size": "3+", "child": "2+"}, [base + 20] + INT_B3),
+    ]
+
+
+def _newlywed_rows():
+    """신혼부부(맞벌이 +30%p) — p.17 '그 외' 표: 2인 160 / 3인 150·160 / 4인 이상 150·160·170, 맞벌이(○)는 각 +30."""
+    rows = [r({"size": 1, "child": "any", "dual": "any"}, **no_row(D_NEWLYWED_ONE)),
+            r({"size": 2, "child": "1+", "dual": "any"}, **no_row(D_COUPLE_CHILD)),
+            r({"size": 3, "child": "2+", "dual": "any"}, **no_row(D_COUPLE3_KIDS))]
+    for dual, add in ((False, 0), (True, 30)):
+        rows += [r({"size": 2, "child": 0, "dual": dual}, [160 + add] + INT_B1),
+                 r({"size": "3+", "child": 0, "dual": dual}, [150 + add] + INT_B1),
+                 r({"size": "3+", "child": 1, "dual": dual}, [160 + add] + INT_B2),
+                 r({"size": "4+", "child": "2+", "dual": dual}, [170 + add] + INT_B3)]
+    return rows
+
+
+def _int_money(prefix, table, income_quote, what):
+    return [
+        cond(f"{prefix}-income", "monthly_income", [income_quote],
+             f"{what} 월평균소득이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산 반영) 이하인지", INT_INCOME, table=table),
+        cond(f"{prefix}-assets", "total_assets", [INT_ASSETS_Q],
+             f"{what} 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+             {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table=table),
+        cond(f"{prefix}-car", "car_value", [INT_ASSETS_Q],
+             "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+             {"lte": [CAR, {"term": "car_limit"}]}, table=table),
+    ]
+
+
+def integrated_rental(nid):
+    """통합공공임대 일반공급 — 입주자격 구분(청년·신혼부부·한부모가족·고령자·일반)마다 계층 하나.
+    공고별 값이 없다: 날짜 기준(6세 이하·혼인 7년·65세)은 공고일에서 계산하고, 소득표·자산 한도는 같은 연도 공고에서 같다."""
+    adult = cond(f"{nid}-I-adult", "age", ["「민법」상미성년자(19세미만)는신청하실수없습니다"],
+                 "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능", INT_ADULT)
+    household_q = "무주택세대구성원으로서해당세대의월평균소득이기준중위소득의150퍼센트"
+
+    def home(p, quote, note="무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)"):
+        return cond(f"{p}-home", "home_ownership", [quote], note, HOME)
+
+    def with_adult(p):
+        return dict(json.loads(json.dumps(adult)), id=f"{p}-adult")
+
+    y, m, s, e, g = (f"{nid}-I{x}" for x in "YMSEG")
+    youth = [
+        home(y, "무주택자로서다음의요건을모두갖춘사람", "무주택자인지(본인 기준 — 세대 내 다른 구성원의 주택 소유는 무관)"),
+        cond(f"{y}-age", "age", ["18세이상39세이하일것"], "공고일 현재 만 18세 이상 39세 이하인지",
+             {"between": [{"var": "age"}, 18, 39]}),
+        cond(f"{y}-marital", "marital_status", ["혼인중이아닐것"], "혼인 중이 아닌지",
+             {"in": [{"var": "marital_status"}, ["미혼", "예비신혼", "한부모"]]}),
+        cond(f"{y}-income", "monthly_income", ["기준중위소득의150퍼센트(1~2인가구및출산가구의경우에는우대비율을가산)이하일것"],
+             "본인 월평균소득(세대원이 있는 세대주는 세대 전체)이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산) 이하인지",
+             {"lte": [{"var": "monthly_income"},
+                      {"lookup": ["income_standard_median", {"term": "income_size"}, {"term": "ratio"}]}]},
+             table="integrated_youth_terms"),
+        cond(f"{y}-assets", "total_assets", [INT_ASSETS_Q],
+             "본인 총자산(세대원이 있는 세대주는 세대 전체)이 3억4,500만원(출산자녀 가산) 이하인지",
+             {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table="integrated_youth_terms"),
+        cond(f"{y}-car", "car_value", [INT_ASSETS_Q], "자동차가액이 4,542만원(출산자녀 가산) 이하인지",
+             {"lte": [CAR, {"term": "car_limit"}]}, table="integrated_youth_terms"),
+    ]
+    newlywed = [
+        cond(f"{m}-marital", "marital_status",
+             ["예비신혼부부(혼인을계획중이며해당주택의입주전까지혼인사실을증명할수있는사람)"], "혼인 중이거나 예비신혼부부인지",
+             {"in": [{"var": "marital_status"}, ["혼인중", "예비신혼"]]}),
+        cond(f"{m}-duration", "marriage_duration_or_child", ["혼인기간이7년", "혼인중인사람으로서6세이하자녀"],
+             "혼인기간 7년 이내이거나 6세 이하 자녀(태아 포함)를 두었는지(예비신혼부부는 이 요건이 없음)",
+             {"any": [{"eq": [{"var": "marital_status"}, "예비신혼"]},
+                      {"gte": [{"var": "marriage_date"}, {"fn": "marriage_cutoff"}]},
+                      {"if": [{"is": [{"var": "has_children"}, False]}, False,
+                              {"gte": [{"var": "youngest_child_birth_date"}, {"fn": "young_child_cutoff"}]}]}]}),
+        home(m, "무주택세대구성원(예비신혼부부의경우혼인으로구성될세대의세대구성원모두무주택자인경우)일것",
+             "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)"),
+        with_adult(m),
+        cond(f"{m}-income", "monthly_income",
+             ["기준중위소득의150퍼센트(맞벌이,2인가구및출산가구의경우에는우대비율을가산)이하일것", "신혼부부맞벌이우대비율:30%p가산"],
+             "세대 월평균소득(예비신혼부부는 혼인으로 구성될 세대 합계)이 기준중위소득 150%(2인 +10%p, 출산자녀 가산, "
+             "부부 모두 근로·사업소득이 있으면 +30%p) 이하인지", INT_INCOME, table="integrated_newlywed_terms"),
+        cond(f"{m}-assets", "total_assets", [INT_ASSETS_Q], "세대 총자산이 3억4,500만원(출산자녀 가산) 이하인지",
+             {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table="integrated_newlywed_terms"),
+        cond(f"{m}-car", "car_value", [INT_ASSETS_Q], "자동차가액이 4,542만원(출산자녀 가산) 이하인지",
+             {"lte": [CAR, {"term": "car_limit"}]}, table="integrated_newlywed_terms"),
+    ]
+    single = [
+        cond(f"{s}-marital", "marital_status", ["를둔한부모가족(자녀가신청자와동일한세대별주민등록표에등재된경우에한함)"],
+             "한부모가족인지", {"in": [{"var": "marital_status"}, ["한부모"]]}),
+        cond(f"{s}-child6", "youngest_child_birth_date", ["를둔한부모가족(자녀가신청자와동일한세대별주민등록표에등재된경우에한함)"],
+             "6세 이하 자녀(같은 주민등록표에 등재)를 둔 한부모가족인지",
+             {"if": [{"is": [{"var": "has_children"}, False]}, False,
+                     {"gte": [{"var": "youngest_child_birth_date"}, {"fn": "young_child_cutoff"}]}]}),
+        home(s, household_q), with_adult(s),
+    ] + _int_money(s, "integrated_terms", household_q, "세대")
+    elderly = [
+        home(e, "단독세대주로입주하려는사람의경우에는무주택자)으로서다음의요건을모두갖춘사람",
+             "무주택세대구성원인지(혼인 중이 아닌 단독세대주는 본인만 무주택)"),
+        cond(f"{e}-age", "age", ["65세이상("], "공고일 현재 만 65세 이상인지", {"gte": [{"var": "age"}, 65]}),
+    ] + _int_money(e, "integrated_terms", household_q, "세대")
+    general = [home(g, household_q), with_adult(g)] + _int_money(g, "integrated_terms", household_q, "세대")
+
+    tables = {
+        "integrated_terms": {
+            "label": "통합공공임대 일반공급 소득 비율·자산·자동차 한도: 가구원수 × 출산자녀수(가구원수 가산과 출산자녀 가산을 더함)",
+            "columns": ["size", "child"],
+            "inputs": {"size": {"var": "household_size"}, "child": {"fn": "child_bonus_count"}},
+            "outputs": ["ratio", "asset_limit", "car_limit"], "rows": _int_rows(),
+            "source": {"quote": ["신혼부부,한부모가족을제외한모든계층×1인0인170%"]}},
+        "integrated_newlywed_terms": {
+            "label": "통합공공임대 일반공급 신혼부부 소득 비율·자산·자동차 한도: 가구원수 × 출산자녀수 × 맞벌이",
+            "columns": ["size", "child", "dual"],
+            "inputs": {"size": {"var": "household_size"}, "child": {"fn": "child_bonus_count"},
+                       "dual": {"var": "dual_income"}},
+            "outputs": ["ratio", "asset_limit", "car_limit"], "rows": _newlywed_rows(),
+            "source": {"quote": ["○2인0인190%"]}},
+        "integrated_youth_terms": {
+            "label": "통합공공임대 일반공급 청년 소득 비율·소득 가구원수·자산·자동차 한도: 가구원수 × 출산자녀수 × 세대주/세대원 "
+                     "(세대원은 본인 소득 1인 기준)",
+            "columns": ["size", "child", "head"],
+            "inputs": {"size": {"var": "household_size"}, "child": {"fn": "child_bonus_count"},
+                       "head": {"var": "house_head_status"}},
+            "outputs": ["ratio", "income_size", "asset_limit", "car_limit"],
+            "rows": [r({"size": "any", "child": 0, "head": "세대원"}, [170, 1] + INT_B1),
+                     r({"size": "any", "child": "1+", "head": "세대원"}, **no_row(
+                         "세대원(본인만 검증)인데 출산자녀 가산 대상 자녀가 있습니다. 세대주 여부 또는 자녀 입력을 확인해 주세요.")),
+                     *[dict(x, when=dict(x["when"], head="any"),
+                            **({"out": [x["out"][0], "=size"] + x["out"][1:]} if "out" in x else {}))
+                       for x in _int_rows()]],
+            "source": {"quote": ["청년계층의소득및자산은신청자본인에한하여검증"]}},
+    }
+    layers = {"청년": {"conditions": youth}, "신혼부부": {"conditions": newlywed}, "한부모": {"conditions": single},
+              "고령자": {"conditions": elderly}, "일반": {"conditions": general}}
+    return layers, tables
+
+
+INTEGRATED_NOTES = [
+    "판정은 일반공급 기준(기준중위소득 150% + 가산)이다. 우선공급(청년·신혼부부 등, 기준중위소득 100% + 가산)은 모집 인원을 "
+    "먼저 배정하는 선정 순서라 판정하지 않는다 — 우선공급 신청자는 같은 주택형 일반공급에도 자동 신청된다.",
+    "같은 세대에서 둘 이상 신청하면 모두 무효다(세대주가 아닌 청년 형제는 각각 신청 가능).",
+    "과거 공공임대주택에서 불법 양도·전대로 적발된 뒤 4년이 지나지 않은 세대구성원이 있으면 선정될 수 없다 — 이 판정은 묻지 않는다.",
+    "청년의 소득·자산은 본인만(세대원이 있는 세대주는 세대 전체), 고령자는 세대 전체를 본다. 입력한 소득·자산이 그 기준인지 확인한다.",
+]
+
+
 PERMANENT_NOTES = [
     "판정하지 않는 입주자격: 다목(일본군위안부 피해자)·카목(국토교통부장관 또는 시·도지사가 입주가 필요하다고 인정하는 자) — "
     "해당하면 공고문 문의처에 확인한다.",
@@ -263,9 +438,26 @@ PLAN = [
          notes=PERMANENT_NOTES + [
              "같은 공고의 단지(중동한라1·중동덕유1) 중 1개 단지만 신청할 수 있다 — 중복 신청하면 모두 부적격(p.1).",
              "두 단지는 1기 신도시 정비사업 대상으로 입주 후 재건축 등으로 이주할 수 있다(p.1)."]),
+    # 통합공공임대 일반형(개발용) — LH 표준 공고
+    dict(nid="N35", key="LH35", title="평창장평 통합공공임대주택(일반형)", ann="2026-10-30",
+         program="통합공공임대주택", template="integrated_rental", params={},
+         notes=INTEGRATED_NOTES + [
+             "이 공고의 우선공급은 청년·신혼부부 등만 있고, 31A·36A·46A 주택형마다 우선·일반 배정 호수가 다르다(p.4) — "
+             "배정이 없는 입주자격 구분·주택형은 신청할 수 없다.",
+             "고령자복지주택 36호는 별도 공고다(p.1)."]),
+    # G2 처음 보는 공고 검증 — 초안은 등록 전에 docs/draft-checks/X-integrated-gangseo.g2.draft.json에 얼림
+    dict(nid="N36", key="LH36", title="강서염창 통합공공임대주택(정정)", ann="2026-09-17",
+         program="통합공공임대주택", template="integrated_rental", params={},
+         notes=INTEGRATED_NOTES + [
+             "이 공고의 우선공급은 덕수연립 가로주택정비사업 기존 거주자(철거민 등) 중 조합이 선정해 LH에 통보한 사람만 신청할 "
+             "수 있다(별도 안내, 현장 접수) — 판정 대상 아님(p.4·p.15).",
+             "일반공급은 59A형 10호다(p.4). 준공이 끝난 단지로 2027년 2월 입주 예정이다."]),
 ]
 
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
+# 통합공공임대는 계층 이름(일반 등)이 다른 사업과 겹치고, 같은 문구가 우선공급(p.15~16)·일반공급(p.16~18)에 다 있어
+# 일반공급 쪽을 가리키는 기준점을 템플릿별로 둔다(인용문·기준표 모두).
+TEMPLATE_ANCHOR = {"integrated_rental": ("신혼부부,한부모가족을제외한모든계층", 17)}
 
 
 def pdf_for(key):
@@ -281,8 +473,8 @@ def walk(conditions):
 
 
 # 템플릿(사업별 규칙 생성 함수) — 공고별 값은 PLAN의 params(파라미터 시트, P1 docs/09 §5)
-BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_rental}
-ISSUER = {"national_rental": "LH", "permanent_rental": "LH"}
+BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_rental, "integrated_rental": integrated_rental}
+ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH"}
 
 
 def make_doc(plan, pdf, pages):
@@ -290,13 +482,14 @@ def make_doc(plan, pdf, pages):
     찾지 못한 인용문은 missing으로 돌려준다(새 공고에서 문구가 달라진 조건을 드러낸다)."""
     layers, tables = BUILDERS[plan["template"]](plan["nid"], **plan["params"])
     missing = []
+    own = TEMPLATE_ANCHOR.get(plan["template"])
     for layer, ldoc in layers.items():
-        text, hint = ANCHORS[layer]
+        text, hint = own or ANCHORS[layer]
         anchor = locate(pages, text, hint) or hint
         for c in walk(ldoc["conditions"]):
             place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)
     for name, t in tables.items():
-        anchor = locate(pages, "소득및자산보유기준", 6) or 6
+        anchor = (locate(pages, *own) or own[1]) if own else (locate(pages, "소득및자산보유기준", 6) or 6)
         place_quotes(t["source"], pages, anchor, f"table:{name}", missing)
     doc = {
         "notice_id": plan["nid"], "title": plan["title"], "announcement_date": plan["ann"],

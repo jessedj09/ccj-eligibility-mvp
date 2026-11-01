@@ -238,3 +238,13 @@ def test_db_operator_review_queue(db):
 def test_null_store_review_queue_is_empty():
     s = S.NullStore()
     assert s.list_jobs() == [] and s.usage() == [] and s.latest_snapshot("x") is None and s.close_job(1, "done") is False
+
+
+def test_store_outage_reports_every_program_paused():
+    """피드백 A4: 접속 실패 중(재시도 대기)이면 멈춘 사업 목록 질의가 실패한다 — 빈 목록 대신 '모든 사업 멈춤'."""
+
+    pytest.importorskip("psycopg")
+    s = S.Store("postgresql://invalid.invalid/none")
+    s._down_until = time.monotonic() + 60          # 최근 접속 실패 — 네트워크에 붙지 않고 바로 실패
+    got = s.demoted_programs()
+    assert got is S.UNKNOWN_DEMOTED and "lh.youth_rental" in got and "어느 사업이든" in got

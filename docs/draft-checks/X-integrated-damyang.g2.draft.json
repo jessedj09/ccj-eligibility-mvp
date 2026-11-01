@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "67190f888a6339820907634d26537d86f11d65a55f1ca386f985cfabd9efe984",
+  "file": "담양삼만통합공공임대일자리연계형지원주택추가모집공고문(20261029).pdf",
+  "created": "2026-11-01",
+  "status": "blocked",
+  "reason": "통합공공임대 '일자리연계형' 공고(p.1) — 직업·근무지 요건이 일반형과 달라 자동 판정하지 않습니다",
+  "template": "lh.integrated_rental",
+  "program": "통합공공임대주택",
+  "announcement_date": "2026-10-29",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}
