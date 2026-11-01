@@ -228,3 +228,23 @@ def test_store_outage_pauses_auto_judging_but_not_registered(n12, unregistered, 
     reg = _post(n12).json()
     assert reg["judge"]["by"] == "registered"
     assert client.post("/evaluate", json={"notice_id": "N12", "layer": "청년", "profile": _body(p)}).status_code == 200
+
+
+def test_correction_by_file_name_is_analyzed_not_bound_to_old_rules(monkeypatch):
+    """피드백 B3: 등록 공고의 다른 파일인데 파일 이름에 '정정'이 있으면(LH·SH 정정 공고는 이름에만 표시) 옛 등록 규칙으로 판정하자고
+    묻지 않고 새로 분석한다. 이름에 없으면 지금처럼 확인(confirm)."""
+    import io
+    from pypdf import PdfReader, PdfWriter
+    w = PdfWriter()
+    for page in PdfReader(str(sv.pdf_path("N12"))).pages:
+        w.add_page(page)
+    buf = io.BytesIO()
+    w.write(buf)
+    data = buf.getvalue()
+    assert data != sv.pdf_path("N12").read_bytes()
+    monkeypatch.setattr(api, "get_store", lambda: NullStore())
+    plain = client.post("/upload", files={"file": ("청년매입.pdf", data, "application/pdf")}).json()
+    assert plain["identification"]["status"] == ni.SAME_NOTICE_OTHER_FILE and plain["judge"]["by"] == "confirm"
+    fixed = client.post("/upload", files={"file": ("정정)청년매입.pdf", data, "application/pdf")}).json()
+    assert fixed["identification"]["status"] == ni.UNREGISTERED and fixed["identification"]["corrects"] == "N12"
+    assert "정정 공고" in fixed["identification"]["reason"] and fixed["judge"]["by"] in ("analysis", "none")

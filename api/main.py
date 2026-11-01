@@ -159,7 +159,21 @@ def _ident_json(ident) -> Dict[str, Any]:
     return {"status": ident.status, "notice_id": ident.notice_id, "reason": ident.reason, "issuer": ident.issuer,
             "program": ident.program, "announcement": ident.announcement, "pages": ident.pages,
             "windows": [{"start": w["start"], "end": w["end"], "page": w["page"]} for w in ident.windows[:3]],
-            "similar": ident.similar}
+            "similar": ident.similar, "corrects": ident.corrects}
+
+
+def _correction(ident, filename: Optional[str]):
+    """정정 공고(피드백 B3): LH·SH 정정 공고는 본문에 '정정' 표시가 없고 내려받은 파일 이름에만 붙는다. 등록 공고와 공고일·사업·단지가
+    같은 다른 파일인데 파일 이름에 '정정'이 있고 등록 원문은 정정본이 아니면, 옛 등록 규칙으로 판정하자고 묻지 않고 이 파일(최신 판)을
+    새로 분석한다. 파일 이름이 없거나 바뀌었으면 지금처럼 경고와 함께 사용자 확인을 받는다."""
+    if ident.status != SAME_NOTICE_OTHER_FILE or "정정" not in (filename or ""):
+        return ident
+    n = ALL_NOTICES[ident.notice_id]
+    if "정정" in n.meta.get("source", {}).get("document", ""):
+        return ident
+    return dataclasses.replace(ident, status=UNREGISTERED, notice_id=None, corrects=ident.notice_id, reason=(
+        f"등록 공고 {ident.notice_id}({n.title})의 정정 공고로 보입니다(파일 이름). 정정으로 조건이 바뀌었을 수 있어 "
+        "등록된 규칙 대신 이 파일을 새로 읽어 판정합니다."))
 
 
 def _identify(data: bytes, store):
@@ -231,7 +245,7 @@ def upload(request: Request, file: UploadFile = File(...)):
         raise HTTPException(422, "PDF 파일이 아닙니다. 공고문 PDF를 올려 주세요.")
     _rate_limit(request)                 # 형식 오류는 세지 않는다 — 실제로 읽는 업로드만
     store = get_store()
-    ident = _identify(data, store)
+    ident = _correction(_identify(data, store), file.filename)
     store.count("uploads")
     body = {"sha256": ident.sha256, "identification": _ident_json(ident)}
     if ident.status in (REGISTERED, SAME_NOTICE_OTHER_FILE):

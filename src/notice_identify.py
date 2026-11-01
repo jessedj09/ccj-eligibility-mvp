@@ -41,6 +41,7 @@ class Identification:
     windows: List[dict] = field(default_factory=list)      # 청약 접수기간 후보(청약·신청·접수 문맥만)
     similar: List[str] = field(default_factory=list)       # 같은 사업의 등록 공고(같은 공고는 아님)
     ambiguous: List[str] = field(default_factory=list)     # 공고일·사업이 같은데 단지를 가리지 못한 등록 공고
+    corrects: Optional[str] = None                         # 이 등록 공고의 정정 공고로 보임(파일 이름 — API가 정함)
 
 
 def _same_program(issuer: Optional[str], program: Optional[str], nid: str) -> bool:

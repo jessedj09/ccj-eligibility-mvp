@@ -13,6 +13,8 @@ export type Identification = {
   pages: number;
   windows: Window[];
   similar: string[];
+  /** 이 등록 공고의 정정 공고로 보임(파일 이름) — 옛 등록 규칙 대신 이 파일로 판정(피드백 B3) */
+  corrects?: string | null;
 };
 
 export type UnsupportedLayer = { name: string; note: string; page: number | null };

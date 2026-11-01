@@ -52,11 +52,17 @@ function Identified({ up, confirmed, onConfirm }: { up: UploadResult; confirmed:
         <p className="text-xs text-slate-600">같은 공고를 다시 내려받은 파일이면 결과가 같습니다. 정정 공고면 다를 수 있습니다.</p>
       </div>
     );
+  const correction = id.corrects && (
+    <p className="text-xs text-amber-800" data-testid="correction">
+      등록 공고 {id.corrects}의 정정 공고로 보입니다(파일 이름). 조건이 바뀌었을 수 있어 등록된 규칙이 아니라 이 파일로 판단합니다.
+    </p>
+  );
   if (j.by === "analysis")
     return (
       <div className="text-sm" data-testid="ident">
         <p>📄 올린 공고문: <b>{j.program}</b> · 공고일 {j.announcement_date}</p>
         <p className="mt-1 text-xs text-slate-600">공고문 원문에서 조건을 읽어 판정합니다.</p>
+        {correction}
         {windows}
       </div>
     );
@@ -65,6 +71,7 @@ function Identified({ up, confirmed, onConfirm }: { up: UploadResult; confirmed:
     <div className="space-y-1 rounded-md border-l-4 border-slate-400 bg-slate-50 p-3 text-sm" data-testid="ident">
       <p className="font-semibold text-slate-800" data-testid="none-title">➖ 판정하지 않음 <span className="font-normal text-slate-500">(지원 불가라는 뜻이 아닙니다)</span></p>
       <p className="text-slate-700" data-testid="none-reason">{j.reason}</p>
+      {correction}
       {j.supported_programs && j.supported_programs.length > 0 && (
         <p className="text-xs text-slate-600">
           새 공고 자동 판정 지원 사업: {j.supported_programs.join(", ")}. 다른 사업은 정확도를 검증하며 차례로 추가합니다.
