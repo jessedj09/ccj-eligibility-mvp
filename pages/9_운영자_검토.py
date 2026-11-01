@@ -30,7 +30,7 @@ if type(store) is NullStore:
     st.warning("공유 저장소(DATABASE_URL)에 접속할 수 없습니다 — 운영자 PC의 .streamlit/secrets.toml을 확인하세요.")
     st.stop()
 
-KIND_LABEL = {"review": "운영자 검토", "register": "등록", "enhance": "보강(LLM 작업기)"}
+KIND_LABEL = {"review": "운영자 검토", "register": "등록", "enhance": "보강(LLM 작업기)", "reference": "기준표 후보(연도 전환)"}
 STATUS_LABEL = {"pending": "대기", "running": "진행 중", "done": "완료", "failed": "실패·닫음"}
 
 # ---- 1. 사업별 자동 판정 상태 ----
@@ -92,6 +92,25 @@ for j in jobs:
                 st.download_button("PDF 내려받기", data, file_name=f"{j['sha256'][:12]}.pdf", mime="application/pdf",
                                    key=f"dl_{j['id']}")
             st.caption("등록: PDF를 `sample_lh/`·`sample_sh/`에 넣고 docs/08 절차대로(등록 전에 `notice_intake.py --save-draft`로 초안을 얼린다).")
+            if j["kind"] == "reference" and data:
+                if st.button("기준표 후보 만들기", key=f"refc_{j['id']}"):
+                    import pdf_tables as P
+                    import reference_candidates as R
+                    refs = P.load_references()
+                    st.session_state[f"refc_{j['sha256']}"] = [(c, R.to_reference(c, refs[c.ref_id], f"업로드 {j['sha256'][:12]}"))
+                                                               for c in R.candidates(data, refs=refs)]
+                cands = st.session_state.get(f"refc_{j['sha256']}")
+                if cands == []:
+                    st.caption("후보 없음 — 등록 기준표 칸 구성과 맞는 다른 연도 표를 찾지 못했습니다(원문 확인).")
+                for c, doc in cands or []:
+                    import json
+                    import reference_candidates as R
+                    st.text(R.describe(c))
+                    st.download_button(f"후보 JSON 내려받기 — {doc['id']}", json.dumps(doc, ensure_ascii=False, indent=1),
+                                       file_name=f"{doc['id']}.candidate.json", mime="application/json",
+                                       key=f"refdl_{j['id']}_{c.ref_id}")
+                st.caption("새 기준표 등록: 후보를 원문과 대조 → docs/08 '새 기준표 등록'(status·candidate 표시를 지우고 successor_of를 남긴 채 "
+                           "rules/reference/에 넣고, 공고를 등록해 cited_pages를 채운다). 등록되면 같은 연도 새 공고는 그 표로 판정된다.")
         else:
             st.caption("보관된 PDF 없음(보관 기간 14일이 지났거나 LH·SH 공고가 아님).")
         if j["status"] in ("pending", "running", "failed"):

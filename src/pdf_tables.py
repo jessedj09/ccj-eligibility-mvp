@@ -260,7 +260,9 @@ def merge(grids: List[Grid]) -> Tuple[List[Cell], int]:
 def load_references() -> Dict[str, dict]:
     out = {}
     for path in sorted((sv.RULES / "reference").glob("income_standard*.json")):
-        out[path.stem] = json.loads(path.read_text(encoding="utf-8"))
+        ref = json.loads(path.read_text(encoding="utf-8"))
+        if ref.get("status") != "CANDIDATE":        # 운영자 승인 전 후보가 잘못 들어와도 대조 기준으로 쓰지 않는다
+            out[path.stem] = ref
     return out
 
 

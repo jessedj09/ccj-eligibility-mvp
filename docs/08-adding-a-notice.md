@@ -106,3 +106,23 @@ python tools/draft_compare.py docs/draft-checks/<분석 키>.draft.json --record
 
 `--audit`는 등록된 공고마다 원문 PDF·공고 분석·접수기간·골든 기준일과 그룹(모든 계층)·입력 범위 규칙·소득표 대조가 다 있는지 본다.
 pytest(`test_audit_is_clean_now`)가 같은 점검을 하므로 하나라도 빠뜨리면 CI가 실패한다.
+
+## 4. 새 기준표 등록 — 기준 연도가 바뀌었을 때 (docs/09 §21, 2026-11-02)
+
+해마다 소득 기준(도시근로자 월평균소득·기준중위소득)이 바뀌면 새 공고에는 등록 기준표 금액이 없어 자동 분석이 그 조건을 보류하고
+(`sheet_extract.reference_guard`), 공유 저장소에 **reference 작업**(운영자 검토 화면 '기준표 후보(연도 전환)')이 생긴다.
+
+1. **후보 만들기** — 운영자 검토 화면에서 그 작업의 'PDF 불러오기' → '기준표 후보 만들기'(또는
+   `python tools/reference_candidate.py 새공고.pdf [다른 공고.pdf …] --out .cache/reference_candidates`). 표를 칸 위치까지 읽어
+   등록 기준표와 같은 칸 구성의 후보를 만든다 — 금액은 원문 칸 값만, 계산해 채우지 않는다. 공고마다 실린 열이 다르면(매입임대 Ⅰ·Ⅱ형)
+   여러 공고를 함께 넣어 합친다.
+2. **후보 확인** — '후보 완성'이 아니면 적힌 문제부터 본다: 원문에 없는 칸, 기준액 변화 ±15% 밖(다른 기준의 표일 수 있음), 원문 기준 연도가
+   등록 표와 같은데 금액이 다름(정정 공고 확인), 7인 이상 1인당 가산액을 못 찾음(원문에서 찾아 넣는다). 후보 표의 모든 칸을 원문과 한 번 대조한다.
+3. **등록** — 후보 JSON을 `rules/reference/<옛 표 id>_<연도>.json`(예: `income_standard_public_2026.json`)으로 넣는다.
+   `status`·`candidate_check`를 지우고 **`successor_of`(옛 표 id)는 남긴다**. 그 공고를 3절 체크리스트대로 등록하면서 이 표의
+   `cited_pages`에 공고 번호와 쪽을 적는다(원문 대조 `verify_income_reference`가 모든 칸을 확인 — 비어 있으면 CI 실패).
+   **주의**: 생성 스크립트(tools/gen_*.py·templates.py)는 지금 옛 표 id를 쓴다 — 새 연도 공고를 정식 등록할 때는 그 공고의 규칙이 새 표 id를
+   참조하도록 생성 스크립트의 기준표 선택을 함께 고쳐야 한다(아직 미구현, 첫 새 연도 공고 등록 때 템플릿 담당과 함께).
+4. **효과** — 그 뒤 같은 연도 새 공고는 자동 분석이 새 표의 '모든 공고가 싣는 칸'(`required_in_every_notice`) 금액을 원문에서 모두 찾으면
+   규칙의 기준표를 새 표로 바꿔(`sheet_extract.swap_successors`) 보류 없이 판정한다. 옛 표는 지우지 않는다(이전 연도 등록 공고가 쓴다).
+5. 등록 뒤 `python tools/eval_tables.py`로 새 표 묶음이 틀린 칸 0인지 확인한다.

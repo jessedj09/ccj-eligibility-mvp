@@ -1134,7 +1134,14 @@ def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW", llm: Optional[LLM] 
     # P2 선행 안전장치: 기준표 연도(인용문에 금액 없는 조건), 템플릿에 없는 새 제한 문구
     kind = ext["fields"].get("kind").value if isinstance(ext["fields"].get("kind"), Field) else None
     out["stale"] = reference_guard(out["doc"], pages, ext["template"], kind)
+    if out["stale"]:                     # 기준 연도가 바뀐 공고 — 운영자가 승인한 새 기준표가 있으면 그 표로(docs/09 §21 T3)
+        doc2, swaps = swap_successors(out["doc"], pages)
+        if swaps:
+            stale2 = reference_guard(doc2, pages, ext["template"], kind)
+            if len(stale2) < len(out["stale"]):
+                out["doc"], out["stale"], out["swaps"] = doc2, stale2, swaps
     out["missing"] += out["stale"]
+    out["missing"] += table_positions(out["doc"], pdf, pages)
     out["restrictions"] = new_restrictions(out["doc"], pages)
     return out
 
@@ -1150,10 +1157,20 @@ def _walk(conditions):
             yield from _walk(t["conditions"])
 
 
+def _reference(ref_id: str) -> dict:
+    import json
+    return json.loads((sv.RULES / "reference" / f"{ref_id}.json").read_text(encoding="utf-8"))
+
+
+def _own_required(ref: dict) -> List[str]:
+    return sorted({f"{ref['table'][str(s)][str(r)]:,}" for s, r in ref.get("required_in_every_notice", [])})
+
+
 def required_reference_values(ref_id: str, template: str, kind=None) -> List[str]:
     """새 공고에 있어야 할 기준표 대표 금액 — 같은 템플릿(같은 유형) 등록 공고들이 공통으로 싣는 금액."""
-    import json
-    ref = json.loads((sv.RULES / "reference" / f"{ref_id}.json").read_text(encoding="utf-8"))
+    ref = _reference(ref_id)
+    if ref.get("successor_of"):          # 승인된 새 기준표 — 아직 같은 템플릿 등록 공고가 없으니 그 표의 '모든 공고가 싣는 칸'
+        return _own_required(ref)
     sets = []
     for nid in T.sheet_ids():
         sheet = T.gold_sheet(nid)
@@ -1178,6 +1195,73 @@ def reference_guard(doc: Dict, pages: List[str], template: str, kind=None) -> Li
                 lost = [v for v in need if v not in text]
                 if lost:
                     out.append(f"{layer}/{c['id']}: '기준표 {ref_id} 금액 {lost[0]}원 등 {len(lost)}개가 원문에 없음(다른 기준 연도)'")
+    return out
+
+
+def successors() -> Dict[str, List[dict]]:
+    """승인된 새 기준표 — rules/reference/의 'successor_of'가 있는 표(후보 상태 CANDIDATE는 제외). 옛 표 id → 새 표들(최근 연도 먼저).
+    후보는 src/reference_candidates.py가 만들고, 운영자가 원문과 대조해 등록한다(docs/08 '새 기준표 등록')."""
+    out: Dict[str, List[dict]] = {}
+    for path in sorted((sv.RULES / "reference").glob("income_standard*.json")):
+        ref = _reference(path.stem)
+        if ref.get("successor_of") and ref.get("status") != "CANDIDATE":
+            out.setdefault(ref["successor_of"], []).append(ref)
+    for refs in out.values():
+        refs.sort(key=lambda r: str(r.get("year_basis") or ""), reverse=True)
+    return out
+
+
+def swap_successors(doc: Dict, pages: List[str]):
+    """규칙이 참조하는 기준표마다, 승인된 새 표의 '모든 공고가 싣는 칸' 금액이 이 공고 원문에 전부 있으면 그 표로 바꾼 규칙.
+    → (새 규칙, {옛 표: 새 표}). 바꿀 표가 없으면 (doc, {})."""
+    import json
+    text = "".join(pages)
+    blob = json.dumps(doc, ensure_ascii=False)
+    swaps = {}
+    for old in sorted(set(LOOKUP_REF.findall(blob))):
+        for new in successors().get(old, []):
+            need = _own_required(new)
+            if need and all(v in text for v in need):
+                swaps[old] = new["id"]
+                break
+    for old, new in swaps.items():
+        blob = blob.replace(f'"{old}"', f'"{new}"')
+    return (json.loads(blob), swaps) if swaps else (doc, {})
+
+
+def _money_out(out) -> List[int]:
+    return [a for a in (out or []) if isinstance(a, int) and not isinstance(a, bool) and a >= 1_000_000]
+
+
+def table_positions(doc: Dict, pdf, pages: List[str]) -> List[str]:
+    """가구원수별 금액 결정표(size → 금액)의 금액이 원문 표에서 **다른 가구원수 칸에만** 있으면 그 표를 보류한다(docs/09 §21 T4).
+    인용문 대조는 '금액이 그 쪽 어딘가에 있음'만 보므로, 값이 다른 가구원수 자리에 들어가도 통과할 수 있다. 원문 표에서 그 금액을
+    찾지 못하면 판단하지 않는다(인용문 대조에 맡김). 표 읽기(src/pdf_tables.py)를 쓸 수 없으면 아무것도 하지 않는다."""
+    want: Dict[int, List[tuple]] = {}
+    for name, t in doc.get("tables", {}).items():
+        page = t.get("source", {}).get("page")
+        if "size" not in t.get("columns", []) or not page:
+            continue
+        for row in t.get("rows", []):
+            size = row.get("when", {}).get("size")
+            if isinstance(size, int) and not isinstance(size, bool):
+                want.setdefault(page, []).extend((name, size, a) for a in _money_out(row.get("out")))
+    if not want:
+        return []
+    try:
+        import pdf_tables as P
+        cells, _ = P.merge([P.income_cells(t) for t in P.read_tables(pdf, want)])
+    except Exception:      # noqa: BLE001 — pdfplumber 없음·읽기 실패: 위치 확인 없이 지금처럼
+        return []
+    sizes: Dict[tuple, set] = {}
+    for c in cells:
+        sizes.setdefault((c.page, c.amount), set()).add(c.size)
+    out = []
+    for page, items in want.items():
+        for name, size, amount in items:
+            seen = sizes.get((page, amount))
+            if seen and size not in seen:
+                out.append(f"table:{name}: '{amount:,}원이 원문 표 p.{page}에서 {sorted(seen)}인 칸에 있음({size}인 행에 쓰임)'")
     return out
 
 
