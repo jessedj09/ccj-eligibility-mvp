@@ -39,7 +39,7 @@ from pydantic import BaseModel  # noqa: E402
 
 from display_status import COMMON_NOTE, display, display_checks  # noqa: E402
 from explainability import explain  # noqa: E402
-from matcher import match_all, missing_inputs  # noqa: E402
+from matcher import match_all, missing_fields, missing_inputs  # noqa: E402
 import notice_identify as ni  # noqa: E402
 from notice_identify import REGISTERED, SAME_NOTICE_OTHER_FILE, UNREGISTERED, identify_pdf  # noqa: E402
 from notices_data import ALL_NOTICES  # noqa: E402
@@ -488,7 +488,7 @@ def match(req: MatchRequest):
     sched = load_schedules()
     return {"at": at.isoformat(), "only_open": req.only_open, "counts": counts, "notices_total": len(ALL_NOTICES),
             "schedule_counts": {c: sum(1 for s in stat.values() if s.code == c) for c in (OPEN, UPCOMING, CLOSED)},
-            "missing_inputs": missing_inputs(matches), "common_note": COMMON_NOTE, "whatif_caveat": whatif.CAVEAT,
+            "missing_inputs": missing_inputs(matches), "missing_fields": missing_fields(matches), "common_note": COMMON_NOTE, "whatif_caveat": whatif.CAVEAT,
             "matches": [_match_json(x, stat, sched) for x in matches],
             "near_misses": [_near_json(nm) for nm in whatif.near_misses(master, matches)]}
 

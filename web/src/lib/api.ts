@@ -148,6 +148,8 @@ export type MatchResult = {
   notices_total: number;
   schedule_counts: { OPEN: number; UPCOMING: number; CLOSED: number };
   missing_inputs: Record<string, number>;
+  /** 보류(정보 부족)를 만든 입력 항목 이름 → 그 때문에 멈춘 공고·계층 수(피드백 B1 — 화면이 그 항목만 다시 묻는다) */
+  missing_fields?: Record<string, number>;
   common_note: string;
   whatif_caveat: string;
   matches: MatchItem[];

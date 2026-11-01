@@ -72,6 +72,21 @@ export default function Find() {
     return () => { live = false; };
   }, [judged, at, onlyOpen]);
 
+  // 피드백 B1: 보류(정보 부족)를 만든 항목 중 지금 비어 있는 것만 결과 아래에서 바로 묻는다.
+  // 공고 판정 항목 이름 → 찾기 양식 이름(본인·세대를 따로 묻는 항목은 둘 다)
+  const ask = (() => {
+    if (!form || !result?.missing_fields) return null;
+    const MAP: Record<string, string[]> = {
+      home_ownership: ["master.home_self", "master.home_household"], monthly_income: ["master.income_household", "master.income_self"],
+      total_assets: ["master.assets_household", "master.assets_self"], car_value: ["master.car_household", "master.car_self"],
+      age: ["master.birth_date"], has_children: ["children_birth_dates"], youngest_child_birth_date: ["children_birth_dates"],
+    };
+    const names = new Set(Object.keys(result.missing_fields).flatMap((f) => MAP[f] ?? [f]));
+    const current = toProfile(form, values).profile;
+    const fields = form.fields.filter((f) => names.has(f.name) && (current[f.name] === null || current[f.name] === undefined));
+    return fields.length ? { ...form, fields, notes: [], collapsed: [] } : null;
+  })();
+
   if (!form) {
     return error ? <p role="alert" className="text-sm text-red-700">{error}</p> : <p className="text-sm text-slate-500">양식을 불러오는 중…</p>;
   }
@@ -182,6 +197,21 @@ export default function Find() {
                 )}
               </div>
               <div className={card}><MatchList result={result} /></div>
+              {ask && (
+                <div className={`${card} border-amber-300`} data-testid="find-questions">
+                  <h2 className="mb-1 text-base font-semibold">보류를 줄이려면 — 이 항목만 알려 주세요</h2>
+                  <p className="mb-3 text-xs text-slate-600">
+                    아래 항목이 비어 있어 일부 공고를 &lsquo;추가 정보 필요&rsquo;로 두었습니다. 아는 대로 넣고 다시 판정하면 그 공고들이 판정됩니다.
+                  </p>
+                  <ProfileForm form={ask} values={values} onChange={setValues} />
+                  <div className="mt-4 flex justify-end">
+                    <button type="button" onClick={run} disabled={busy} data-testid="find-rejudge"
+                      className="w-full rounded-md bg-amber-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50 sm:w-auto">
+                      다시 판정하기
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className={card}>
                 <WhatIf key={JSON.stringify(judged)} form={form} profile={judged!} at={at} onlyOpen={onlyOpen} result={result} />
               </div>
