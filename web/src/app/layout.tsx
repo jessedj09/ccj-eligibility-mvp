@@ -11,10 +11,10 @@ export const metadata: Metadata = {
   description: "LH·SH 입주자모집공고문 원문을 근거로 청약 지원 자격을 판정합니다.",
 };
 
-// 상단 대표 메뉴 — 이름(아이콘)과 하는 일. '내 조건 등록하기'는 회원가입·로그인 기능을 붙인 뒤 연다(2026-11-01 결정).
+// 상단 대표 메뉴 — 이름과 하는 일(이모지 없이 텍스트만, 2026-11-01 결정). '내 조건 등록하기'는 회원가입·로그인 기능을 붙인 뒤 연다(2026-11-01 결정).
 const MENU = [
-  { href: "/", icon: "⚖️", label: "재판소", desc: "공고문 올리고 지원 자격 판정" },
-  { href: "/find", icon: "📜", label: "청약 흥신소", desc: "나에게 맞는 지원 가능 공고" },
+  { href: "/", label: "재판소", desc: "공고문 올리고 지원 자격 판정" },
+  { href: "/find", label: "청약 흥신소", desc: "나에게 맞는 지원 가능 공고" },
 ];
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm sm:gap-x-7" aria-label="대표 메뉴">
               {MENU.map((m) => (
                 <Link key={m.href} href={m.href} title={m.desc} className="group text-slate-700 hover:text-blue-700">
-                  <span className="font-medium">{m.icon} {m.label}</span>
+                  <span className="font-medium">{m.label}</span>
                   <span className="ml-1.5 hidden text-xs text-slate-500 group-hover:text-blue-600 lg:inline">{m.desc}</span>
                 </Link>
               ))}

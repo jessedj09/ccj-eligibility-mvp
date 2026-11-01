@@ -112,7 +112,7 @@ export default function Find() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold sm:text-2xl">📜 청약 흥신소 <span className="text-base font-medium text-slate-500">나에게 맞는 지원 가능 공고</span></h1>
+        <h1 className="text-xl font-bold sm:text-2xl">청약 흥신소 <span className="text-base font-medium text-slate-500">나에게 맞는 지원 가능 공고</span></h1>
         <p className="mt-1 text-sm text-slate-600">
           한 번 입력하면 보유한 모든 공고의 계층·주택형을 판정합니다. 모르는 항목은 &lsquo;모름&rsquo;으로 두세요 — 그 정보가 필요한 공고는
           &lsquo;추가 정보 필요&rsquo;로 표시되고, 무엇을 더 입력하면 되는지 알려 드립니다.

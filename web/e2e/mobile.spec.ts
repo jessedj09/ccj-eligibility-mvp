@@ -71,12 +71,13 @@ test("이용 안내: 판정 범위·한계·개인정보 처리를 보이고, �
 });
 
 
-test("상단: 서비스 이름과 대표 메뉴(재판소·청약 흥신소), 내 조건 등록하기는 준비 중", async ({ page }) => {
+test("상단: 서비스 이름과 대표 메뉴(재판소·청약 흥신소 — 텍스트만), 내 조건 등록하기는 준비 중", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle("청약 포청천 — 청약 지원자격 판정 AI");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("⚖️ 재판소");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("재판소");
+  await expect(page.getByRole("navigation", { name: "대표 메뉴" })).not.toContainText("⚖️");
   await page.getByRole("navigation", { name: "대표 메뉴" }).getByRole("link", { name: /청약 흥신소/ }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("📜 청약 흥신소");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("청약 흥신소");
   await expect(page.getByTestId("menu-profile")).toContainText("준비 중");
   await noSideScroll(page);
 });
