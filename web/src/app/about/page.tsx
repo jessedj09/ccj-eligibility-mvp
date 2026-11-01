@@ -5,6 +5,22 @@ export const metadata: Metadata = { title: "이용 안내 · 청약 포청천" }
 
 const card = "rounded-lg border border-slate-200 bg-white p-5 shadow-sm";
 
+// 지원 범위(피드백 A5) — 새 공고 자동 판정 = src/draft.py PASSING, 등록 공고 = rules/notices
+const SCOPE: [string, string, string][] = [
+  ["LH 행복주택(신혼희망타운 행복주택 포함)", "판정", "판정"],
+  ["LH 청년 매입임대", "판정", "판정"],
+  ["LH 신혼·신생아 매입임대 Ⅰ·Ⅱ", "판정", "판정"],
+  ["LH 든든전세", "판정", "판정"],
+  ["SH 미리내집(신혼·신생아 매입임대)", "판정", "판정"],
+  ["SH 장기전세", "판정", "판정"],
+  ["SH 장기미임대 매입임대", "판정", "판정"],
+  ["LH 국민임대", "판정", "검증 중(사업 이름만 안내)"],
+  ["LH 영구임대", "판정", "검증 중(사업 이름만 안내)"],
+  ["LH 통합공공임대(일반형)", "판정", "검증 중(사업 이름만 안내)"],
+  ["입주자격 완화 공고, 통합공공임대 일자리연계형", "—", "판정하지 않음(이유 안내)"],
+  ["분양(공공분양·토지임대부 등), 10년 공공임대, 고령자복지주택, SH 국민·영구임대", "—", "판정하지 않음(사업 이름만 안내)"],
+];
+
 export default function About() {
   return (
     <div className="mx-auto max-w-3xl space-y-5 text-sm leading-relaxed text-slate-800">
@@ -20,6 +36,35 @@ export default function About() {
             확실하지 않은 조건이 결론을 바꿀 수 있으면 &lsquo;보류&rsquo;로 두고 확인할 원문 위치를 알려 드립니다.</li>
           <li>아직 판정하지 않는 사업(분양 등)의 공고는 무엇인지만 알려 드립니다.</li>
         </ul>
+      </section>
+
+      <section className={card}>
+        <h2 className="mb-2 text-base font-semibold">지원 범위</h2>
+        <p className="mb-3">사업마다 판정하는 방법이 다릅니다. &lsquo;등록 공고&rsquo;는 사람이 원문과 대조해 검증한 공고이고(목록에서 고르기),
+          &lsquo;새 공고 자동 판정&rsquo;은 처음 올린 공고문을 자동으로 읽어 판정하는 것입니다. 새 공고 자동 판정은 사업마다 처음 보는 공고
+          3건에서 틀린 판정이 없을 때 엽니다.</p>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[28rem] text-left text-sm" data-testid="scope-table">
+            <thead className="border-b border-slate-200 text-xs text-slate-500">
+              <tr>
+                <th className="py-1.5 pr-3 font-medium">사업</th>
+                <th className="py-1.5 pr-3 font-medium">등록 공고 판정</th>
+                <th className="py-1.5 font-medium">새 공고 자동 판정</th>
+              </tr>
+            </thead>
+            <tbody>
+              {SCOPE.map(([name, registered, auto]) => (
+                <tr key={name} className="border-b border-slate-100 align-top">
+                  <td className="py-1.5 pr-3">{name}</td>
+                  <td className="py-1.5 pr-3">{registered}</td>
+                  <td className="py-1.5">{auto}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">2026년 11월 기준. 판정하지 않는 공고를 올리면 &lsquo;판정하지 않음&rsquo;과 그 이유를 알려
+          드립니다 — 지원 불가라는 뜻이 아닙니다.</p>
       </section>
 
       <section className={card}>

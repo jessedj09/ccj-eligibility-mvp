@@ -54,6 +54,27 @@ test("등록 공고 PDF를 올리면 검증된 규칙으로 판정하고, 결과
   const want = await direct.json();
   await expect(page.getByTestId("result-title")).toContainText(GROUP[want.verdict]);
   await expect(page.getByTestId("result")).toContainText(want.common_note);
+  // 결론 옆 범위 문구(A1)와 판정 출처(A3)
+  await expect(page.getByTestId("scope")).toContainText("확인하지 않은 것");
+  await expect(page.getByTestId("scope")).toContainText("순위·배점·추첨과 당첨 여부");
+  await expect(page.getByTestId("source")).toContainText("검증된 등록 규칙");
+});
+
+test("20MB를 넘는 파일은 올리기 전에 알린다", async ({ page }) => {
+  await page.goto("/");
+  let uploaded = false;
+  page.on("request", (r) => { if (r.url().endsWith("/upload")) uploaded = true; });
+  const big = Buffer.alloc(20 * 1024 * 1024 + 1, 0x20);
+  big.write("%PDF-1.7", 0);
+  await page.getByTestId("pdf-input").setInputFiles({ name: "big.pdf", mimeType: "application/pdf", buffer: big });
+  await expect(page.getByRole("alert").filter({ hasText: "너무 큽니다" })).toContainText("20MB까지");
+  expect(uploaded).toBe(false);
+});
+
+test("이용 안내에 지원 범위 표가 있다", async ({ page }) => {
+  await page.goto("/about");
+  await expect(page.getByTestId("scope-table")).toContainText("LH 통합공공임대(일반형)");
+  await expect(page.getByTestId("scope-table")).toContainText("새 공고 자동 판정");
 });
 
 test("목록에서 공고를 고르고, 나이 기준을 넘기면 지원 불가와 근거 쪽이 보인다", async ({ page }) => {
