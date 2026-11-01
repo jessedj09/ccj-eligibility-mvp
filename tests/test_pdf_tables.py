@@ -88,7 +88,7 @@ def test_merge_drops_conflicting_cells():
     assert conflicts == 1 and len(cells) == len(g.cells) - 1
 
 
-@pytest.mark.parametrize("nid", ["N3", "N13", "N26", "N30", "N35"])
+@pytest.mark.parametrize("nid", ["N3", "N13", "N26", "N30", "N35", "N46"])
 def test_registered_notices_have_no_wrong_cells(nid, fams):
     """평가 도구와 같은 계산 — 틀린 칸·교차 실패·방법 충돌 0, 인용 기준표 칸을 표 위치로 찾는다."""
     import sys

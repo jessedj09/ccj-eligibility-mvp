@@ -274,22 +274,39 @@ class Family:
     adder7: int = 0                                                         # 7인 이상 = 6인 + 1인당 가산(그 규칙의 공고)
 
 
+def _ref_family(rid: str, ref: dict) -> Family:
+    name = f"{'기준중위소득' if '중위' in ref.get('label', '') else '도시근로자'} {ref.get('year_basis')}"
+    f = Family(name, adder7=int(ref.get("per_person_adder_7plus") or 0))
+    for size, row in ref["table"].items():
+        for ratio, v in row.items():
+            s, r = int(size), int(ratio)
+            if s >= 7:
+                f.rows[(s, r)] = v
+                continue
+            lo, hi = _interval(v, r)
+            old = f.base.get(s, (lo, hi))
+            f.base[s] = (max(old[0], lo), min(old[1], hi))
+    return f
+
+
 def families(refs: Dict[str, dict]) -> List[Family]:
-    groups: Dict[str, Family] = {}
-    for ref in refs.values():
-        name = f"{'기준중위소득' if '중위' in ref.get('label', '') else '도시근로자'} {ref.get('year_basis')}"
-        f = groups.setdefault(name, Family(name))
-        f.adder7 = max(f.adder7, int(ref.get("per_person_adder_7plus") or 0))
-        for size, row in ref["table"].items():
-            for ratio, v in row.items():
-                s, r = int(size), int(ratio)
-                if s >= 7:
-                    f.rows[(s, r)] = v
-                    continue
-                lo, hi = _interval(v, r)
-                old = f.base.get(s, (lo, hi))
-                f.base[s] = (max(old[0], lo), min(old[1], hi))
-    return list(groups.values())
+    """같은 기준·연도이면서 가구원수별 기준액이 서로 맞는 기준표끼리 묶는다. 맞지 않는 표(신혼희망타운 분양의 '3인 이하' 행처럼
+    다른 기준액을 쓰는 표)는 따로 묶는다 — 한 표 때문에 묶음 전체의 기준액이 깨지지 않게."""
+    out: List[Family] = []
+    for rid, ref in refs.items():
+        f = _ref_family(rid, ref)
+        home = next((g for g in out if g.name.split(" (")[0] == f.name and all(
+            max(g.base[s][0], f.base[s][0]) <= min(g.base[s][1], f.base[s][1]) for s in set(g.base) & set(f.base))), None)
+        if home is None:
+            f.name = f.name if not any(g.name == f.name for g in out) else f"{f.name} ({rid})"
+            out.append(f)
+            continue
+        for s, (lo, hi) in f.base.items():
+            old = home.base.get(s, (lo, hi))
+            home.base[s] = (max(old[0], lo), min(old[1], hi))
+        home.rows.update(f.rows)
+        home.adder7 = max(home.adder7, f.adder7)
+    return out
 
 
 def predicts(f: Family, size: int, ratio: int, amount: int) -> bool:
@@ -306,25 +323,20 @@ def predicts(f: Family, size: int, ratio: int, amount: int) -> bool:
 
 
 def compare_reference(cells: List[Cell], fams: List[Family]) -> Dict[str, List[Cell]]:
-    """칸 단위 대조. 쪽마다 칸을 가장 많이 설명하는 기준 묶음을 고른다.
-    - same: 그 기준으로 제 칸(가구원수·비율)과 맞음
-    - misplaced(**틀린 칸**): 제 칸과는 안 맞는데 같은 쪽의 다른 칸 위치 값과 맞음 — 위치를 잘못 읽은 것
+    """칸 단위 대조. 한 쪽에 기준이 다른 표가 섞이기도 한다(분양: 일반 표 + '3인 이하' 표) — 칸마다 모든 기준 묶음으로 본다.
+    - same: 어느 묶음으로든 제 칸(가구원수·비율)과 맞음
+    - misplaced(**틀린 칸**): 어느 묶음으로도 제 칸과는 안 맞는데 같은 쪽의 다른 칸 위치 값과 맞음 — 위치를 잘못 읽은 것
     - other: 어느 칸으로도 설명되지 않음(다른 연도·다른 기준의 표, 또는 기준표에 없는 규칙)"""
     out = {"same": [], "misplaced": [], "other": []}
-    by_page: Dict[int, List[Cell]] = {}
+    ratios_by_page: Dict[int, set] = {}
     for c in cells:
-        by_page.setdefault(c.page, []).append(c)
-    for cs in by_page.values():
-        if not fams:
-            out["other"] += cs
-            continue
-        best = max(fams, key=lambda f: sum(predicts(f, c.size, c.ratio, c.amount) for c in cs))
-        ratios = {c.ratio for c in cs}
-        for c in cs:
-            if predicts(best, c.size, c.ratio, c.amount):
-                out["same"].append(c)
-            elif any(predicts(best, s, r, c.amount) for s in range(1, 9) for r in ratios if (s, r) != (c.size, c.ratio)):
-                out["misplaced"].append(c)
-            else:
-                out["other"].append(c)
+        ratios_by_page.setdefault(c.page, set()).add(c.ratio)
+    for c in cells:
+        if any(predicts(f, c.size, c.ratio, c.amount) for f in fams):
+            out["same"].append(c)
+        elif any(predicts(f, s, r, c.amount) for f in fams for s in range(1, 9) for r in ratios_by_page[c.page]
+                 if (s, r) != (c.size, c.ratio)):
+            out["misplaced"].append(c)
+        else:
+            out["other"].append(c)
     return out
