@@ -111,7 +111,7 @@ def test_score_prefers_judgeable_and_fewer_unknowns(n12):
 
 
 def test_ollama_down_means_no_claim(monkeypatch):
-    assert worker.ollama_ready("http://127.0.0.1:1", "ministral-3:3b") is False
+    assert worker.ollama_ready("http://127.0.0.1:1", "gemma4:e2b") is False
 
     class Never(S.Store):
         def claim(self, kind):

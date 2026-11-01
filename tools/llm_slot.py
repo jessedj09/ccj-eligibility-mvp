@@ -17,8 +17,9 @@ from typing import List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / ".cache" / "llm"
-# 기본 모델 — 비중국 모델 비교(2026-10-27, docs/09 §18)에서 고름: 시험용 자동 채움 93%·틀림 0, 질문당 약 9초(GPU 4GB).
-DEFAULT_MODEL = "ministral-3:3b"
+# 기본 모델 — 한국어 소형 모델 재비교(2026-11-01, docs/09 §20)에서 고름: 문장 찾기 64문항 맞음 23·다른 문장 2(ministral-3:3b 20·12),
+# 질문당 약 3.4초(GPU 4GB). 이전 기본 ministral-3:3b(§18).
+DEFAULT_MODEL = "gemma4:e2b"
 
 SYSTEM = ("너는 한국 공공임대주택 입주자모집공고문에서 문장을 찾아 **원문 그대로 복사**하는 도구다. "
           "요약·의역·판단을 하지 말고, 공고문에 적힌 글자를 그대로 옮긴다. 찾지 못하면 빈 문자열을 쓴다. "
