@@ -224,6 +224,13 @@ class HouseholdProfile:
     # G3(분양): 본인·세대원이 과거에 특별공급(신혼희망타운·신혼부부·생애최초·다자녀·노부모부양 등, 옛 3자녀·노부모 우선공급
     # 포함)을 받은 적이 있는지. 특별공급은 1회 한정 — 없어야(False) 충족. None = 모름
     past_special_supply: Optional[bool] = None
+    # G3(LH 공공분양): 부동산(건물+토지) 가액 합계(세대, 원), 생애최초(세대 전원 과거 주택 소유 사실 / 청약 저축액(선납금 포함) /
+    # 신청자 본인 5년 이상 소득세 납부), 노부모부양(65세 이상 직계존속 3년 이상 같은 등본 부양). None = 모름
+    real_estate_value: Optional[int] = None
+    household_ever_owned_home: Optional[bool] = None
+    subscription_deposit: Optional[int] = None
+    income_tax_5y: Optional[bool] = None
+    supports_elderly_parent_3y: Optional[bool] = None
     # C5b(SH 장기전세2): 신청자·배우자(예비배우자)가 공고일 기준 최근 5년 안에 주택을 소유한 적이 있는지 — 없어야(False) 충족
 
     def __post_init__(self):

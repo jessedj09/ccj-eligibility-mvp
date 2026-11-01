@@ -155,6 +155,11 @@ with st.expander("추가 정보(해당하는 것만) — 대학생·취업준비
         eparent0 = yes_no("만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 부양(기간 무관)", "m_eparent0")
         rewin = yes_no("재당첨 제한 기간 중(과거 분양주택·분양전환 공공임대 등 당첨)", "m_rewin")
         special = yes_no("본인·세대원이 과거에 특별공급(신혼희망타운·신혼부부·생애최초 등)을 받은 적 있음", "m_special")
+        ever_own = yes_no("세대 전원 중 과거에 주택을 소유한 적 있는 사람이 있음", "m_everown")
+        tax5 = yes_no("신청자 본인이 5년 이상 소득세(근로·사업소득)를 냈음", "m_tax5")
+        eparent3 = yes_no("만 65세 이상 부모를 같은 등본에서 3년 이상 부양", "m_eparent3")
+        realestate = amount("세대 부동산(건물+토지) 공시가격 합계(원)", "m_realestate")
+        deposit = amount("청약통장 저축액(선납금 포함, 원)", "m_deposit")
 
 master = MasterProfile(
     home_self=home_self, home_household=home_household, income_self=income_self, income_household=income_household,
@@ -174,6 +179,8 @@ master = MasterProfile(
                 veteran_priority_notified=veteran, livelihood_medical_recipient=lmr, merit_person=merit,
                 north_korean_defector=defector, child_facility_leaver=facility, supports_elderly_parent=eparent0,
                 rewin_restricted=rewin, past_special_supply=special, has_subscription_account=account,
+                household_ever_owned_home=ever_own, income_tax_5y=tax5, supports_elderly_parent_3y=eparent3,
+                real_estate_value=realestate, subscription_deposit=deposit,
                 subscription_months=int(sub_months) if account else 0,
                 subscription_payment_count=int(sub_count) if account else 0))
 

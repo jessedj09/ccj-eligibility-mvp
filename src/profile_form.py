@@ -34,7 +34,9 @@ WIDGETS = [
     ("m_lmr", "livelihood_medical_recipient", "yes_no"), ("m_merit", "merit_person", "yes_no"),
     ("m_defector", "north_korean_defector", "yes_no"), ("m_facility", "child_facility_leaver", "yes_no"),
     ("m_eparent0", "supports_elderly_parent", "yes_no"), ("m_rewin", "rewin_restricted", "yes_no"),
-    ("m_special", "past_special_supply", "yes_no"),
+    ("m_special", "past_special_supply", "yes_no"), ("m_everown", "household_ever_owned_home", "yes_no"),
+    ("m_tax5", "income_tax_5y", "yes_no"), ("m_eparent3", "supports_elderly_parent_3y", "yes_no"),
+    ("m_realestate", "real_estate_value", "amount"), ("m_deposit", "subscription_deposit", "amount"),
     ("m_account", "has_subscription_account", "bool"), ("m_submonths", "subscription_months", "int"),
     ("m_subcount", "subscription_payment_count", "int"),
 ]

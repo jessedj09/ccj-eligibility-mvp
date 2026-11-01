@@ -6246,5 +6246,935 @@
    "note": "본인·세대원이 과거에 특별공급(신혼희망타운·신혼부부·생애최초·다자녀·노부모부양 등)을 받은 적이 없는지",
    "timing": "NOW"
   }
+ ],
+ "N49/다자녀가구": [
+  {
+   "id": "N49-S0-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S0-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S0-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S0-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S0-kids",
+   "field": "children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "19세 미만 자녀(태아·입양 포함)가 2명 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S0-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S0-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 120%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S0-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S0-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N49/노부모부양": [
+  {
+   "id": "N49-S1-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S1-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S1-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S1-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S1-parent",
+   "field": "supports_elderly_parent_3y",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "만 65세 이상 직계존속(배우자 직계존속 포함)을 같은 등본에서 3년 이상 계속 부양하는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S1-head",
+   "field": "house_head_status",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "세대주인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S1-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "입주자저축 1순위(가입 1년·월납입금 12회 이상)인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S1-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 120%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S1-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S1-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N49/생애최초": [
+  {
+   "id": "N49-S2-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-first",
+   "field": "household_ever_owned_home",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "세대 전원이 과거에 주택을 소유한 적이 없는지(배우자의 혼인 전 소유·처분 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "입주자저축 1순위(가입 1년·월납입금 12회 이상)인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-deposit",
+   "field": "subscription_deposit",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "청약 저축액(선납금 포함)이 600만원 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-family",
+   "field": "marital_status/children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "혼인 중이거나 미혼 자녀(같은 등본, 태아 포함)가 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-tax",
+   "field": "income_tax_5y",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "신청자 본인이 5년 이상 소득세(근로·사업소득)를 냈고 현재 근로자·자영업자이거나 과거 1년 안에 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 130%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S2-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N49/신혼부부": [
+  {
+   "id": "N49-S3-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S3-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S3-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S3-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S3-type",
+   "field": "marital_status/marriage_date/children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "혼인 7년 이내이거나 6세 이하 자녀를 둔 신혼부부, 예비신혼부부, 또는 6세 이하 자녀를 둔 한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S3-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S3-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 130%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S3-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S3-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N49/신생아": [
+  {
+   "id": "N49-S4-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S4-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S4-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S4-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S4-newborn",
+   "field": "children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "2세 미만 자녀(2세가 되는 날 포함, 태아·입양 포함)가 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S4-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S4-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 140%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S4-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S4-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N49/일반공급(전용 60㎡ 이하)": [
+  {
+   "id": "N49-S5-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S5-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S5-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S5-account",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "입주자저축(청약통장)에 가입했는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S5-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 100%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S5-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S5-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.15",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N49/일반공급(전용 60㎡ 초과)": [
+  {
+   "id": "N49-S6-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S6-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S6-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.21",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N49-S6-account",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "입주자저축(청약통장)에 가입했는지",
+   "timing": "NOW"
+  }
+ ],
+ "N50/다자녀가구": [
+  {
+   "id": "N50-S0-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S0-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S0-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S0-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S0-kids",
+   "field": "children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "19세 미만 자녀(태아·입양 포함)가 2명 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S0-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S0-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 120%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S0-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S0-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N50/노부모부양": [
+  {
+   "id": "N50-S1-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S1-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S1-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S1-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S1-parent",
+   "field": "supports_elderly_parent_3y",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "만 65세 이상 직계존속(배우자 직계존속 포함)을 같은 등본에서 3년 이상 계속 부양하는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S1-head",
+   "field": "house_head_status",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "세대주인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S1-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "입주자저축 1순위(가입 1년·월납입금 12회 이상)인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S1-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 120%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S1-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S1-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N50/생애최초": [
+  {
+   "id": "N50-S2-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-first",
+   "field": "household_ever_owned_home",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "세대 전원이 과거에 주택을 소유한 적이 없는지(배우자의 혼인 전 소유·처분 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "입주자저축 1순위(가입 1년·월납입금 12회 이상)인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-deposit",
+   "field": "subscription_deposit",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "청약 저축액(선납금 포함)이 600만원 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-family",
+   "field": "marital_status/children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "혼인 중이거나 미혼 자녀(같은 등본, 태아 포함)가 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-tax",
+   "field": "income_tax_5y",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "신청자 본인이 5년 이상 소득세(근로·사업소득)를 냈고 현재 근로자·자영업자이거나 과거 1년 안에 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 130%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S2-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N50/신혼부부": [
+  {
+   "id": "N50-S3-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.30",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S3-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S3-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S3-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S3-type",
+   "field": "marital_status/marriage_date/children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.30",
+   "note": "혼인 7년 이내이거나 6세 이하 자녀를 둔 신혼부부, 예비신혼부부, 또는 6세 이하 자녀를 둔 한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S3-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S3-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 130%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S3-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S3-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N50/신생아": [
+  {
+   "id": "N50-S4-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.31",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S4-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S4-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S4-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S4-newborn",
+   "field": "children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.31",
+   "note": "2세 미만 자녀(2세가 되는 날 포함, 태아·입양 포함)가 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S4-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S4-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.32",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 140%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S4-realestate",
+   "field": "real_estate_value",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S4-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N50/일반공급(전용 60㎡ 초과)": [
+  {
+   "id": "N50-S5-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.33",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S5-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S5-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N50-S5-account",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.33",
+   "note": "입주자저축(청약통장)에 가입했는지",
+   "timing": "NOW"
+  }
  ]
 }

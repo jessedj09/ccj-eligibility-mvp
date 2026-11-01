@@ -194,8 +194,9 @@ Engine**이다.
   G2(2026-11-01): 새 실공고 20건(등록 전 초안 얼림) — 입주자격 완화 공고 판정 중지·'/' 든 조건 ID 보류 버그 수정, N29(신혼Ⅱ 3차)·국민임대 판정 틀 `lh.national_rental`(tools/gen_c6_public.py, N30~N32, 처음 보는 부천 위험 0 — 공개는 새 공고 2건 더 필요), 영구임대 판정 틀 `lh.permanent_rental`(N33 양주회천·N34 부천, 별표3 신분 트랙 + 입력 5개 — 검증용 LH 공고 3건 필요), 통합공공임대 일반형 `lh.integrated_rental`(2026 기준중위소득 표 `income_standard_median`, N35 평창·N36 강서염창 처음 보는 공고 위험 0 — 일자리연계형은 차단), 식별: 같은 날 같은 사업 후보가 하나여도 단지 이름 확인 — 상세 docs/10 G2.
   G4(2026-11-01): 공공임대(10년·분양전환·50년) 예비입주자 `lh.public_rental`(N37~N44, 처음 보는 공고 5건 위험 0 → PASSING 공개), 새 입력 rewin_restricted·청약통장 기간·횟수 — 상세 docs/10 G4.
   G3(2026-11-01): 신혼희망타운 공공분양 `lh.newlywed_town_sale`(N45~N48, 단순형·정규형, 처음 보는 공고 2건 위험 0 — 공개 전), 기준표 income_standard_nhtown, 새 입력 past_special_supply, 계층 '예비신혼부부' — 상세 docs/10 G3.
+  G3-2(2026-11-01): LH 공공분양 `lh.public_sale`(N49 양주회천 A-26·N50 안산신길2 B-1 처음 보는 공고 위험 0 — 공개 전), 특별공급 5종 + 일반공급 60㎡ 이하/초과, 기준표 income_standard_sale, 새 입력 부동산 가액·생애최초 3종·노부모 3년 — 상세 docs/10 G3-2.
   모바일 웹 = 같은 화면 반응형(lg 미만 1단). **화면을 고치면 PC·휴대폰 둘 다 점검**(Playwright pc-chromium·mobile-chromium, `e2e/mobile.spec.ts`).
-- pytest: 총 **1233개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+- pytest: 총 **1267개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

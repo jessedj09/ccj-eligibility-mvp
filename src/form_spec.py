@@ -73,12 +73,17 @@ C4_BOOLS = {
     "supports_elderly_parent": "만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 부양(기간 무관)",
     "rewin_restricted": "재당첨 제한 기간 중(본인·세대원이 과거 분양주택·분양전환 공공임대 등에 당첨되어 제한 기간이 남음)",
     "past_special_supply": "본인·세대원이 과거에 특별공급(신혼희망타운·신혼부부·생애최초·다자녀·노부모부양 등)을 받은 적 있음",
+    "household_ever_owned_home": "세대 전원 중 과거에 주택을 소유한 적 있는 사람이 있음(배우자의 혼인 전 소유·처분 포함)",
+    "income_tax_5y": "신청자 본인이 5년 이상 소득세(근로·사업소득)를 냈음(현재 근로자·자영업자이거나 과거 1년 안에 납부)",
+    "supports_elderly_parent_3y": "만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 3년 이상 계속 부양",
 }
 SUBSCRIPTION_INTS = {
     "subscription_months": "청약통장 가입 기간(개월, 순위확인서 기준)",
     "subscription_payment_count": "청약통장 납입 인정 횟수(회, 순위확인서 기준)",
 }
 C4_AMOUNTS = {
+    "real_estate_value": "세대 부동산(건물+토지) 공시가격 합계(원, 없으면 0)",
+    "subscription_deposit": "청약통장 저축액(선납금 포함, 원)",
     "parents_monthly_income": "부모 월평균소득 합계(원)",
     "parents_total_assets": "부모 총자산 합계(원)",
     "parents_car_value": "부모 보유 자동차 중 가장 높은 차량가액(원, 없으면 0)",
@@ -197,7 +202,8 @@ def master_form() -> Dict:
         yes_no("registered_with_parents", C4_BOOLS["registered_with_parents"]),
         yes_no("is_supported_single_parent", C4_BOOLS["is_supported_single_parent"]),
         _f("parents_count", PARENTS_COUNT[0], "select", EXTRA, options=PARENTS_COUNT[1], unknown=True),
-        *[_f(f, label, "amount", EXTRA) for f, label in C4_AMOUNTS.items()],
+        *[_f(f, label, "amount", EXTRA) for f, label in C4_AMOUNTS.items()
+          if f not in ("real_estate_value", "subscription_deposit")],
         *[_f(f, CHOICE_FIELDS[f][0], "select", EXTRA, options=CHOICE_FIELDS[f][1], unknown=True)
           for f in ("housing_benefit_status", "housing_weak_type", "industrial_workplace")],
         _f("workplace_area", REGION_LABELS["workplace_area"], "region", EXTRA, unknown=True),
@@ -209,7 +215,9 @@ def master_form() -> Dict:
                                             "veteran_priority_notified")],
         *[yes_no(f, C4_BOOLS[f]) for f in ("livelihood_medical_recipient", "merit_person", "north_korean_defector",
                                             "child_facility_leaver", "supports_elderly_parent", "rewin_restricted",
-                                            "past_special_supply")],
+                                            "past_special_supply", "household_ever_owned_home", "income_tax_5y",
+                                            "supports_elderly_parent_3y")],
+        *[_f(f, C4_AMOUNTS[f], "amount", EXTRA) for f in ("real_estate_value", "subscription_deposit")],
     ]
     return {"announcement_date": None, "layer": None, "notes": [], "sections": [BASIC, MONEY, CHILDREN, REGION, EXTRA],
             "section_titles": {EXTRA: "추가 정보(해당하는 것만) — 대학생·취업준비생, 복지 자격, 부모 정보, 주거약자, 특수 자격(영구임대 신분 포함)"},

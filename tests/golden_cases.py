@@ -92,6 +92,11 @@ DATES = {
                  grad=date(a.year - 2, a.month, a.day), adult=date(a.year - 19, a.month, a.day))
        for nid, a in (("N45", date(2026, 9, 8)), ("N46", date(2026, 9, 18)), ("N47", date(2026, 9, 29)),
                       ("N48", date(2026, 10, 30)))},
+    # G3 LH 공공분양(N49 양주회천 A-26 2026.08.27, N50 안산신길2 B-1 2026.10.30) — 혼인 7년·6세 이하·19세 미만·2세 미만은 공고일에서
+    **{nid: dict(ann=a, marriage=date(a.year - 7, a.month, a.day), child=date(a.year - 7, a.month, a.day + 1),
+                 grad=date(a.year - 2, a.month, a.day), adult=date(a.year - 19, a.month, a.day + 1),
+                 newborn=date(a.year - 2, a.month, a.day))
+       for nid, a in (("N49", date(2026, 8, 27)), ("N50", date(2026, 10, 30)))},
     "N16": dict(ann=date(2026, 5, 22), marriage=date(2019, 5, 22), child=date(2019, 5, 23),
                 grad=date(2024, 5, 22), adult=date(2007, 5, 22)),
     "N17": dict(ann=date(2026, 10, 1), marriage=date(2019, 10, 1), child=date(2019, 10, 2),
@@ -141,7 +146,8 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               "N32": "national_rental", "N33": "permanent_rental", "N34": "permanent_rental",
               "N35": "integrated_rental", "N36": "integrated_rental",
               **{f"N{n}": "public_rental" for n in range(37, 45)},
-              **{f"N{n}": "newlywed_town_sale" for n in range(45, 49)}}
+              **{f"N{n}": "newlywed_town_sale" for n in range(45, 49)},
+              "N49": "public_sale", "N50": "public_sale"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -172,6 +178,11 @@ PERM_INCOME = [None, 0, 1] + [v + d for v in (2_669_354, 3_432_027, 4_576_036, 3
                                               4_084_215, 5_717_900, 8_168_429, 4_901_057, 9_802_115, 5_242_771, 12_582_649)
                               for d in (-1, 0, 1)] + [30_000_000]
 PERM_ASSETS = [None, 0, 1] + [v + d for v in (245_000_000, 270_000_000, 294_000_000) for d in (0, 1)]
+# G3 LH 공공분양: 2025 도시근로자 100~220%(3인 이하·4인·8인) 경계 ±1원, 부동산 3단계
+SALE_INCOME_POOL = [None, 0, 1] + [v + d for v in (7_533_763, 8_287_139, 9_040_516, 9_793_892, 10_547_268, 11_300_645,
+                                                  15_067_526, 15_820_902, 16_574_279, 10_562_642, 17_604_404, 22_129_638)
+                                   for d in (-1, 0, 1)] + [40_000_000]
+SALE_RE_POOL = [None, 0] + [v + d for v in (215_500_000, 237_050_000, 258_600_000) for d in (0, 1)]
 # G3 신혼희망타운: 2025 도시근로자 130·140·150·200·210·220%(3인 이하·4인·8인) 경계 ±1원, 총자산 3단계
 NH_INCOME_POOL = [None, 0, 1] + [v + d for v in (9_793_892, 10_547_268, 11_300_645, 15_067_526, 15_820_902, 16_574_279,
                                                 11_442_863, 17_604_404, 14_384_265, 22_129_638) for d in (-1, 0, 1)] + [40_000_000]
@@ -242,6 +253,27 @@ def _program_attributes(program: str, layer: str, pools) -> Dict[str, Tuple[list
             "account": ([True, False], True), "submonths": ([0, 5, 6, 12, 24], 12), "subcount": ([0, 5, 6, 12, 24], 12),
             "rewin": tri,
         }
+    if program == "public_sale":   # G3: 유형별 소득 비율·맞벌이 200%·출산 가산, 부동산·자동차, 유형 요건
+        tri = ([None, False, True], False)
+        attrs = {
+            "home": (["무주택", "주택보유"], "무주택"), "age": ([17, 19, 33, 66], 33), "marital": (MARITALS, "혼인중"),
+            "size": ([1, 2, 3, 4, 8, 9], 3), "kids": (pools["kids"], []), "count": (COUNTS[:1], 0),
+            "dual": ([True, False], False), "income": (SALE_INCOME_POOL, 1), "assets": ([None, 0], 0),
+            "car": (CARS, 0), "realestate": (SALE_RE_POOL, 0),
+            "marriage": (pools["marriage"], date(2025, 1, 1)), "has_children": (HAS_CHILDREN, None),
+            "youngest": (pools["youngest"], None), "head": (HEADS, "세대주"),
+            "residence_area": ([None, "서울특별시", "고양시", "부산광역시", "해당없음"], "서울특별시"),
+            "account": ([True, False], True), "submonths": ([0, 5, 6, 11, 12, 24], 24), "subcount": ([0, 5, 6, 11, 12, 24], 24),
+            "rewin": tri, "special": tri, "everown": tri, "tax5": ([None, False, True], True),
+            "eparent3": ([None, False, True], True), "deposit": ([None, 0, 5_999_999, 6_000_000, 20_000_000], 10_000_000),
+        }
+        if layer == "다자녀가구":
+            attrs["kids"] = (pools["kids"], [AFTER, BEFORE_MINOR])
+        elif layer == "신생아":
+            attrs["kids"] = (pools["kids"], [AFTER2])
+        elif layer == "신혼부부":
+            attrs["marital"] = (MARITALS, "혼인중")
+        return attrs
     if program == "newlywed_town_sale":   # G3: 3인 이하 한 칸·맞벌이 200%·출산 가산 경계, 저축 6개월·6회
         tri = ([None, False, True], False)
         return {
@@ -332,6 +364,9 @@ GROUPS: List[Tuple[str, str]] = [
     ("N36", "청년"), ("N36", "신혼부부"), ("N36", "한부모"), ("N36", "고령자"), ("N36", "일반"),
     *[(f"N{n}", "일반") for n in range(37, 45)],
     *[(f"N{n}", layer) for n in range(45, 49) for layer in ("신혼부부", "예비신혼부부", "한부모")],
+    *[("N49", layer) for layer in ("다자녀가구", "노부모부양", "생애최초", "신혼부부", "신생아", "일반공급(전용 60㎡ 이하)",
+                                   "일반공급(전용 60㎡ 초과)")],
+    *[("N50", layer) for layer in ("다자녀가구", "노부모부양", "생애최초", "신혼부부", "신생아", "일반공급(전용 60㎡ 초과)")],
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -411,6 +446,8 @@ def _pools(nid: str) -> Dict[str, list]:
 
 def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, object]]:
     """계층별 (값 풀, 기준 프로필의 기본값). 기본값은 '모든 조건이 통과'하는 쪽."""
+    if PROGRAM_OF.get(nid) == "public_sale":                # G3: 일반공급(전용 60㎡ 이하/초과)도 사업 전용 풀
+        return _program_attributes("public_sale", layer, pools)
     if PROGRAM_OF.get(nid) == "national_rental":            # G2: 변형 계층(고령자 주택형)도 사업 전용 풀
         return _program_attributes("national_rental", layer, pools)
     if PROGRAM_OF.get(nid) == "permanent_rental":           # G2: 거주 요건 시는 공고마다 다르다
@@ -513,7 +550,9 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
                                             ("lmr", "livelihood_medical_recipient"), ("merit", "merit_person"),
                                             ("defector", "north_korean_defector"), ("facility", "child_facility_leaver"),
                                             ("eparent0", "supports_elderly_parent"), ("rewin", "rewin_restricted"),
-                                            ("special", "past_special_supply"),
+                                            ("special", "past_special_supply"), ("realestate", "real_estate_value"),
+                                            ("everown", "household_ever_owned_home"), ("deposit", "subscription_deposit"),
+                                            ("tax5", "income_tax_5y"), ("eparent3", "supports_elderly_parent_3y"),
                                             ("account", "has_subscription_account"),
                                             ("submonths", "subscription_months"),
                                             ("subcount", "subscription_payment_count")) if key in v})

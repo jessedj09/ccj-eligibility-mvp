@@ -536,6 +536,139 @@ def newlywed_town_sale(nid, open_quote=None, eligibility_quote=None, residence=N
     return layers, tables
 
 
+# ------------------------------------------------------------------------------------------------
+# LH 공공분양 (G3 — 양주회천 A-26 p.15~28)
+# ------------------------------------------------------------------------------------------------
+# 판정하는 유형: 다자녀가구·노부모부양·생애최초·신혼부부·신생아 특별공급, 일반공급(전용 60㎡ 이하/초과). 기관추천·지역균형발전·
+# 철거주택소유자 특별공급은 기관이 대상자를 정해 통보하므로 미지원 계층. 소득은 유형별 '신청할 수 있는' 상한 — 우선공급(낮은 비율)
+# 낙첨자도 추첨공급(맞벌이 200%)에 들어가므로 추첨 기준. 전용 60㎡ 초과 일반공급은 소득·자산 기준이 없다.
+SALE_RE = [215500000, 237050000, 258600000]          # 부동산(건물+토지) 215,500천원(출산 1명 237,050·2명 이상 258,600)
+SALE_CAR = [45420000, 49960000, 54510000]
+SALE_BASE = {"다자녀가구": 120, "노부모부양": 120, "생애최초": 130, "신혼부부": 130, "신생아": 140, "일반공급(전용 60㎡ 이하)": 100}
+SALE_INCOME_Q = "의{}%(본인및배우자가모두소득이있는경우200%)이하인분"
+SALE_SECTION = {"다자녀가구": "다자녀가구특별공급■신청자격", "노부모부양": "노부모부양특별공급■신청자격",
+                "생애최초": "생애최초특별공급■신청자격", "신혼부부": "신혼부부특별공급■신청자격", "신생아": "신생아특별공급■신청자격",
+                "일반공급(전용 60㎡ 이하)": "일반공급■신청자격", "일반공급(전용 60㎡ 초과)": "일반공급■신청자격"}
+ACCOUNT_6 = "입주자저축에가입하여6개월이경과되고매월약정납입일에월납입금을6회이상납입한분"
+ACCOUNT_12 = "1년이경과한자로서매월약정납입일에월납입금을12회이상납입한"
+MINORS = {"fn": "children_on_or_after", "args": [{"fn": "minor_cutoff"}]}
+
+
+def _sale_account(p, months, quote, note):
+    return cond(f"{p}-account", "has_subscription_account/subscription_months/subscription_payment_count", [quote], note,
+                {"all": [{"eq": [{"var": "has_subscription_account"}, True]},
+                         {"gte": [{"var": "subscription_months"}, months]},
+                         {"gte": [{"var": "subscription_payment_count"}, months]}]})
+
+
+def public_sale(nid, residence=None, small=True, large=True):
+    """residence: '수도권' 또는 None. small/large: 전용 60㎡ 이하/초과 주택형이 있는지(일반공급 계층)."""
+    layers, tables = {}, {}
+    names = ["다자녀가구", "노부모부양", "생애최초", "신혼부부", "신생아"] + \
+        (["일반공급(전용 60㎡ 이하)"] if small else []) + (["일반공급(전용 60㎡ 초과)"] if large else [])
+    for i, layer in enumerate(names):
+        p = f"{nid}-S{i}"
+        head = SALE_SECTION[layer]
+        conds = [cond(f"{p}-home", "home_ownership", [head], "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)", HOME)]
+        if residence == CAPITAL:
+            conds.append(cond(f"{p}-region", "residence_area", ["에거주하면서아래조건"],
+                              "공고일 현재 수도권(서울특별시·경기도·인천광역시)에 주민등록이 되어 있는지",
+                              {"in": [{"var": "residence_area"}, capital_areas()]}))
+        conds.append(cond(f"{p}-rewin", "rewin_restricted", ["재당첨제한기간내에있는분및그세대에속한분"],
+                          "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+                          {"eq": [{"var": "rewin_restricted"}, False]}))
+        special = not layer.startswith("일반공급")
+        if special:
+            conds.append(cond(f"{p}-special", "past_special_supply", ["특별공급은1회에한하여공급함"],
+                              "본인·세대원이 과거에 특별공급을 받은 적이 없는지(출산 특례는 수동 확인)",
+                              {"any": [{"eq": [{"var": "past_special_supply"}, False]},
+                                       {"eq": [{"var": "past_special_supply"}, True],
+                                        "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                                           "detail": "특별공급은 1회 한정이지만 「주택공급에 관한 규칙」 제55조의3 출산 "
+                                                                     "특례에 해당하면 다시 신청할 수 있습니다. 해당 여부는 공고문 출산특례를 "
+                                                                     "확인하세요."}}]}))
+        if layer == "다자녀가구":
+            conds += [cond(f"{p}-kids", "children_birth_dates", ["인자녀(태아나입양아포함)2명이상을둔무주택세대구성원"],
+                           "19세 미만 자녀(태아·입양 포함)가 2명 이상인지", {"gte": [MINORS, 2]}),
+                      _sale_account(p, 6, ACCOUNT_6, "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지")]
+        elif layer == "노부모부양":
+            conds += [cond(f"{p}-parent", "supports_elderly_parent_3y", ["을3년이상계속하여부양"],
+                           "만 65세 이상 직계존속(배우자 직계존속 포함)을 같은 등본에서 3년 이상 계속 부양하는지",
+                           {"eq": [{"var": "supports_elderly_parent_3y"}, True]}),
+                      cond(f"{p}-head", "house_head_status", ["하고있는무주택세대구성원중세대주"], "세대주인지",
+                           {"eq": [{"var": "house_head_status"}, "세대주"]}),
+                      _sale_account(p, 12, ACCOUNT_12, "입주자저축 1순위(가입 1년·월납입금 12회 이상)인지")]
+        elif layer == "생애최초":
+            conds += [cond(f"{p}-first", "household_ever_owned_home", ["세대에속한모든분이과거주택소유사실이없는경우"],
+                           "세대 전원이 과거에 주택을 소유한 적이 없는지(배우자의 혼인 전 소유·처분 포함)",
+                           {"eq": [{"var": "household_ever_owned_home"}, False]}),
+                      _sale_account(p, 12, ACCOUNT_12, "입주자저축 1순위(가입 1년·월납입금 12회 이상)인지"),
+                      cond(f"{p}-deposit", "subscription_deposit", ["저축액이선납금을포함하여600만원이상인분"],
+                           "청약 저축액(선납금 포함)이 600만원 이상인지", {"gte": [{"var": "subscription_deposit"}, 6000000]}),
+                      cond(f"{p}-family", "marital_status/children_birth_dates", ["현재혼인(재혼포함)중이거나미혼인자녀"],
+                           "혼인 중이거나 미혼 자녀(같은 등본, 태아 포함)가 있는지",
+                           {"any": [{"in": [{"var": "marital_status"}, ["혼인중"]]}, {"gte": [MINORS, 1]},
+                                    {"in": [{"var": "marital_status"}, ["미혼", "예비신혼", "한부모"]],
+                                     "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                                        "detail": "성년이어도 미혼 자녀가 같은 등본에 있으면 신청할 수 있습니다. 이 화면은 "
+                                                                  "미성년 자녀만 묻습니다."}}]}),
+                      cond(f"{p}-tax", "income_tax_5y", ["신청자본인이5년이상소득세를납부한분"],
+                           "신청자 본인이 5년 이상 소득세(근로·사업소득)를 냈고 현재 근로자·자영업자이거나 과거 1년 안에 냈는지",
+                           {"eq": [{"var": "income_tax_5y"}, True]})]
+        elif layer == "신혼부부":
+            conds += [cond(f"{p}-type", "marital_status/marriage_date/children_birth_dates",
+                           ["혼인기간이7년이내", "예비신혼부부[혼인을계획중이며", "한부모가족[6세이하"],
+                           "혼인 7년 이내이거나 6세 이하 자녀를 둔 신혼부부, 예비신혼부부, 또는 6세 이하 자녀를 둔 한부모가족인지",
+                           {"any": [{"all": [{"in": [{"var": "marital_status"}, ["혼인중"]]}, NH_DURATION]},
+                                    {"in": [{"var": "marital_status"}, ["예비신혼"]]},
+                                    {"all": [{"in": [{"var": "marital_status"}, ["한부모"]]}, NH_CHILD6]}]}),
+                      _sale_account(p, 6, ACCOUNT_6, "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지")]
+        elif layer == "신생아":
+            conds += [cond(f"{p}-newborn", "children_birth_dates", ["2세미만의자녀(2세가되는날을포함)"],
+                           "2세 미만 자녀(2세가 되는 날 포함, 태아·입양 포함)가 있는지",
+                           {"gte": [{"fn": "children_on_or_after", "args": [{"fn": "newborn_cutoff"}]}, 1]}),
+                      _sale_account(p, 6, ACCOUNT_6, "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지")]
+        else:
+            conds.append(cond(f"{p}-account", "has_subscription_account", ["무주택세대구성원으로서입주자저축에가입한분"],
+                              "입주자저축(청약통장)에 가입했는지", {"eq": [{"var": "has_subscription_account"}, True]}))
+        base = SALE_BASE.get(layer)
+        if base:
+            table = f"sale_terms_{base}"
+            conds += [
+                cond(f"{p}-income", "monthly_income", [SALE_INCOME_Q.format(base)],
+                     f"세대 월평균소득이 전년도 도시근로자 월평균소득의 {base}%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 "
+                     "+10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+                     {"lte": [{"var": "monthly_income"},
+                              {"lookup": ["income_standard_sale", {"fn": "max", "args": [{"var": "household_size"}, 3]},
+                                          {"term": "ratio"}]}]}, table=table),
+                cond(f"{p}-realestate", "real_estate_value", ["부동산(건물+토지)215,500천원이하"],
+                     "세대 부동산(건물+토지) 가액이 2억1,550만원(출산자녀 1명 2억3,705만원·2명 이상 2억5,860만원) 이하인지",
+                     {"lte": [{"var": "real_estate_value"}, {"term": "re_limit"}]}, table=table),
+                cond(f"{p}-car", "car_value", ["자동차45,420천원이하"],
+                     "자동차가액이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+                     {"lte": [CAR, {"term": "car_limit"}]}, table=table),
+            ]
+            if table not in tables:
+                rows = []
+                for dual, add in ((False, base), (True, 200)):
+                    for c, child in enumerate((0, 1, "2+")):
+                        rows.append(r({"child": child, "dual": dual}, [add + 10 * c, SALE_RE[c], SALE_CAR[c]]))
+                tables[table] = {
+                    "label": f"LH 공공분양 소득 비율({base}%, 맞벌이 200%)·부동산·자동차 한도: 출산자녀수 × 맞벌이",
+                    "columns": ["child", "dual"], "inputs": {"child": {"fn": "child_bonus_count"}, "dual": {"var": "dual_income"}},
+                    "outputs": ["ratio", "re_limit", "car_limit"], "rows": rows,
+                    "source": {"quote": ["237,050천원이하258,600천원이하"]}}
+        layers[layer] = {"conditions": conds}
+    return layers, tables
+
+
+SALE_NOTES = [
+    "우선공급·배점·지역 우선(해당 시 거주기간)·일반공급 순위(납입 횟수·저축총액)는 선정 순서다 — 신청할 수 있는지만 판정한다.",
+    "특별공급은 하나만 신청할 수 있고, 특별공급 1개와 일반공급 1개는 함께 신청할 수 있다(특별공급 당첨 시 일반공급 제외).",
+    "부적격 당첨 후 1년이 지나지 않은 사람은 신청할 수 없다(재당첨 제한과 함께 묻는다).",
+]
+
+
 NHTOWN_NOTES = [
     "1단계 우선공급·2단계 일반공급의 소득 기준(130%, 맞벌이 140%)과 배점·지역 우선(해당 시 거주기간)은 선정 순서다 — "
     "3단계 추첨까지 신청할 수 있으므로 판정은 추첨 기준(130%, 맞벌이 200%)으로 한다.",
@@ -625,6 +758,23 @@ PLAN = [
                      "예비신혼부부": "현재수도권[서울특별시,인천광역시,경기도]에거주하면서아래조건(1~4)을모두갖춘예비신혼부부",
                      "한부모": "현재수도권[서울특별시,인천광역시,경기도]에거주하면서아래조건(1~4)을모두갖춘한부모가족"}},
          notes=NHTOWN_NOTES + ["시흥시 1년 이상 거주자가 우선이며 재당첨 제한은 10년, 전매 제한은 3년이다(p.2)."]),
+    # G3 LH 공공분양 — 개발용
+    dict(nid="N49", key="LH49", title="양주회천 A-26블록 공공분양주택(정정)", ann="2026-08-27",
+         program="공공분양주택", template="public_sale", params={"residence": CAPITAL, "small": True, "large": True},
+         unsupported=[{"name": "기관추천·국가유공자 특별공급", "page": 18,
+                       "note": "기관(지자체·보훈청 등)이 대상자로 선정해 LH에 통보한 사람만 신청 — 해당 기관에 문의."},
+                      {"name": "지역균형발전 특별공급", "page": 19, "note": "시·도지사가 대상자로 선정·통보한 사람만 신청."},
+                      {"name": "철거주택소유자 특별공급", "page": 19, "note": "이 사업지구 철거주택소유자로 인정·통보받은 사람만 신청."}],
+         notes=SALE_NOTES + ["전용 59㎡ 394세대·74㎡ 168세대·84㎡ 230세대 — 전용 60㎡ 이하 일반공급만 소득·자산 기준이 있다(p.1·p.26)."]),
+    # G3 LH 공공분양 처음 보는 공고 — 판정 틀을 만든 뒤 등록 전에 초안을 얼림(docs/draft-checks/Y-sale-ansan-b1.g3.draft.json)
+    dict(nid="N50", key="LH50", title="안산신길2 B-1블록 공공분양주택", ann="2026-10-30",
+         program="공공분양주택", template="public_sale", params={"residence": CAPITAL, "small": False, "large": True},
+         unsupported=[{"name": "사전청약당첨자", "page": 2,
+                       "note": "사전청약 당첨자(입주예약자)의 본청약 — 주택형 선호 순위 선택(11.9~11.10)으로 따로 신청한다."},
+                      {"name": "기관추천·국가유공자 특별공급", "page": 26,
+                       "note": "기관이 대상자로 선정해 LH에 통보한 사람만 신청 — 해당 기관에 문의."},
+                      {"name": "지역균형발전 특별공급", "page": 27, "note": "시·도지사가 대상자로 선정·통보한 사람만 신청."}],
+         notes=SALE_NOTES + ["전용 74㎡ 80세대·84㎡ 307세대 — 전용 60㎡ 이하가 없어 일반공급은 소득·자산 기준이 없다(p.1)."]),
     # G3 처음 보는 공고 — 판정 틀을 만든 뒤 등록 전에 초안을 얼림(docs/draft-checks/Y-nhtown-*.g3.draft.json)
     dict(nid="N47", key="LH47", title="수원당수 A-3블록 신혼희망타운(공공분양) 잔여세대(입주 후 해약)", ann="2026-09-29",
          program="신혼희망타운(분양)", template="newlywed_town_sale",
@@ -714,7 +864,7 @@ ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신�
 # 통합공공임대는 계층 이름(일반 등)이 다른 사업과 겹치고, 같은 문구가 우선공급(p.15~16)·일반공급(p.16~18)에 다 있어
 # 일반공급 쪽을 가리키는 기준점을 템플릿별로 둔다(인용문·기준표 모두).
 TEMPLATE_ANCHOR = {"integrated_rental": ("신혼부부,한부모가족을제외한모든계층", 17), "public_rental": ("무주택세대구성원", 1),
-                   "newlywed_town_sale": ("신혼부부신청자격", 11)}
+                   "newlywed_town_sale": ("신혼부부신청자격", 11), "public_sale": ("다자녀가구특별공급■신청자격", 20)}
 
 
 def pdf_for(key):
@@ -731,9 +881,9 @@ def walk(conditions):
 
 # 템플릿(사업별 규칙 생성 함수) — 공고별 값은 PLAN의 params(파라미터 시트, P1 docs/09 §5)
 BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_rental, "integrated_rental": integrated_rental,
-            "public_rental": public_rental, "newlywed_town_sale": newlywed_town_sale}
+            "public_rental": public_rental, "newlywed_town_sale": newlywed_town_sale, "public_sale": public_sale}
 ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH", "public_rental": "LH",
-          "newlywed_town_sale": "LH"}
+          "newlywed_town_sale": "LH", "public_sale": "LH"}
 
 
 def make_doc(plan, pdf, pages):

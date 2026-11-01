@@ -26,7 +26,8 @@ from rule_engine import (
 
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
 LAYERS = ("대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자",
-          "취업준비생", "신혼·신생아", "일반", "주거약자", "예비신혼부부")      # G3: 신혼희망타운 분양 유형
+          "취업준비생", "신혼·신생아", "일반", "주거약자", "예비신혼부부",     # G3: 신혼희망타운 분양 유형
+          "다자녀가구", "노부모부양", "생애최초", "신생아", "일반공급")          # G3: LH 공공분양 특별·일반공급
 REVIEW_STATUSES = ("DRAFT", "REVIEWED", "PUBLISHED", "RETIRED")
 CTX_KEYS = ("announcement_date",)
 TIMINGS = ("NOW", "BEFORE_MOVE_IN")
@@ -249,6 +250,17 @@ def _fn_young_child_cutoff(env: _Env):
     return young_child_cutoff(env.ctx["announcement_date"])
 
 
+def _fn_minor_cutoff(env: _Env):
+    """'19세 미만 자녀' — 공고일 19년 전의 다음 날 이후 출생(LH 공공분양 다자녀 '2007.8.28~2026.8.27 기간 중 출생자')."""
+    from datetime import timedelta
+    return years_before(env.ctx["announcement_date"], 19) + timedelta(days=1)
+
+
+def _fn_newborn_cutoff(env: _Env):
+    """'2세 미만 자녀(2세가 되는 날 포함)' — 공고일 2년 전 당일 이후 출생(LH 공공분양 신생아 특별공급)."""
+    return years_before(env.ctx["announcement_date"], 2)
+
+
 def _fn_add(env: _Env, a, b):
     """두 금액·인원의 합. 하나라도 모르면(None) 합도 모름 — 0으로 치지 않는다."""
     if isinstance(a, ReviewNeeded) or isinstance(b, ReviewNeeded):
@@ -279,6 +291,8 @@ FUNCTIONS = {
     "years_before": (_fn_years_before, 2),
     "marriage_cutoff": (_fn_marriage_cutoff, 0),          # 공고일 7년 전(혼인기간 7년 이내)
     "young_child_cutoff": (_fn_young_child_cutoff, 0),    # 공고일 7년 전의 다음 날(6세 이하 자녀)
+    "minor_cutoff": (_fn_minor_cutoff, 0),                # 공고일 19년 전의 다음 날(19세 미만 자녀)
+    "newborn_cutoff": (_fn_newborn_cutoff, 0),            # 공고일 2년 전 당일(2세 미만, 2세가 되는 날 포함)
 }
 
 
