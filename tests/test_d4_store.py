@@ -61,10 +61,13 @@ def test_secrets_file_is_read_when_env_missing(monkeypatch, tmp_path):
     f = tmp_path / "secrets.toml"
     f.write_text('DATABASE_URL = "postgresql://u:p@example.invalid/db?sslmode=require"\n', encoding="utf-8")
     monkeypatch.delenv(S.ENV, raising=False)
+    monkeypatch.delenv("CCJ_STORE", raising=False)   # 로컬에서 CCJ_STORE=off로 돌려도 이 시험은 설정 파일 읽기만 본다
     monkeypatch.setattr(S, "SECRETS", f)
     assert S.database_url().startswith("postgresql://u:p@example.invalid")
     monkeypatch.setenv(S.ENV, "postgresql://env/db")
     assert S.database_url() == "postgresql://env/db"
+    monkeypatch.setenv("CCJ_STORE", "off")           # 화면 점검·로컬 시험 스위치: 환경 변수·설정 파일이 있어도 DB를 쓰지 않는다
+    assert S.database_url() is None
 
 
 def test_unreachable_database_fails_fast_and_judging_still_works(monkeypatch):
