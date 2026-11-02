@@ -78,7 +78,22 @@ def _cache_key(data: bytes) -> str:
 # 두 번 읽지 않게(큰 공고는 한 번 읽는 데 수십 초). 최근 몇 건만, 프로세스가 끝나면 사라진다.
 RECENT_MAX = 4
 _recent: "OrderedDict[str, List[str]]" = OrderedDict()
+# 같은 추출의 띄어쓰기 유지 원문(조항 장부·LLM용 raw_pages) — 업로드 한 건을 pypdf로 두 번 읽지 않게(2026-11-03: 새 공고 분석
+# 시간의 절반이 조항 장부의 두 번째 추출이었다)
+_recent_raw: "OrderedDict[str, List[str]]" = OrderedDict()
 _recent_lock = threading.Lock()
+
+
+def raw_text(t: str) -> str:
+    """pypdf 쪽 텍스트에서 제어문자만 뺀 원문(띄어쓰기·줄바꿈 유지)."""
+    return "".join(ch for ch in t if ch >= " " or ch in "\n\t")
+
+
+def recent_raw_pages(data: bytes) -> Optional[List[str]]:
+    """방금 업로드 추출(cache=False)에서 얻은 띄어쓰기 유지 원문 — 없으면 None."""
+    with _recent_lock:
+        hit = _recent_raw.get(_cache_key(data))
+        return None if hit is None else list(hit)
 
 
 def extract_pages(path) -> List[str]:
@@ -115,13 +130,16 @@ def extract_pages_bytes(data: bytes, label: str = "<업로드>", cache: bool = T
         reader_pages = PdfReader(io.BytesIO(data)).pages
     except (PdfReadError, ValueError, OSError) as e:
         raise ValueError(f"PDF를 열 수 없습니다: {e}") from None
-    pages, failures = [], []
+    pages, raws, failures = [], [], []
     for i, page in enumerate(reader_pages, 1):
         try:
-            pages.append(normalize(page.extract_text() or ""))
+            t = page.extract_text() or ""
+            pages.append(normalize(t))
+            raws.append(raw_text(t))
         except Exception:   # noqa: BLE001 — 라이브러리 내부 디코딩 오류 등, 쪽 단위로 격리
             failures.append(i)
             pages.append("")
+            raws.append("")
     if failures:
         EXTRACTION_FAILURES.setdefault(label, []).extend(failures)
     if use_cache:
@@ -134,9 +152,11 @@ def extract_pages_bytes(data: bytes, label: str = "<업로드>", cache: bool = T
             pass                       # 캐시는 선택 사항 — 못 써도 결과는 같다
     if not cache and not failures:
         with _recent_lock:
-            _recent[key] = list(pages)
+            _recent[key], _recent_raw[key] = list(pages), raws
             while len(_recent) > RECENT_MAX:
                 _recent.popitem(last=False)
+            while len(_recent_raw) > RECENT_MAX:
+                _recent_raw.popitem(last=False)
     return pages
 
 

@@ -69,6 +69,23 @@ def test_uploaded_file_is_not_written_to_disk(monkeypatch, tmp_path):
     assert not list(tmp_path.iterdir())
 
 
+def test_upload_is_read_once_for_ledger_raw_text(monkeypatch, tmp_path):
+    """조항 장부의 띄어쓰기 유지 원문(raw_pages)은 방금 업로드 추출을 다시 쓴다 — pypdf를 두 번 돌리지 않고, 결과는 새로 읽은 것과 같다."""
+    import llm_slot as L
+    data = sv.pdf_path("N2").read_bytes() + b"\n%upload-once\n"       # 지문을 바꿔 다른 캐시에 걸리지 않게
+    pdf = tmp_path / "up.pdf"
+    pdf.write_bytes(data)
+    sv.extract_pages_bytes(data, cache=False)
+    cached = L.raw_pages(pdf)
+    import pypdf
+    monkeypatch.setattr(pypdf, "PdfReader", lambda *a, **k: pytest.fail("두 번째 추출"))
+    assert L.raw_pages(pdf) == cached
+    monkeypatch.undo()
+    with sv._recent_lock:
+        sv._recent_raw.clear()
+    assert L.raw_pages(pdf) == cached                                     # 캐시 없이 새로 읽어도 같다
+
+
 def test_three_state_display_covers_every_verdict():
     assert set(DISPLAY) == {"ELIGIBLE", "INELIGIBLE", "NEEDS_INFO", "MANUAL_REVIEW", "NOT_OFFERED"}
     assert display("ELIGIBLE").title == "지원 가능" and display("INELIGIBLE").title == "지원 불가"

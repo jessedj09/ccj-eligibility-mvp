@@ -100,3 +100,23 @@ def test_child_words_and_house_lists_are_not_conditions():
              (5, "•서울특별시에1년이상거주한자만신청할수있습니다")]
     rows = {page: label for page, _, label in CL.classify(units, doc, CL.Known([]))}
     assert 10 not in rows and rows[58].startswith("무관") and rows[3].startswith("무관") and rows[5] == CL.UNCLASSIFIED
+
+
+def test_sale_notes_are_unrelated_but_eligibility_words_are_not_hidden():
+    """2026-11-03: 분양 공고 뒤쪽의 가전·학교 배정·등기·입주 후 의무 안내는 무관. '학교'·'등기' 같은 짧은 말은 쓰지 않으므로
+    대학교 재학 같은 자격 문장과 강한 제한은 그대로 미분류."""
+    doc = {"layers": {"신혼부부": {"conditions": []}}, "tables": {}}
+    units = [(14, "-레인지후드는자동모드설정시주변온도를감지하여자동운전됨."),
+             (14, "-초등학교통학구역은매해인근학교배치여력을고려하여결정된사항을확정하므로교육지원청에확인하여야함"),
+             (7, "•(거주의무미준수시주택우선매입)거주의무대상자가거주하지않는경우우리공사에매입신청하여야하며"),
+             (8, "서),본인및대리인의신분증을추가로구비하여야합니다."),
+             (5, "•대학교에재학중인자로서부모의주택을소유하지않은자"),
+             (6, "•근린생활시설(상가)의대지는별도로구분되지않으며서울특별시거주자만신청가능")]
+    rows = {u[:6]: label for _, u, label in CL.classify(units, doc, CL.Known([]))}
+    assert all(rows[k].startswith("무관") for k in ("-레인지후드", "-초등학교통", "•(거주의무", "서),본인및"))
+    assert rows["•대학교에재"] == CL.UNCLASSIFIED and rows["•근린생활시"] == CL.UNCLASSIFIED
+
+
+def test_page_number_line_does_not_open_a_unit():
+    units = CL._units_from_raw(["• 신청자격은 아래와 같습니다 첫째 줄입니다", "- 7 -\n 양권등을 매수한 자는 제외한다)\n• 다음 항목입니다 열 글자 넘게"])
+    assert [u for _, u in units] == ["•신청자격은아래와같습니다첫째줄입니다", "양권등을매수한자는제외한다)", "•다음항목입니다열글자넘게"]
