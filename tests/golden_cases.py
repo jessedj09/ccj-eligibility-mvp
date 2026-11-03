@@ -70,6 +70,15 @@ DATES = {
                 grad=date(2024, 9, 7), adult=date(2007, 9, 7)),
     "N32": dict(ann=date(2026, 9, 7), marriage=date(2019, 9, 7), child=date(2019, 9, 8),
                 grad=date(2024, 9, 7), adult=date(2007, 9, 7)),
+    # G5 SH 국민임대(N53 2026.08.20) — 공고일만 쓴다(출생자녀 가산 기준일 2023.3.28. 고정, 미성년 = 공고일−19년).
+    "N53": dict(ann=date(2026, 8, 20), marriage=date(2019, 8, 20), child=date(2019, 8, 21),
+                grad=date(2024, 8, 20), adult=date(2007, 8, 20)),
+    # G5 SH 영구임대(N54 2025.11.13) — 공고일만 쓴다(출생자녀 기준일 2023.3.28. 고정).
+    "N54": dict(ann=date(2025, 11, 13), marriage=date(2018, 11, 13), child=date(2018, 11, 14),
+                grad=date(2023, 11, 13), adult=date(2006, 11, 13)),
+    # G5 LH 고령자복지주택(N55 평택고덕 A-58 2026.08.20) — 공고일만 쓴다.
+    "N55": dict(ann=date(2026, 8, 20), marriage=date(2019, 8, 20), child=date(2019, 8, 21),
+                grad=date(2024, 8, 20), adult=date(2007, 8, 20)),
     # G2 영구임대(N33 양주회천 A25 2026.09.21, N34 부천시 2026.09.04) — 공고일만 쓴다(출생자녀 기준일 2023.3.28. 고정).
     "N33": dict(ann=date(2026, 9, 21), marriage=date(2019, 9, 21), child=date(2019, 9, 22),
                 grad=date(2024, 9, 21), adult=date(2007, 9, 21)),
@@ -148,7 +157,9 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               "N35": "integrated_rental", "N36": "integrated_rental",
               **{f"N{n}": "public_rental" for n in range(37, 45)},
               **{f"N{n}": "newlywed_town_sale" for n in range(45, 49)},
-              "N49": "public_sale", "N50": "public_sale", "N51": "sh_land_sale", "N52": "sh_land_sale"}
+              "N49": "public_sale", "N50": "public_sale", "N51": "sh_land_sale", "N52": "sh_land_sale",
+              "N53": "sh_national_rental", "N54": "sh_permanent_rental",
+              "N55": "elderly_welfare"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -179,6 +190,14 @@ PERM_INCOME = [None, 0, 1] + [v + d for v in (2_669_354, 3_432_027, 4_576_036, 3
                                               4_084_215, 5_717_900, 8_168_429, 4_901_057, 9_802_115, 5_242_771, 12_582_649)
                               for d in (-1, 0, 1)] + [30_000_000]
 PERM_ASSETS = [None, 0, 1] + [v + d for v in (245_000_000, 270_000_000, 294_000_000) for d in (0, 1)]
+# G5 SH 영구임대(N54 p.9~10): 70%(1인 90%·2인 80%, 출생자녀 가산) 경계 ±1원, 총자산 237·261·285백만, 자동차 4,563·5,020·5,476만
+SHP_INCOME = [None, 0, 1] + [v + d for v in (3_238_348, 4_381_602, 4_929_303, 5_338_881, 6_101_578, 6_864_276, 7_304_587,
+                                             9_391_612, 10_023_446) for d in (-1, 0, 1)] + [30_000_000]
+# G5 LH 고령자복지주택(N55 p.6): 50%(1인 70%·2인 60%)·70%(1인 90%·2인 80%) 적용 금액 경계 ±1원(1·2·3·7인)
+ELD_INCOME = [None, 0, 1] + [v + d for v in (2_669_354, 3_432_027, 3_519_762, 4_693_016, 4_084_215, 5_717_900, 5_242_771,
+                                             7_339_879) for d in (-1, 0, 1)] + [30_000_000]
+SHP_ASSETS = [None, 0, 1] + [v + d for v in (237_000_000, 261_000_000, 285_000_000) for d in (0, 1)]
+SHP_CARS = [0, 1, "확인불가"] + [v + d for v in (45_630_000, 50_200_000, 54_760_000) for d in (0, 1)]
 # G3 LH 공공분양: 2025 도시근로자 100~220%(3인 이하·4인·8인) 경계 ±1원, 부동산 3단계
 SALE_INCOME_POOL = [None, 0, 1] + [v + d for v in (7_533_763, 8_287_139, 9_040_516, 9_793_892, 10_547_268, 11_300_645,
                                                   15_067_526, 15_820_902, 16_574_279, 10_562_642, 17_604_404, 22_129_638)
@@ -381,6 +400,7 @@ GROUPS: List[Tuple[str, str]] = [
                                    "일반공급(전용 60㎡ 초과)")],
     *[("N50", layer) for layer in ("다자녀가구", "노부모부양", "생애최초", "신혼부부", "신생아", "일반공급(전용 60㎡ 초과)")],
     *[(nid, layer) for nid in ("N51", "N52") for layer in ("청년", "신혼부부", "생애최초", "신생아", "일반공급")],
+    ("N53", "일반"), ("N53", "일반(주거약자용)"), ("N54", "일반"), ("N55", "고령자"),
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -464,6 +484,22 @@ def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, objec
         return _program_attributes("sh_land_sale", layer, pools)
     if PROGRAM_OF.get(nid) == "public_sale":                # G3: 일반공급(전용 60㎡ 이하/초과)도 사업 전용 풀
         return _program_attributes("public_sale", layer, pools)
+    if PROGRAM_OF.get(nid) == "elderly_welfare":            # G5: 영구임대 신분 풀 + 65세 경계 + 50·70% 적용 금액(기본은 3순위 일반)
+        attrs = _program_attributes("permanent_rental", layer, pools)
+        attrs.update(age=([17, 19, 40, 64, 65, 70], 70), income=(ELD_INCOME, 1), size=([1, 2, 3, 7, 8], 2))
+        return attrs
+    if PROGRAM_OF.get(nid) == "sh_permanent_rental":        # G5: LH 영구임대 풀 + SH 금액 경계 + 서울 거주
+        attrs = _program_attributes("permanent_rental", layer, pools)
+        attrs.update(income=(SHP_INCOME, 1), assets=(SHP_ASSETS, 1), car=(SHP_CARS, 0),
+                     residence_area=([None, "서울특별시", "고양시", "부산광역시", "해당없음"], "서울특별시"),
+                     weak=(WEAK, "장애인"))     # 2순위(일반 50%)가 없어 기본은 1순위 바목(장애인, 소득·자산 확인)
+        return attrs
+    if PROGRAM_OF.get(nid) == "sh_national_rental":         # G5: 국민임대 풀 + 서울 거주(상계장암 인근 시는 확인 필요) + 주거약자
+        attrs = _program_attributes("national_rental", layer, pools)
+        attrs["residence_area"] = ([None, "서울특별시", "의정부시", "포천시", "수원시", "부산광역시", "해당없음"], "서울특별시")
+        if "주거약자" in layer:
+            attrs["weak"] = (WEAK, "장애인")
+        return attrs
     if PROGRAM_OF.get(nid) == "national_rental":            # G2: 변형 계층(고령자 주택형)도 사업 전용 풀
         return _program_attributes("national_rental", layer, pools)
     if PROGRAM_OF.get(nid) == "permanent_rental":           # G2: 거주 요건 시는 공고마다 다르다

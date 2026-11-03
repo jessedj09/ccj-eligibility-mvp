@@ -257,12 +257,15 @@ def verify_income_reference(ref_id: str = "income_standard") -> Report:
     return report
 
 
-def _date_in_quote(t: str, quote: str) -> bool:
-    """접수기간의 월·일·시각이 인용문에 있는지 — 데이터의 날짜와 인용문이 서로 어긋나는 오타를 잡는다."""
+def _date_in_quote(t: str, quote: str, all_day: bool = False) -> bool:
+    """접수기간의 월·일·시각이 인용문에 있는지 — 데이터의 날짜와 인용문이 서로 어긋나는 오타를 잡는다.
+    all_day: 원문이 날짜만 적은 기간(시각 없음, N54 동 주민센터 접수) — 날짜만 보고 시각은 00:00·23:59여야 한다."""
     mo, d, h, mi = int(t[5:7]), int(t[8:10]), int(t[11:13]), t[14:16]
+    day = re.search(rf"(^|[^0-9])0?{mo}\.0?{d}($|[^0-9])", quote) is not None     # 09.02·9.2·9.02(N55) 모두
+    if all_day:
+        return day and t[11:16] in ("00:00", "23:59")
     # 시각은 "09:00"도 "9:00"도 쓴다
-    return (re.search(rf"(^|[^0-9]){mo:02d}\.{d:02d}|(^|[^0-9]){mo}\.{d}($|[^0-9])", quote) is not None
-            and re.search(rf"(^|[^0-9])0?{h}:{mi}", quote) is not None)
+    return day and re.search(rf"(^|[^0-9])0?{h}:{mi}", quote) is not None
 
 
 def verify_schedules(doc: Optional[dict] = None) -> Report:
@@ -283,7 +286,7 @@ def verify_schedules(doc: Optional[dict] = None) -> Report:
             quote = normalize(" ".join(w["source"]["quote"]))
             for key in ("start", "end"):
                 report.checked += 1
-                if not _date_in_quote(w[key], quote):
+                if not _date_in_quote(w[key], quote, w.get("all_day", False)):
                     report.problems.append(f"{nid} {where}: {key} {w[key]}의 월·일·시각이 인용문 '{quote}'에 없음")
     return report
 

@@ -58,12 +58,18 @@ def test_range_headers_of_median_income_table(fams):
     assert P.compare_reference(g.cells, fams)["misplaced"] == []
 
 
-def test_previous_year_table_is_recognised_not_matched(fams):
-    """장기전세 49차 — 이전 연도 기준표: 표 안은 일관되지만 등록 기준표와는 한 칸도 맞지 않는다(연도 전환 감지)."""
+def test_previous_year_table_is_recognised_not_matched():
+    """장기전세 49차 — 이전 연도 기준표: 표 안은 일관되지만 등록 기준표와는 한 칸도 맞지 않는다(연도 전환 감지).
+    G5(2026-11-03)부터 같은 연도 금액의 SH 영구임대 표(N54, income_standard_sh_permanent)가 등록돼 있어 그 표를 빼고 본다 —
+    그 표와는 칸이 맞는다(같은 해 표를 쓴 공고)."""
+    refs = P.load_references()
+    others = P.families({k: v for k, v in refs.items() if k != "income_standard_sh_permanent"})
+    same_year = P.families({"income_standard_sh_permanent": refs["income_standard_sh_permanent"]})
     for g in grids("N25", 8):
         assert P.consistent(g) is True
-        cmp = P.compare_reference(g.cells, fams)
+        cmp = P.compare_reference(g.cells, others)
         assert cmp["same"] == [] and cmp["misplaced"] == []
+        assert P.compare_reference(g.cells, same_year)["same"]
 
 
 def test_swapped_cells_are_flagged_as_misplaced(fams):

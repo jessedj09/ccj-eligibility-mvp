@@ -63,7 +63,7 @@ def test_inconsistent_household_is_review_and_9_persons_not_in_table():
 
 def test_template_and_extractor_choose_national_rental_for_lh_only():
     assert X.choose_template("LH", "국민임대주택") == "lh.national_rental"
-    assert X.choose_template("SH", "국민임대주택") is None     # SH 국민임대는 아직 검증 전
+    assert X.choose_template("SH", "국민임대주택") == "sh.national_rental"     # G5: SH 국민임대는 따로 만든 틀
 
 
 # --- 영구임대(N33 양주회천 A25·N34 부천시, LH 영구임대 표준 공고) -------------------------------------------
@@ -116,5 +116,5 @@ def test_permanent_assets_residence_and_weak_layer():
 
 def test_permanent_template_choice():
     assert X.choose_template(None, "영구임대주택") == "lh.permanent_rental"
-    assert X.choose_template("SH", "영구임대주택") is None
-    assert X.choose_template("LH", "고령자복지주택") is None
+    assert X.choose_template("SH", "영구임대주택") == "sh.permanent_rental"    # G5
+    assert X.choose_template("LH", "고령자복지주택") == "lh.elderly_welfare"   # G5(영구임대형만 — kind가 확인)

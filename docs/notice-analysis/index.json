@@ -362,5 +362,26 @@
     "file": "sample_sh/고덕강일지구 3단지 토지임대부 분양주택 입주자모집공고문.pdf",
     "pages": 136,
     "sha256": "55910d4df47f4f836ad0c8091d46dea8767220ca3a878796b7133a23dfe007d5"
+  },
+  {
+    "key": "SH53",
+    "org": "SH",
+    "file": "sample_sh/2026년 국민임대주택 입주자모집공고문.pdf",
+    "pages": 64,
+    "sha256": "798b386deb6113962e48c220f2ba6ded74978370639a2cde379ef1b76e8c9758"
+  },
+  {
+    "key": "SH54",
+    "org": "SH",
+    "file": "sample_sh/2025년 영구임대주택 예비입주자 모집공고문.pdf",
+    "pages": 24,
+    "sha256": "9ab4b19476a5e32456e8cf4f1d4bfbf525868fbe6a037dc34a322421834d4cf1"
+  },
+  {
+    "key": "LH55",
+    "org": "LH",
+    "file": "sample_lh/평택고덕A-58블록 고령자복지주택(영구임대) 입주자모집공고문.pdf",
+    "pages": 32,
+    "sha256": "d7b89cac13f0715566675b70079ff939b6985598a7c234477637fa2f62cda778"
   }
 ]

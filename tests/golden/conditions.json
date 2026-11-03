@@ -7916,5 +7916,173 @@
    "note": "세대 총자산이 3억6,200만원(출산자녀 1명 3억9,700만원·2명 이상 4억3,100만원) 이하인지",
    "timing": "NOW"
   }
+ ],
+ "N53/일반": [
+  {
+   "id": "N53-S-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-S-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "공고일 현재 서울특별시에 주민등록이 되어 있는지(상계장암지구는 일부 경기 시도)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-S-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-S-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "세대 전원의 월평균소득 합계가 70%(1인 +20%p·2인 +10%p, 2023.3.28. 이후 출생자녀 1명 +10%p·2명 이상 +20%p) 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-S-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "세대 전원의 총자산이 3억4,500만원(출생자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-S-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출생자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N53/일반(주거약자용)": [
+  {
+   "id": "N53-SW-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-SW-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "공고일 현재 서울특별시에 주민등록이 되어 있는지(상계장암지구는 일부 경기 시도)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-SW-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-SW-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "세대 전원의 월평균소득 합계가 70%(1인 +20%p·2인 +10%p, 2023.3.28. 이후 출생자녀 1명 +10%p·2명 이상 +20%p) 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-SW-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "세대 전원의 총자산이 3억4,500만원(출생자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-SW-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출생자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N53-SW-weak",
+   "field": "age/housing_weak_type",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "공급신청자 본인이 주거약자(만 65세 이상, 장애인, 상이 1~7급 국가유공자·보훈보상대상자, 5·18 부상자, 고엽제후유의증환자, 국가유공자에 준하는 군경)인지",
+   "timing": "NOW"
+  }
+ ],
+ "N54/일반": [
+  {
+   "id": "N54-SP-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N54-SP-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "공고일 현재 서울특별시에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N54-SP-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.8",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N54-SP-rank",
+   "field": "입주자격",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "「공공주택 특별법 시행규칙」 별표3 영구임대 일반공급 1순위(가~자) 중 하나 이상에 해당하는지 (신분마다 소득 기준이 다름 — 수급자·한부모 등 없음 / 70%). 다목(일본군위안부 피해자)은 이 판정이 묻지 않는다.",
+   "timing": "NOW"
+  }
+ ],
+ "N55/고령자": [
+  {
+   "id": "N55-EW-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "공고일 현재 만 65세 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N55-EW-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N55-EW-rank",
+   "field": "입주자격",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "고령자복지주택 공급 신청자격 순위(1순위 가 생계·의료급여 / 2순위 나 국가유공자 등 70% / 3순위 차 일반 50%) 중 하나인지",
+   "timing": "NOW"
+  }
  ]
 }

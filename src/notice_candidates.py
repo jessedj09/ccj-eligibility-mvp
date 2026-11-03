@@ -62,6 +62,8 @@ RANGE = re.compile(_date("s") + r"\(?(?P<st>\d{1,2}:\d\d)[~∼](?:" + _date("e")
 # 날짜 범위 + 매일 시간(N33 "2026.10.12.(월)~10.16(금)10:00~17:00") — 첫날 시작 시각 ~ 마지막 날 마감 시각
 DAILY = re.compile(_date("s") + r"[~∼]" + _date("e") + r"\(?(?P<st>\d{1,2}:\d\d)[~∼](?P<et>\d{1,2}:\d\d)")   # N42: 시각이 괄호 안
 ANN = re.compile(r"(?:입주자모집공고일|모집공고일|공고일)[:：|]?\(?(20\d\d)\.(\d{1,2})\.(\d{1,2})")
+# SH 국민임대 표지(G5): '모집공고일 : 2026년 8월 20일(목)' — 점 대신 년·월·일
+ANN_KO = re.compile(r"(?:입주자모집공고일|모집공고일|공고일)[:：|]?\(?(20\d\d)년(\d{1,2})월(\d{1,2})일")
 ANY_DATE = re.compile(r"(20\d\d)\.(\d{1,2})\.(\d{1,2})\.?(?:\(" + WEEK + r"(?:요일)?\))?")
 CUTOFF = re.compile(r"(?:\[|\()?((?:19|20)\d\d|'\d\d)\.(\d{1,2})\.(\d{1,2})\.?(?:\(" + WEEK + r"\))?(이후|이전|~)")
 APPLY_WORDS = ("청약", "신청", "접수")
@@ -79,7 +81,7 @@ def announcement_candidates(pages: List[str]) -> List[dict]:
     seen = Counter()
     first = {}
     for i, t in enumerate(pages[:8], 1):
-        for m in ANN.finditer(t):
+        for m in [*ANN.finditer(t), *ANN_KO.finditer(t)]:
             try:
                 d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
             except ValueError:

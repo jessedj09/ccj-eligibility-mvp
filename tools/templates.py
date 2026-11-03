@@ -123,6 +123,31 @@ TEMPLATES: Dict[str, Dict] = {
         Param("residence", "choice", "거주 요건 — '수도권' 또는 없음"),
         Param("overheated", "choice", "투기과열지구인지(생애최초 1순위 2년·24회 + 세대주 + 5년 내 당첨 없음)"),
     ]),
+    # G5 SH 국민임대: 서울 거주 + 국민임대 법령 기준(소득 70%·총자산·자동차), 일반공급(일반·주거약자)
+    "sh.national_rental": dict(module=PUB, builder="sh_national_rental", issuer="SH", program="SH 국민임대", params=[
+        Param("eligibility_quote", "text", "공통 신청자격 문장('현재 서울특별시에 거주하는 성년자인 무주택세대구성원')"),
+        Param("adult_quote", "text", "성년 요건 문장"),
+        Param("income_quote", "text", "소득 기준 문장(70% 이하)"),
+        Param("near_quote", "text", "서울 밖 일부 시 거주자도 받는 단지 문구(있을 때만)", critical=False),
+        Param("weak_quote", "text", "일반공급(주거약자) 신청자격 문구(있으면 주거약자 계층을 더 만든다)", critical=False),
+    ]),
+    # G5 SH 영구임대: 서울 거주 + 별표3 1순위(가~자), 총자산·자동차 한도는 공고 1건의 리터럴(다르면 보류)
+    "sh.permanent_rental": dict(module=PUB, builder="sh_permanent_rental", issuer="SH", program="SH 영구임대", params=[
+        Param("eligibility_quote", "text", "공통 신청자격 문장('현재 서울특별시에 거주하는 성년자인 무주택세대구성원으로')"),
+        Param("adult_quote", "text", "성년 요건 문장"),
+        Param("income_quote", "text", "소득 기준 문장(70% 이하, 1인 90%·2인 80%)"),
+        Param("asset_quote", "text", "총자산 한도 문구(판정 틀의 금액과 같아야)"),
+        Param("car_quote", "text", "자동차 한도 문구(판정 틀의 금액과 같아야)"),
+    ]),
+    # G5 LH 고령자복지주택(영구임대형): 65세 이상 + 1순위 생계·의료급여 / 2순위 국가유공자 등 70% / 3순위 일반 50%
+    "lh.elderly_welfare": dict(module=PUB, builder="elderly_welfare", issuer="LH", program="고령자복지주택(영구임대형)", params=[
+        Param("kind", "choice", "영구임대형인지(제목 '고령자복지주택(영구임대)') — 아니면 자동 판정하지 않는다"),
+        Param("eligibility_quote", "text", "공통 신청자격 문장('현재 만65세 이상 … 무주택세대구성원 요건을 만족하고')"),
+        Param("merit_quote", "text", "2순위 소득 70% 문구"),
+        Param("general_quote", "text", "3순위 소득 50% 문구"),
+        Param("asset_quote", "text", "총자산 한도 문구(판정 틀의 금액과 같아야)", critical=False),
+        Param("car_quote", "text", "자동차 한도 문구(판정 틀의 금액과 같아야)", critical=False),
+    ]),
     "lh.happy_housing": dict(module=C1, builder=None, issuer="LH", program="행복주택", params=[
         Param("base", "choice", "기준 템플릿 — N3(일반 행복주택) / N1(신혼희망타운 행복주택)"),
         Param("layers", "layers", "공급 계층(대학생·청년·신혼부부·한부모 중 이 공고에 있는 것)"),
@@ -140,7 +165,8 @@ _PLAN_TEMPLATE = {(LH, "youth_rental"): "lh.youth_rental", (LH, "newlywed_rental
                   (PUB, "national_rental"): "lh.national_rental", (PUB, "permanent_rental"): "lh.permanent_rental",
                   (PUB, "integrated_rental"): "lh.integrated_rental", (PUB, "public_rental"): "lh.public_rental",
                   (PUB, "newlywed_town_sale"): "lh.newlywed_town_sale", (PUB, "public_sale"): "lh.public_sale",
-                  (PUB, "sh_land_sale"): "sh.land_sale"}
+                  (PUB, "sh_land_sale"): "sh.land_sale", (PUB, "sh_national_rental"): "sh.national_rental",
+                  (PUB, "sh_permanent_rental"): "sh.permanent_rental", (PUB, "elderly_welfare"): "lh.elderly_welfare"}
 BASE_NOTICES = ("N1", "N2", "N3")      # 시트 없음(템플릿 원본·손으로 만든 공고)
 
 
