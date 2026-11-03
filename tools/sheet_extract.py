@@ -369,6 +369,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None if issuer == "SH" else "lh.public_sale"
     if program == "신혼희망타운(분양)":   # G3: LH 신혼희망타운 공공분양 — SH는 아직 검증 전
         return None if issuer == "SH" else "lh.newlywed_town_sale"
+    if program == "공공분양(나눔형)":     # G6: LH 나눔형(2024.1. 사전청약 기준 — 같은 금액·비율 문구의 공고만)
+        return None if issuer == "SH" else "lh.share_sale"
     if program == "고령자복지주택":       # G5: LH 고령자복지주택(영구임대형만 — 국민임대형 등은 gate가 막는다)
         return None if issuer == "SH" else "lh.elderly_welfare"
     if program == "공공임대주택":       # G4: LH 공공임대(10년·분양전환·50년) 예비입주자 — 최초 입주자 모집은 gate에서 막는다
@@ -849,6 +851,28 @@ def _elderly_welfare(pages):
     return f
 
 
+# ------------------------------------------------------------------ LH 나눔형 공공분양(G6)
+# 판정 틀은 2024.1. LH 나눔형 사전청약 공고의 리터럴(2023년도 금액, 맞벌이 140%, 총자산 379백만) — 같은 문구일 때만 채운다.
+# 다른 해 공고(2024.3. 개정 뒤: 맞벌이 200%, 신생아 특별공급)는 필수 값이 보류돼 자동 판정하지 않는다.
+SHARE_LITERALS = (("youth_income_quote", "청년도시근로자가구원수별가구당월평균소득액의140%4,695,438원", "청년 본인 소득 140% 금액"),
+                  ("asset_quote", "379,000천원이하", "세대 총자산 3억7,900만원"),
+                  ("youth_asset_quote", "289백만원이하", "청년 본인 총자산 2억8,900만원"),
+                  ("parents_quote", "(부모)1,083백만원이하", "청년 부모 총자산 10억8,300만원"),
+                  ("dual_quote", "맞벌이도시근로자가구당월평균소득액의140%9,113,233원", "신혼부부 맞벌이 140% 금액"))
+
+
+def _share_sale(pages):
+    f = {"residence": Field(FILLED, "수도권", *find_text(pages, r"수도권\[서울특별시,경기도,인천광역시\]"),
+                            how="'수도권[서울특별시, 경기도, 인천광역시]' 거주 문구")
+         if find_text(pages, r"수도권\[서울특별시,경기도,인천광역시\]") else
+         Field(HELD, None, how="수도권 거주 요건 문구를 확인하지 못함")}
+    for key, lit, how in SHARE_LITERALS:
+        page = on_page(pages, lit)
+        f[key] = Field(FILLED, lit, page, lit, how) if page else \
+            Field(HELD, None, how=f"{how} 문구가 없음(다른 기준 연도·개정 뒤 공고일 수 있음)")
+    return f
+
+
 # ------------------------------------------------------------------ 공공임대 예비입주자(G4)
 # 신청 자격 문장: N37 "현재수도권에거주(주민등록표등본기준)하는무주택세대구성원", N39 "현재주택건설지역(경기도,서울특별시,
 # 인천광역시)에거주하는무주택세대구성원", 거주 요건이 없는 공고는 "현재무주택세대구성원으로서"
@@ -1001,6 +1025,7 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
           "sh.national_rental": lambda: _sh_national_rental(pages),
           "sh.permanent_rental": lambda: _sh_permanent_rental(pages),
           "lh.elderly_welfare": lambda: _elderly_welfare(pages),
+          "lh.share_sale": lambda: _share_sale(pages),
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),
           "sh.jeonse2": lambda: _jeonse2(pages, ann, sib, program, llm),
           "sh.jeonse": lambda: _jeonse(pages, ann, sib, program, llm),

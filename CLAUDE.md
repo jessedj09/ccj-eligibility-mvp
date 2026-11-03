@@ -205,7 +205,7 @@ Engine**이다.
   **적용(2026-11-02, docs/09 §21)**: 기준 연도가 바뀐 공고 → `reference` 작업 → 운영자가 `tools/reference_candidate.py`(또는 운영자 검토
   화면)로 새 기준표 후보를 원문과 대조해 `successor_of`를 단 새 표로 등록(docs/08 4절) → 같은 연도 새 공고는 자동 분석이 그 표로 바꿔 판정
   (`sheet_extract.swap_successors`). 결정표 금액이 원문 표의 다른 가구원수 칸에만 있으면 보류(`table_positions`). OCR(Mistral)은 보류.
-- pytest: 총 **1376개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+- pytest: 총 **1393개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

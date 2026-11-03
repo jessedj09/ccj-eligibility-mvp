@@ -39,7 +39,8 @@ PASSING = ("lh.youth_rental", "lh.newlywed_rental", "lh.deundeun", "sh.jeonse", 
            # 안전장치(변형 공고 차단·보류 조건·조항 장부·기준표 연도·위험 시 자동 강등)는 그대로다.
            "lh.national_rental", "lh.permanent_rental", "lh.integrated_rental",
            "lh.newlywed_town_sale", "lh.public_sale", "sh.land_sale",
-           "sh.national_rental", "sh.permanent_rental", "lh.elderly_welfare")   # G5(2026-11-03): SH 국민·영구임대 — 공고 1건씩으로 만든 틀(같은 원칙으로 공개)
+           "sh.national_rental", "sh.permanent_rental", "lh.elderly_welfare",
+           "lh.share_sale")   # G6(2026-11-03): LH 나눔형 — 2024.1. 사전청약 기준(같은 금액·비율 문구의 공고만 판정)   # G5(2026-11-03): SH 국민·영구임대 — 공고 1건씩으로 만든 틀(같은 원칙으로 공개)
 OK, UNSUPPORTED, BLOCKED, UNREADABLE = "ok", "unsupported", "blocked", "unreadable"
 DRAFT_ID = "DRAFT"
 UPLOAD_NAME = "upload.pdf"

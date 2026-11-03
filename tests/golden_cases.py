@@ -76,6 +76,9 @@ DATES = {
     # G5 SH 영구임대(N54 2025.11.13) — 공고일만 쓴다(출생자녀 기준일 2023.3.28. 고정).
     "N54": dict(ann=date(2025, 11, 13), marriage=date(2018, 11, 13), child=date(2018, 11, 14),
                 grad=date(2023, 11, 13), adult=date(2006, 11, 13)),
+    # G6 LH 나눔형(N56 뉴홈 4차 사전청약 2024.01.03.) — 혼인 7년·6세 이하 자녀는 공고일 기준.
+    "N56": dict(ann=date(2024, 1, 3), marriage=date(2017, 1, 3), child=date(2017, 1, 4),
+                grad=date(2022, 1, 3), adult=date(2005, 1, 3)),
     # G5 LH 고령자복지주택(N55 평택고덕 A-58 2026.08.20) — 공고일만 쓴다.
     "N55": dict(ann=date(2026, 8, 20), marriage=date(2019, 8, 20), child=date(2019, 8, 21),
                 grad=date(2024, 8, 20), adult=date(2007, 8, 20)),
@@ -159,7 +162,7 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               **{f"N{n}": "newlywed_town_sale" for n in range(45, 49)},
               "N49": "public_sale", "N50": "public_sale", "N51": "sh_land_sale", "N52": "sh_land_sale",
               "N53": "sh_national_rental", "N54": "sh_permanent_rental",
-              "N55": "elderly_welfare"}
+              "N55": "elderly_welfare", "N56": "share_sale"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -196,6 +199,11 @@ SHP_INCOME = [None, 0, 1] + [v + d for v in (3_238_348, 4_381_602, 4_929_303, 5_
 # G5 LH 고령자복지주택(N55 p.6): 50%(1인 70%·2인 60%)·70%(1인 90%·2인 80%) 적용 금액 경계 ±1원(1·2·3·7인)
 ELD_INCOME = [None, 0, 1] + [v + d for v in (2_669_354, 3_432_027, 3_519_762, 4_693_016, 4_084_215, 5_717_900, 5_242_771,
                                              7_339_879) for d in (-1, 0, 1)] + [30_000_000]
+# G6 LH 나눔형(N56): 2023년도 100·130·140%(3인 이하·4·8인) 경계 ±1원, 청년 본인 1인 140%, 총자산 379·289백만, 부모 1,083백만
+SHARE_INCOME = [None, 0, 1] + [v + d for v in (6_509_452, 8_462_288, 9_113_233, 7_622_056, 9_908_673, 10_670_878, 10_023_933,
+                                               13_031_113, 14_033_506) for d in (-1, 0, 1)] + [30_000_000]
+SHARE_YOUTH_INCOME = [None, 0] + [4_695_438 + d for d in (-1, 0, 1)]
+SHARE_ASSETS = [None, 0] + [v + d for v in (289_000_000, 379_000_000) for d in (0, 1)]
 SHP_ASSETS = [None, 0, 1] + [v + d for v in (237_000_000, 261_000_000, 285_000_000) for d in (0, 1)]
 SHP_CARS = [0, 1, "확인불가"] + [v + d for v in (45_630_000, 50_200_000, 54_760_000) for d in (0, 1)]
 # G3 LH 공공분양: 2025 도시근로자 100~220%(3인 이하·4인·8인) 경계 ±1원, 부동산 3단계
@@ -401,6 +409,7 @@ GROUPS: List[Tuple[str, str]] = [
     *[("N50", layer) for layer in ("다자녀가구", "노부모부양", "생애최초", "신혼부부", "신생아", "일반공급(전용 60㎡ 초과)")],
     *[(nid, layer) for nid in ("N51", "N52") for layer in ("청년", "신혼부부", "생애최초", "신생아", "일반공급")],
     ("N53", "일반"), ("N53", "일반(주거약자용)"), ("N54", "일반"), ("N55", "고령자"),
+    *[("N56", layer) for layer in ("청년", "신혼부부", "생애최초", "일반공급")],
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -484,6 +493,12 @@ def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, objec
         return _program_attributes("sh_land_sale", layer, pools)
     if PROGRAM_OF.get(nid) == "public_sale":                # G3: 일반공급(전용 60㎡ 이하/초과)도 사업 전용 풀
         return _program_attributes("public_sale", layer, pools)
+    if PROGRAM_OF.get(nid) == "share_sale":                 # G6: SH 토지임대부 풀(청년·부모 자산 등) + 나눔형 금액 경계
+        attrs = _program_attributes("sh_land_sale", layer, pools)
+        attrs.update(assets=(SHARE_ASSETS, 1), marriage=(pools["marriage"], date(2022, 1, 1)),
+                     parents_assets=([None, 0, 1_083_000_000, 1_083_000_001], 0),
+                     income=(SHARE_YOUTH_INCOME if layer == "청년" else SHARE_INCOME, 1))
+        return attrs
     if PROGRAM_OF.get(nid) == "elderly_welfare":            # G5: 영구임대 신분 풀 + 65세 경계 + 50·70% 적용 금액(기본은 3순위 일반)
         attrs = _program_attributes("permanent_rental", layer, pools)
         attrs.update(age=([17, 19, 40, 64, 65, 70], 70), income=(ELD_INCOME, 1), size=([1, 2, 3, 7, 8], 2))
