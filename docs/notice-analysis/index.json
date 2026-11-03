@@ -383,5 +383,12 @@
     "file": "sample_lh/평택고덕A-58블록 고령자복지주택(영구임대) 입주자모집공고문.pdf",
     "pages": 32,
     "sha256": "d7b89cac13f0715566675b70079ff939b6985598a7c234477637fa2f62cda778"
+  },
+  {
+    "key": "LH56",
+    "org": "LH",
+    "file": "sample_lh/뉴홈 4차 사전청약 나눔형 공공분양주택 입주자모집공고문.pdf",
+    "pages": 21,
+    "sha256": "1c4c2bafefc8ce291f5ac53be4862b2b6e073f4cf132e4515ca680738ee83515"
   }
 ]
