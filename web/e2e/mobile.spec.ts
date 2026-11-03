@@ -65,19 +65,21 @@ test("이용 안내: 판정 범위·한계·개인정보 처리를 보이고, �
   await page.goto("/");
   await page.getByRole("link", { name: "이용 안내·개인정보 처리" }).click();
   await expect(page.getByRole("heading", { name: "이용 안내" })).toBeVisible();
-  await expect(page.getByText("입력한 조건(나이·소득·자산 등)은 저장하지 않습니다.")).toBeVisible();
+  await expect(page.getByText("판정에 입력한 조건(나이·소득·자산 등)은 저장하지 않습니다.")).toBeVisible();
   await expect(page.getByText("최종 자격은 공고 기관(LH·SH)의 서류 심사로 확정")).toBeVisible();
   await noSideScroll(page);
 });
 
 
-test("상단: 서비스 이름과 대표 메뉴(재판소·청약 흥신소 — 텍스트만), 내 조건 등록하기는 준비 중", async ({ page }) => {
+test("상단: 서비스 이름과 대표 메뉴(재판소·청약 흥신소·내 조건 등록하기 — 텍스트만), 로그인 전에는 로그인 화면으로", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveTitle("청약 포청천 — 청약 지원자격 판정 AI");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("재판소");
   await expect(page.getByRole("navigation", { name: "대표 메뉴" })).not.toContainText("⚖️");
   await page.getByRole("navigation", { name: "대표 메뉴" }).getByRole("link", { name: /청약 흥신소/ }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("청약 흥신소");
-  await expect(page.getByTestId("menu-profile")).toContainText("준비 중");
+  await page.getByTestId("menu-profile").click();
+  await expect(page).toHaveURL(/\/login\?next=/);
+  await expect(page.getByRole("heading", { name: "로그인" })).toBeVisible();
   await noSideScroll(page);
 });

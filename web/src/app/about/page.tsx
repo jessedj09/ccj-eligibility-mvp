@@ -85,7 +85,9 @@ export default function About() {
       <section className={card}>
         <h2 className="mb-2 text-base font-semibold">개인정보 처리</h2>
         <ul className="list-disc space-y-1 pl-5">
-          <li><b>입력한 조건(나이·소득·자산 등)은 저장하지 않습니다.</b> 판정할 때 서버로 보내고, 결과를 돌려준 뒤 남기지 않습니다.</li>
+          <li><b>판정에 입력한 조건(나이·소득·자산 등)은 저장하지 않습니다.</b> 판정할 때 서버로 보내고, 결과를 돌려준 뒤 남기지 않습니다.</li>
+          <li>회원가입 후 &lsquo;내 조건 등록하기&rsquo;에 저장을 고른 조건만 암호화해 보관합니다(장애·국가유공자·수급 등 민감 항목은 저장하지 않음).
+            탈퇴하면 즉시, 1년 동안 로그인하지 않으면 지웁니다. 자세한 내용은 <a href="/privacy" className="underline">개인정보 처리방침</a>을 보세요.</li>
           <li>&lsquo;내 조건 파일로 저장&rsquo;은 이 기기(브라우저)에만 파일로 내려받습니다. 서버에는 올라가지 않습니다.</li>
           <li>이용 통계는 날짜별 건수(업로드·판정 수)만 셉니다. 접속 주소(IP)는 저장하지 않습니다.</li>
         </ul>
