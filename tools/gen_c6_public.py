@@ -223,6 +223,232 @@ def permanent_rental(nid, city, residence_quote, adult_quote, weak_quote=None):
 
 
 # ------------------------------------------------------------------------------------------------
+# SH 국민임대 (SH 2026년 국민임대주택 입주자모집 — p.22~25 신청자격·소득·자산, p.29 주거약자)
+# ------------------------------------------------------------------------------------------------
+# 자격은 LH 국민임대와 같은 법령 기준(소득 70% + 1인 +20%p·2인 +10%p·출생자녀 가산, 총자산 3억4,500만·자동차 4,542만)에
+# 서울 거주가 더해진다. 전용 50㎡ 미만의 '50% 이하 먼저'와 59㎡의 청약저축 회차·해당구/연접구 거주는 경쟁 시 순서(순위)라 판정하지 않는다.
+# 소득 기준표는 원문 표가 1~6인만 적으므로 LH 표(1~8인)와 섞지 않고 income_standard_sh_public을 따로 둔다.
+SH_NEAR = ["의정부시", "남양주시", "양주시", "포천시"]      # 상계장암지구 1·2단지(의정부시는 3·4단지도)만 서울 밖 거주자 신청 가능
+
+
+def sh_national_rental(nid, eligibility_quote, adult_quote, income_quote, near_quote=None, weak_quote=None):
+    """near_quote: 서울 밖 일부 시 거주자도 받는 단지 문구(상계장암) — 있으면 그 시 거주자는 확인 필요로 둔다.
+    weak_quote: 일반공급(주거약자) 자격 문구 — 있으면 같은 자격 + 주거약자 본인 계층."""
+    p = f"{nid}-S"
+    terms = "sh_national_terms"
+    region = {"in": [{"var": "residence_area"}, ["서울특별시"]]}
+    if near_quote:
+        region = {"any": [region, {"in": [{"var": "residence_area"}, SH_NEAR],
+                                   "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                                      "detail": "서울 밖(의정부·남양주·양주·포천시) 거주자는 상계장암지구 1·2단지"
+                                                                "(의정부시는 3·4단지도)에만 신청할 수 있습니다. 신청할 단지를 확인하세요."}}]}
+    conditions = [
+        cond(f"{p}-home", "home_ownership", [eligibility_quote], "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)", HOME),
+        cond(f"{p}-region", "residence_area", [eligibility_quote] + ([near_quote] if near_quote else []),
+             "공고일 현재 서울특별시에 주민등록이 되어 있는지" + ("(상계장암지구는 일부 경기 시도)" if near_quote else ""), region),
+        cond(f"{p}-adult", "age", [adult_quote],
+             "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+             {"any": [{"gte": [{"var": "age"}, 19]},
+                      {"lte": [{"var": "age"}, 18],
+                       "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                          "detail": "미성년자는 자녀가 있는 미성년 세대주·형제자매를 부양하는 미성년 세대주 등 "
+                                                    "예외에 해당할 때만 신청할 수 있습니다. 예외 해당 여부는 이 화면이 묻지 않습니다."}}]}),
+        cond(f"{p}-income", "monthly_income", [income_quote, "소득기준가산요건", "가구원수에따른가산항목및비율"],
+             "세대 전원의 월평균소득 합계가 70%(1인 +20%p·2인 +10%p, 2023.3.28. 이후 출생자녀 1명 +10%p·2명 이상 +20%p) 기준 이내인지",
+             {"lte": [{"var": "monthly_income"},
+                      {"lookup": ["income_standard_sh_public", {"var": "household_size"}, {"term": "ratio"}]}]},
+             table=terms),
+        cond(f"{p}-assets", "total_assets", ["부동산,자동차,금융자산,기타자산을합산한금액에서부채를차감하여", "기본34,5004,542"],
+             "세대 전원의 총자산이 3억4,500만원(출생자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+             {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table=terms),
+        cond(f"{p}-car", "car_value", ["기본34,5004,542"],
+             "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출생자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+             {"lte": [CAR, {"term": "car_limit"}]}, table=terms),
+    ]
+    tables = {terms: {
+        "label": "SH 국민임대 소득 비율·자산·자동차 한도: 가구원수 × 출생자녀수(가구원수 가산과 출생자녀 가산을 더함)",
+        "columns": ["size", "child"],
+        "inputs": {"size": {"var": "household_size"}, "child": {"fn": "child_bonus_count"}},
+        "outputs": ["ratio", "asset_limit", "car_limit"],
+        "rows": [
+            r({"size": 1, "child": 0}, [90] + B1),
+            r({"size": 1, "child": "1+"}, **no_row(C3.D_ALONE_CHILD)),
+            r({"size": 2, "child": 0}, [80] + B1),
+            r({"size": 2, "child": 1}, [90] + B2),
+            r({"size": 2, "child": "2+"}, **no_row(C3.D_TWO_KIDS)),
+            r({"size": "3+", "child": 0}, [70] + B1),
+            r({"size": "3+", "child": 1}, [80] + B2),
+            r({"size": "3+", "child": "2+"}, [90] + B3),
+        ],
+        "source": {"quote": ["기본34,5004,542", "10%p가산37,9004,996", "20%p가산41,3005,451"]},
+    }}
+    layers = {"일반": {"conditions": conditions}}
+    if weak_quote:
+        weak = json.loads(json.dumps(conditions, ensure_ascii=False).replace(f'"{p}-', f'"{nid}-SW-'))
+        weak.append(cond(f"{nid}-SW-weak", "age/housing_weak_type", [weak_quote],
+                         "공급신청자 본인이 주거약자(만 65세 이상, 장애인, 상이 1~7급 국가유공자·보훈보상대상자, 5·18 부상자, "
+                         "고엽제후유의증환자, 국가유공자에 준하는 군경)인지",
+                         {"any": [{"gte": [{"var": "age"}, 65]}, {"in": [{"var": "housing_weak_type"}, WEAK_TYPES]}]}))
+        layers["일반(주거약자용)"] = {"conditions": weak}
+    return layers, tables
+
+
+# ------------------------------------------------------------------------------------------------
+# SH 영구임대 (SH 2025년 영구임대주택 예비입주자 모집공고 — p.7 신청자격, p.8 성년, p.9~10 소득·자산)
+# ------------------------------------------------------------------------------------------------
+# 「공공주택 특별법 시행규칙」 별표3 일반공급 1순위(가~자)만 받는다(LH 영구임대의 2순위 차·타 없음). 서울 거주.
+# 기준표 금액·자산 한도가 LH 영구임대(2025년 9월 공고)와 다르다 — 표(income_standard_sh_permanent)·한도를 따로 둔다.
+SHP_B1, SHP_B2, SHP_B3 = [237000000, 45630000], [261000000, 50200000], [285000000, 54760000]
+
+
+def _sh_money(prefix, income_quote, asset_quote, car_quote):
+    return [
+        cond(f"{prefix}-income", "monthly_income", [income_quote],
+             "세대 월평균소득이 70%(1인 90%·2인 80%, 출생자녀 1명 +10%p·2명 이상 +20%p) 이하인지",
+             {"lte": [{"var": "monthly_income"},
+                      {"lookup": ["income_standard_sh_permanent", {"var": "household_size"}, {"term": "ratio70"}]}]},
+             table="sh_permanent_terms"),
+        cond(f"{prefix}-assets", "total_assets", [asset_quote],
+             "세대 총자산이 2억3,700만원(출생자녀 1명 2억6,100만·2명 이상 2억8,500만) 이하인지",
+             {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table="sh_permanent_terms"),
+        cond(f"{prefix}-car", "car_value", [car_quote],
+             "자동차가액(가장 높은 차량가액)이 4,563만원(출생자녀 1명 5,020만·2명 이상 5,476만) 이하인지",
+             {"lte": [CAR, {"term": "car_limit"}]}, table="sh_permanent_terms"),
+    ]
+
+
+def sh_permanent_rental(nid, eligibility_quote, adult_quote, income_quote, asset_quote, car_quote):
+    p = f"{nid}-SP"
+
+    def m(pre):
+        return _sh_money(pre, income_quote, asset_quote, car_quote)
+    disabled = {"any": [{"eq": [{"var": "housing_weak_type"}, "장애인"]},
+                        {"eq": [{"var": "disabled_spouse_qualifies"}, True]}]}
+    tracks = [
+        {"id": "가", "label": "생계급여 또는 의료급여 수급자(소득·자산 검증 없음)", "conditions": [
+            cond(f"{p}-Ta", "livelihood_medical_recipient", ["제7조제1항제1호에따른생계급여수급자또는같은항제3호에따른의료급여수급자"],
+                 "생계급여 또는 의료급여 수급자인지(주거·교육급여만 받는 경우는 아님)",
+                 {"eq": [{"var": "livelihood_medical_recipient"}, True]})]},
+        {"id": "나", "label": "국가유공자·보훈보상대상자·5·18·특수임무·참전유공자(유족 포함), 소득 70%", "conditions": [
+            cond(f"{p}-Tb", "merit_person", ["「국가유공자등예우및지원에관한법률」에따른국가유공자또는그유족"],
+                 "국가유공자·보훈보상대상자·5·18민주유공자·특수임무유공자(또는 그 유족)·참전유공자인지",
+                 {"eq": [{"var": "merit_person"}, True]})] + m(f"{p}-Tb")},
+        {"id": "라", "label": "지원대상 한부모가족(소득·자산 검증 없음)", "conditions": [
+            cond(f"{p}-Td", "is_supported_single_parent", ["여성가족부장관이정하는기준에해당하는지원대상한부모가족"],
+                 "지원대상 한부모가족(한부모가족 증명서 발급 대상)인지", {"eq": [{"var": "is_supported_single_parent"}, True]})]},
+        {"id": "마", "label": "북한이탈주민, 소득 70%", "conditions": [
+            cond(f"{p}-Te", "north_korean_defector", ["「북한이탈주민의보호및정착지원에관한법률」제2조제1호에따른북한이탈주민으로서"],
+                 "북한이탈주민인지", {"eq": [{"var": "north_korean_defector"}, True]})] + m(f"{p}-Te")},
+        {"id": "바", "label": "장애인(지적·정신·중증 뇌병변장애인은 그 배우자 포함), 소득 70%", "conditions": [
+            cond(f"{p}-Tf", "housing_weak_type/disabled_spouse_qualifies", ["「장애인복지법」제32조에따라장애인등록증이교부된사람"],
+                 "장애인등록증이 교부된 장애인이거나, 지적·정신·중증 뇌병변장애인의 배우자인지", disabled)] + m(f"{p}-Tf")},
+        {"id": "사", "label": "65세 이상 직계존속 부양자로서 수급자 선정기준 소득인정액 이하", "conditions": [
+            cond(f"{p}-Tg", "supports_elderly_parent", ["65세이상의직계존속(배우자의직계존속을포함한다)을부양"],
+                 "만 65세 이상 직계존속(배우자 부모 포함)을 같은 등본에서 부양하는지 — 소득인정액은 이 화면이 계산하지 않는다",
+                 {"eq": [{"var": "supports_elderly_parent"}, True],
+                  "review_if_true": {"code": "SELF_REPORT_UNVERIFIED",
+                                     "detail": "65세 이상 직계존속 부양자는 생계·의료급여 수급자 선정기준의 '소득인정액' 이하여야 "
+                                               "합니다. 소득인정액(소득+재산 환산액)은 이 화면이 계산하지 않으니 주민센터에 확인하세요."}})]},
+        {"id": "아", "label": "아동복지시설 퇴소자(시설장 추천), 소득 70%", "conditions": [
+            cond(f"{p}-Th", "child_facility_leaver", ["아동복지시설에서퇴소하는사람중아동복지시설의장이추천하는사람"],
+                 "아동복지시설에서 퇴소하며 시설장의 추천을 받았는지", {"eq": [{"var": "child_facility_leaver"}, True]})] + m(f"{p}-Th")},
+        {"id": "자", "label": "65세 이상 수급권자 또는 차상위계층", "conditions": [
+            cond(f"{p}-Ti", "age/welfare_status", ["65세이상인사람으로서「국민기초생활보장법」제2조제1호에따른수급권자"],
+                 "만 65세 이상이고 기초생활 수급권자(급여 종류 무관) 또는 차상위계층인지",
+                 {"all": [{"gte": [{"var": "age"}, 65]}, {"in": [{"var": "welfare_status"}, WELFARE_ANY]}]})]},
+    ]
+    common = [
+        cond(f"{p}-home", "home_ownership", [eligibility_quote], "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)", HOME),
+        cond(f"{p}-region", "residence_area", [eligibility_quote], "공고일 현재 서울특별시에 주민등록이 되어 있는지",
+             {"in": [{"var": "residence_area"}, ["서울특별시"]]}),
+        cond(f"{p}-adult", "age", [adult_quote],
+             "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+             {"any": [{"gte": [{"var": "age"}, 19]},
+                      {"lte": [{"var": "age"}, 18],
+                       "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                          "detail": "미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청할 수 있습니다. "
+                                                    "예외 해당 여부는 이 화면이 묻지 않습니다."}}]}),
+        {"id": f"{p}-rank", "field": "입주자격", "required": True,
+         "source": {"quote": ["제7조제1항제1호에따른생계급여수급자또는같은항제3호에따른의료급여수급자"]},
+         "note": "「공공주택 특별법 시행규칙」 별표3 영구임대 일반공급 1순위(가~자) 중 하나 이상에 해당하는지 "
+                 "(신분마다 소득 기준이 다름 — 수급자·한부모 등 없음 / 70%). 다목(일본군위안부 피해자)은 이 판정이 묻지 않는다.",
+         "tracks": tracks},
+    ]
+    tables = {"sh_permanent_terms": {
+        "label": "SH 영구임대 소득 비율(70% 기준)·자산·자동차 한도: 가구원수 × 출생자녀수",
+        "columns": ["size", "child"],
+        "inputs": {"size": {"var": "household_size"}, "child": {"fn": "child_bonus_count"}},
+        "outputs": ["ratio70", "asset_limit", "car_limit"],
+        "rows": [
+            r({"size": 1, "child": 0}, [90] + SHP_B1),
+            r({"size": 1, "child": "1+"}, **no_row(C3.D_ALONE_CHILD)),
+            r({"size": 2, "child": 0}, [80] + SHP_B1),
+            r({"size": 2, "child": 1}, [90] + SHP_B2),
+            r({"size": 2, "child": "2+"}, **no_row(C3.D_TWO_KIDS)),
+            r({"size": "3+", "child": 0}, [70] + SHP_B1),
+            r({"size": "3+", "child": 1}, [80] + SHP_B2),
+            r({"size": "3+", "child": "2+"}, [90] + SHP_B3),
+        ],
+        "source": {"quote": ["1인0인90%237,000,00045,630,000", "1인90%261,000,00050,200,000", "2인이상90%285,000,00054,760,000"]},
+    }}
+    return {"일반": {"conditions": common}}, tables
+
+
+# ------------------------------------------------------------------------------------------------
+# LH 고령자복지주택(영구임대형) (평택고덕 A-58 — p.5 신청자격, p.6 순위·소득, p.7 자산)
+# ------------------------------------------------------------------------------------------------
+# 「공공주택 특별법 시행규칙」 별표6의4 제1호 특례: 만 65세 이상 무주택세대구성원 + 1순위 가(생계·의료급여) / 2순위 나(국가유공자 등,
+# 소득 70%) / 3순위 차(소득 50%). 나·차는 영구임대 자산(총자산 24,500만·자동차 4,542만). 원문에 출생자녀 가산이 없다 — 넣지 않는다.
+# 소득표는 원문이 50%·70% 열(1~7인)만 적어 income_standard_elderly로 따로 둔다. 거주 지역 요건 없음.
+ELD_ASSETS, ELD_CAR = 245000000, 45420000
+
+
+def elderly_welfare(nid, eligibility_quote, merit_quote, general_quote, kind="영구임대",
+                    asset_quote="가액합산기준24,500만원이하", car_quote="개별자동차가액4,542만원이하"):
+    """kind: 공고가 영구임대형인지(추출기가 확인 — 아니면 자동 판정하지 않는다). 한도 문구는 리터럴과 같은 공고에서만 찾아진다."""
+    p = f"{nid}-EW"
+    lim = "elderly_terms"
+
+    def money(pre, term, quote, pct):
+        return [
+            cond(f"{pre}-income", "monthly_income", [quote], f"세대 월평균소득이 {pct} 이하인지(가구원수 가산만, 출생자녀 가산 없음)",
+                 {"lte": [{"var": "monthly_income"},
+                          {"lookup": ["income_standard_elderly", {"var": "household_size"}, {"term": term}]}]}, table=lim),
+            cond(f"{pre}-assets", "total_assets", [asset_quote], "세대 총자산이 2억4,500만원 이하인지",
+                 {"lte": [{"var": "total_assets"}, ELD_ASSETS]}),
+            cond(f"{pre}-car", "car_value", [car_quote], "자동차가액(가장 높은 차량가액)이 4,542만원 이하인지",
+                 {"lte": [CAR, ELD_CAR]}),
+        ]
+    tracks = [
+        {"id": "가", "label": "1순위 — 생계급여 또는 의료급여 수급자(소득·자산 검증 없음)", "conditions": [
+            cond(f"{p}-Ta", "livelihood_medical_recipient", ["가.국민기초생활보장법상의생계급여수급자또는의료급여수급자"],
+                 "생계급여 또는 의료급여 수급자인지", {"eq": [{"var": "livelihood_medical_recipient"}, True]})]},
+        {"id": "나", "label": "2순위 — 국가유공자·보훈보상대상자·5·18·특수임무·참전유공자(유족 포함), 소득 70%", "conditions": [
+            cond(f"{p}-Tb", "merit_person", ["국가유공자등예우및지원에관한법률에따른국가유공자또는그유족"],
+                 "국가유공자·보훈보상대상자·5·18민주유공자·특수임무유공자(또는 그 유족)·참전유공자인지",
+                 {"eq": [{"var": "merit_person"}, True]})] + money(f"{p}-Tb", "ratio70", merit_quote, "70%(1인 90%·2인 80%)")},
+        {"id": "차", "label": "3순위 — 일반(소득 50%)", "conditions": money(f"{p}-Tc", "ratio50", general_quote, "50%(1인 70%·2인 60%)")},
+    ]
+    common = [
+        cond(f"{p}-age", "age", [eligibility_quote], "공고일 현재 만 65세 이상인지", {"gte": [{"var": "age"}, 65]}),
+        cond(f"{p}-home", "home_ownership", [eligibility_quote], "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)", HOME),
+        {"id": f"{p}-rank", "field": "입주자격", "required": True,
+         "source": {"quote": ["가.국민기초생활보장법상의생계급여수급자또는의료급여수급자"]},
+         "note": "고령자복지주택 공급 신청자격 순위(1순위 가 생계·의료급여 / 2순위 나 국가유공자 등 70% / 3순위 차 일반 50%) 중 하나인지",
+         "tracks": tracks},
+    ]
+    tables = {lim: {
+        "label": "고령자복지주택 소득 비율(가구원수 가산만): 2순위 70%(1인 90%·2인 80%), 3순위 50%(1인 70%·2인 60%)",
+        "columns": ["size"],
+        "inputs": {"size": {"var": "household_size"}},
+        "outputs": ["ratio70", "ratio50"],
+        "rows": [r({"size": 1}, [90, 70]), r({"size": 2}, [80, 60]), r({"size": "3+"}, [70, 50])],
+        "source": {"quote": ["1인가구2,669,354원이하3,432,027원이하"]},
+    }}
+    return {"고령자": {"conditions": common}}, tables
+
+
+# ------------------------------------------------------------------------------------------------
 # 통합공공임대 일반형 (LH 표준 공고 — 평창장평 p.9·p.12·p.14~18)
 # ------------------------------------------------------------------------------------------------
 # 판정은 일반공급 기준(기준중위소득 150% + 가산)이다. 우선공급(청년·신혼부부 등, 100% + 가산)은 일반공급보다 기준이 낮은
@@ -840,6 +1066,34 @@ NATIONAL_NOTES = [
     "주거약자용 주택형(고령자·장애인)은 이 판정에 넣지 않았다 — 해당 주택형은 원문 주거약자 기준을 확인한다.",
 ]
 
+SH_NATIONAL_NOTES = [
+    "전용 50㎡ 미만은 월평균소득 50% 이하(1인 70%·2인 60%) 세대에 먼저 공급하고 남으면 70% 이하에 공급한다 — 70% 이하면 신청 "
+    "자격이 있고 50% 여부는 선정 순서라 판정하지 않는다(p.24·p.26).",
+    "경쟁 시 순위(50㎡ 미만은 해당구·연접구 거주, 59㎡는 청약저축 24회·6회)와 미성년 자녀 3명 이상·배점은 선정 순서라 "
+    "판정하지 않는다(p.26~28).",
+    "주거약자 주택은 공급신청자 본인이 고령자(만 65세 이상)·장애인·상이 국가유공자 등일 때만 신청할 수 있다 — '일반(주거약자용)' "
+    "계층으로 판정한다(p.29). 일반공급으로 신청한 주거약자는 주거약자 주택에 배정되지 않는다(p.16).",
+    "과거 공공임대주택 임차권 양도·전대로 적발된 뒤 4년이 지나지 않은 세대구성원이 있으면 무효다 — 이 판정은 묻지 않는다(p.23).",
+    "외국인은 신청할 수 없고, 1세대 1주택 신청 원칙(중복 신청은 모두 무효)이다(p.23).",
+    "소득 기준표는 원문이 1~6인만 적는다 — 7인 이상 세대는 이 판정이 기준 금액을 모른다(표에 없음).",
+]
+
+SH_PERMANENT_NOTES = [
+    "선정은 배점(서울 거주기간·연령·세대원수 등) 합산 순이고 같은 점수면 서울 전입일이 오래된 사람·연령이 높은 사람 순이다 — "
+    "판정하지 않는다(p.13).",
+    "다목(「일제하 일본군위안부 피해자…법률」에 따라 등록한 피해자)은 이 판정이 묻지 않는다 — 해당하면 원문을 확인한다(p.7).",
+    "과거 공공임대주택 불법 양도·전대로 적발된 뒤 4년이 지나지 않은 세대구성원이 있으면 선정될 수 없다 — 이 판정은 묻지 않는다(p.7).",
+    "금융정보 등 제공 동의서를 내지 않으면 신청할 수 없다(p.4). 외국인은 신청할 수 없다(p.8).",
+    "LH·SH 영구임대 공고 중 1호에만 신청할 수 있고, 거주지 동 주민센터 현장 접수만 받는다(p.3).",
+]
+
+ELDERLY_NOTES = [
+    "순위(1순위 생계·의료급여, 2순위 국가유공자 등, 3순위 일반)는 신청 자격의 갈래로 판정하고, 같은 순위 안의 배점·추첨은 판정하지 않는다(p.6).",
+    "과거 공공임대주택 불법 양도·전대로 적발된 뒤 4년이 지나지 않은 세대구성원이 있으면 선정될 수 없다 — 이 판정은 묻지 않는다(p.5).",
+    "금융정보 등 제공 동의서를 내지 않으면 신청할 수 없다(p.1). 외국인은 신청할 수 없다(p.6).",
+    "생계·의료급여 수급자 등은 '가군' 임대조건이 따로 적용된다(p.3) — 임대료는 판정하지 않는다.",
+]
+
 PLAN = [
     dict(nid="N30", key="LH30", title="남양주마석2단지 국민임대주택 예비입주자", ann="2026-09-07",
          program="국민임대주택", template="national_rental", params={"elderly_quote": None},
@@ -1013,6 +1267,31 @@ PLAN = [
              "이 공고의 우선공급은 덕수연립 가로주택정비사업 기존 거주자(철거민 등) 중 조합이 선정해 LH에 통보한 사람만 신청할 "
              "수 있다(별도 안내, 현장 접수) — 판정 대상 아님(p.4·p.15).",
              "일반공급은 59A형 10호다(p.4). 준공이 끝난 단지로 2027년 2월 입주 예정이다."]),
+    # G5 — SH 국민임대(서울 거주 + LH 국민임대와 같은 법령 기준, 일반공급 일반·주거약자). SH 국민임대 공고는 1건뿐이라
+    # 처음 보는 공고 검증은 다음 공고가 오면(공개는 2026-11-02 사용자 결정 — 안전장치로 보류)
+    dict(nid="N53", key="SH53", title="SH 2026년 국민임대주택 입주자모집", ann="2026-08-20",
+         program="국민임대주택", template="sh_national_rental",
+         params={"eligibility_quote": "현재서울특별시에거주하는성년자인무주택세대구성원으로서",
+                 "adult_quote": "민법상미성년자(만19세미만)는공급신청할수없습니다",
+                 "income_quote": "해당세대의월평균소득이전년도도시근로자가구원수별가구당월평균소득의70퍼센트이하인사람",
+                 "near_quote": "상계장암지구1,2단지는서울특별시외의정부시,남양주시,양주시,포천시에거주하는사람도신청가능",
+                 "weak_quote": "①~⑦중한개이상의자격을갖춘사람(공급신청자본인)만신청가능"},
+         notes=SH_NATIONAL_NOTES),
+    # G5 — SH 영구임대(서울 거주, 별표3 1순위 가~자). 공고 1건(2025.11.13.)으로 만든 틀
+    dict(nid="N54", key="SH54", title="SH 2025년 영구임대주택 예비입주자 모집", ann="2025-11-13",
+         program="영구임대주택", template="sh_permanent_rental",
+         params={"eligibility_quote": "현재서울특별시에거주하는성년자인무주택세대구성원으로,영구임대주택입주자자격에해당되며",
+                 "adult_quote": "「민법」상미성년자(만19세미만)는공급신청할수없습니다",
+                 "income_quote": "월평균소득의70퍼센트이하(가구원수1명-90%,가구원수2명-80%)이고",
+                 "asset_quote": "(23,700)만원이하", "car_quote": "개별자동차가액(4,563)만원이하"},
+         notes=SH_PERMANENT_NOTES),
+    # G5 — LH 고령자복지주택(영구임대형). 공고 1건(평택고덕 A-58, 정정)으로 만든 틀
+    dict(nid="N55", key="LH55", title="평택고덕 A-58블록 고령자복지주택(영구임대) 예비입주자(정정)", ann="2026-08-20",
+         program="고령자복지주택", template="elderly_welfare",
+         params={"eligibility_quote": "현재만65세이상(1961.08.20.이전출생자)으로서무주택세대구성원요건을만족하고",
+                 "merit_quote": "월평균소득70%(1인90%,2인80%)이하인", "general_quote": "50%(1인70%,2인60%)이하인자",
+                 "kind": "영구임대", "asset_quote": "가액합산기준24,500만원이하", "car_quote": "개별자동차가액4,542만원이하"},
+         notes=ELDERLY_NOTES),
 ]
 
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
@@ -1020,7 +1299,9 @@ ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신�
 # 일반공급 쪽을 가리키는 기준점을 템플릿별로 둔다(인용문·기준표 모두).
 TEMPLATE_ANCHOR = {"integrated_rental": ("신혼부부,한부모가족을제외한모든계층", 17), "public_rental": ("무주택세대구성원", 1),
                    "newlywed_town_sale": ("신혼부부신청자격", 11), "public_sale": ("다자녀가구특별공급■신청자격", 20),
-                   "sh_land_sale": ("청년특별공급■신청자격", 28)}
+                   "sh_land_sale": ("청년특별공급■신청자격", 28), "sh_national_rental": ("4.신청자격가.공통사항", 22),
+                   "sh_permanent_rental": ("3신청자격", 7),
+                   "elderly_welfare": ("4.신청자격", 5)}
 
 
 def pdf_for(key):
@@ -1038,9 +1319,11 @@ def walk(conditions):
 # 템플릿(사업별 규칙 생성 함수) — 공고별 값은 PLAN의 params(파라미터 시트, P1 docs/09 §5)
 BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_rental, "integrated_rental": integrated_rental,
             "public_rental": public_rental, "newlywed_town_sale": newlywed_town_sale, "public_sale": public_sale,
-            "sh_land_sale": sh_land_sale}
+            "sh_land_sale": sh_land_sale, "sh_national_rental": sh_national_rental,
+            "sh_permanent_rental": sh_permanent_rental,
+            "elderly_welfare": elderly_welfare}
 ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH", "public_rental": "LH",
-          "newlywed_town_sale": "LH", "public_sale": "LH", "sh_land_sale": "SH"}
+          "newlywed_town_sale": "LH", "public_sale": "LH", "sh_land_sale": "SH", "sh_national_rental": "SH", "sh_permanent_rental": "SH", "elderly_welfare": "LH"}
 
 
 def make_doc(plan, pdf, pages):

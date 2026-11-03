@@ -357,10 +357,10 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None
     if "신혼·신생아 매입임대" in program:
         return "sh.newlywed" if issuer == "SH" else "lh.newlywed_rental"
-    if "국민임대" in program:          # G2: LH 표준 공고로 만든 틀 — SH 국민임대는 아직 검증 전
-        return None if issuer == "SH" else "lh.national_rental"
-    if "영구임대" in program:          # G2: LH 영구임대 표준 공고 — SH 영구임대는 아직 검증 전
-        return None if issuer == "SH" else "lh.permanent_rental"
+    if "국민임대" in program:          # G2: LH 표준 공고, G5: SH 국민임대(서울 거주)
+        return "sh.national_rental" if issuer == "SH" else "lh.national_rental"
+    if "영구임대" in program:          # G2: LH 영구임대 표준 공고, G5: SH 영구임대(서울 거주·1순위 가~자)
+        return "sh.permanent_rental" if issuer == "SH" else "lh.permanent_rental"
     if "통합공공임대" in program:      # G2: LH 통합공공임대 일반형 — 일자리연계형 등 변형은 gate에서 막는다
         return None if issuer == "SH" else "lh.integrated_rental"
     if program == "토지임대부 분양주택":  # G3-3: SH 토지임대부 분양(LH 토지임대부는 아직 검증 전)
@@ -369,6 +369,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None if issuer == "SH" else "lh.public_sale"
     if program == "신혼희망타운(분양)":   # G3: LH 신혼희망타운 공공분양 — SH는 아직 검증 전
         return None if issuer == "SH" else "lh.newlywed_town_sale"
+    if program == "고령자복지주택":       # G5: LH 고령자복지주택(영구임대형만 — 국민임대형 등은 gate가 막는다)
+        return None if issuer == "SH" else "lh.elderly_welfare"
     if program == "공공임대주택":       # G4: LH 공공임대(10년·분양전환·50년) 예비입주자 — 최초 입주자 모집은 gate에서 막는다
         return None if issuer == "SH" else "lh.public_rental"
     for key, t in PROGRAM_TEMPLATE:
@@ -762,6 +764,91 @@ def _permanent_rental(pages):
     return f
 
 
+# ------------------------------------------------------------------ SH 국민임대(G5)
+# 공통 자격: N53 p.22 "입주자모집공고일(2026.08.20.)현재서울특별시에거주하는성년자인무주택세대구성원으로서"
+SH_ELIGIBILITY = r"현재서울특별시에거주하는성년자인무주택세대구성원(?:으로서)?"
+SH_ADULT = r"「?민법」?상미성년자\(만?19세미만\)는공급신청할수없습니다"
+SH_INCOME70 = r"해당세대의월평균소득이전년도도시근로자가구원수별가구당월평균소득의70퍼센트이하인사람"
+# 서울 밖 거주자도 받는 단지: N53 p.22 "상계장암지구1,2단지는서울특별시외의정부시,남양주시,양주시,포천시에거주하는사람도신청가능"
+SH_NEAR_SENT = r"[가-힣0-9]{0,12}지구[0-9,·]+단지는서울특별시외(?P<cities>[가-힣,·]+?)에거주하는사람도신청가능"
+SH_NEAR_CITIES = ("의정부시", "남양주시", "양주시", "포천시")     # gen_c6_public.SH_NEAR와 같아야 한다(테스트가 확인)
+SH_WEAK = r"(?:①~⑦|1~7)중한개이상의자격을갖춘사람\(공급신청자본인\)만신청가능"
+
+
+def _sh_national_rental(pages):
+    f = {}
+    for key, rx, how, fallback in (
+            ("eligibility_quote", SH_ELIGIBILITY, "공통 신청자격 문장(서울 거주·성년·무주택세대구성원)", "무주택세대구성원"),
+            ("adult_quote", SH_ADULT, "성년 요건 문장", "미성년자"),
+            ("income_quote", SH_INCOME70, "소득 기준 문장(70% 이하)", "월평균소득")):
+        hit = find_text(pages, rx)
+        f[key] = Field(FILLED, hit[1], hit[0], hit[1], how) if hit else Field(HELD, fallback, how=f"{how}을 찾지 못함")
+    hit = find_text(pages, SH_NEAR_SENT)
+    if hit:
+        cities = set(re.split(r"[,·]", re.match(SH_NEAR_SENT, hit[1]).group("cities")))
+        f["near_quote"] = (Field(FILLED, hit[1], hit[0], hit[1], "서울 밖 일부 시 거주자도 받는 단지 문구")
+                           if cities == set(SH_NEAR_CITIES) else
+                           Field(HELD, hit[1], hit[0], hit[1], f"서울 밖 거주 허용 시가 판정 틀과 다름({','.join(sorted(cities))})"))
+    elif find_text(pages, r"서울특별시외[^■]{0,40}?(?:신청가능|신청할수있)"):
+        f["near_quote"] = Field(HELD, "서울특별시외", how="서울 밖 거주자도 받는 문구가 있으나 형식을 읽지 못함")
+    else:
+        f["near_quote"] = Field(ABSENT, None, how="서울 밖 거주 허용 문구 없음")
+    hit = find_text(pages, SH_WEAK)
+    f["weak_quote"] = Field(FILLED, hit[1], hit[0], hit[1], "일반공급(주거약자) 신청자격 문구") if hit else         Field(ABSENT, None, how="일반공급(주거약자) 문구 없음")
+    return f
+
+
+# ------------------------------------------------------------------ SH 영구임대(G5)
+# N54 p.7 "모집공고일(2025.11.13.)현재서울특별시에거주하는성년자인무주택세대구성원으로,영구임대주택입주자자격에해당되며"
+SHP_ELIGIBILITY = r"현재서울특별시에거주하는성년자인무주택세대구성원으로,?영구임대주택입주자자격에해당되며"
+SHP_INCOME70 = r"월평균소득의70퍼센트이하\(가구원수1명-90%,가구원수2명-80%\)이고"
+# 총자산·자동차 한도는 판정 틀의 리터럴(gen_c6_public.SHP_B1 — 2억3,700만·4,563만)과 같은 문구일 때만 채운다.
+# 다른 금액이면(다음 해 기준) 보류 — 리터럴로 판정하지 않게.
+SHP_ASSET = "(23,700)만원이하"
+SHP_CAR = "개별자동차가액(4,563)만원이하"
+
+
+def _sh_permanent_rental(pages):
+    f = {}
+    for key, rx, how, fallback in (
+            ("eligibility_quote", SHP_ELIGIBILITY, "공통 신청자격 문장(서울 거주·성년·무주택세대구성원)", "무주택세대구성원"),
+            ("adult_quote", SH_ADULT, "성년 요건 문장", "미성년자"),
+            ("income_quote", SHP_INCOME70, "소득 기준 문장(70% 이하)", "월평균소득")):
+        hit = find_text(pages, rx)
+        f[key] = Field(FILLED, hit[1], hit[0], hit[1], how) if hit else Field(HELD, fallback, how=f"{how}을 찾지 못함")
+    for key, lit, how in (("asset_quote", SHP_ASSET, "총자산 한도 2억3,700만원"), ("car_quote", SHP_CAR, "자동차 한도 4,563만원")):
+        page = on_page(pages, lit)
+        f[key] = Field(FILLED, lit, page, lit, how) if page else \
+            Field(HELD, lit, how=f"{how} 문구가 없음(다른 기준 연도일 수 있음)")
+    return f
+
+
+# ------------------------------------------------------------------ LH 고령자복지주택(G5)
+# N55 p.5 "입주자모집공고일(2026.08.20.)현재만65세이상(1961.08.20.이전출생자)으로서무주택세대구성원요건을만족하고"
+ELD_ELIGIBILITY = r"현재만65세이상\(\d{4}\.\d{2}\.\d{2}\.이전출생자?\)으로서무주택세대구성원요건을만족하고"
+ELD_MERIT = r"월평균소득70%\(1인90%,2인80%\)이하인"
+ELD_GENERAL = r"50%\(1인70%,2인60%\)이하인자"
+# 판정 틀은 영구임대형 리터럴(총자산 24,500만·자동차 4,542만) — 제목·첫 쪽에 '고령자복지주택(영구임대)'가 있을 때만
+ELD_KIND = r"고령자복지주택\(영구임대\)"
+
+
+def _elderly_welfare(pages):
+    hit = find_text(pages[:3], ELD_KIND)
+    f = {"kind": Field(FILLED, "영구임대", hit[0], hit[1], "제목·첫 쪽의 '고령자복지주택(영구임대)'") if hit else
+         Field(HELD, None, how="영구임대형 고령자복지주택인지 확인하지 못함(국민임대형 등은 판정 틀이 다름)")}
+    for key, rx, how, fallback in (
+            ("eligibility_quote", ELD_ELIGIBILITY, "공통 신청자격 문장(65세 이상·무주택세대구성원)", "무주택세대구성원"),
+            ("merit_quote", ELD_MERIT, "2순위(국가유공자 등) 소득 70% 문구", "월평균소득"),
+            ("general_quote", ELD_GENERAL, "3순위(일반) 소득 50% 문구", "월평균소득")):
+        hit = find_text(pages, rx)
+        f[key] = Field(FILLED, hit[1], hit[0], hit[1], how) if hit else Field(HELD, fallback, how=f"{how}을 찾지 못함")
+    for key, lit, how in (("asset_quote", "가액합산기준24,500만원이하", "총자산 한도 2억4,500만원"),
+                          ("car_quote", "개별자동차가액4,542만원이하", "자동차 한도 4,542만원")):
+        page = on_page(pages, lit)
+        f[key] = Field(FILLED, lit, page, lit, how) if page else Field(HELD, lit, how=f"{how} 문구가 없음(다른 기준일 수 있음)")
+    return f
+
+
 # ------------------------------------------------------------------ 공공임대 예비입주자(G4)
 # 신청 자격 문장: N37 "현재수도권에거주(주민등록표등본기준)하는무주택세대구성원", N39 "현재주택건설지역(경기도,서울특별시,
 # 인천광역시)에거주하는무주택세대구성원", 거주 요건이 없는 공고는 "현재무주택세대구성원으로서"
@@ -911,6 +998,9 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
           "lh.newlywed_town_sale": lambda: _newlywed_town_sale(pages),
           "lh.public_sale": lambda: _public_sale(pages),
           "sh.land_sale": lambda: _sh_land_sale(pages),
+          "sh.national_rental": lambda: _sh_national_rental(pages),
+          "sh.permanent_rental": lambda: _sh_permanent_rental(pages),
+          "lh.elderly_welfare": lambda: _elderly_welfare(pages),
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),
           "sh.jeonse2": lambda: _jeonse2(pages, ann, sib, program, llm),
           "sh.jeonse": lambda: _jeonse(pages, ann, sib, program, llm),

@@ -1,0 +1,345 @@
+{
+  "notice_id": "N55",
+  "title": "평택고덕 A-58블록 고령자복지주택(영구임대) 예비입주자(정정)",
+  "announcement_date": "2026-08-20",
+  "issuer": "LH",
+  "program": "고령자복지주택",
+  "version": 1,
+  "valid_from": "2026-08-20",
+  "supersedes": null,
+  "source": {
+    "document": "평택고덕A-58블록 고령자복지주택(영구임대) 입주자모집공고문.pdf",
+    "sha256": "d7b89cac13f0715566675b70079ff939b6985598a7c234477637fa2f62cda778",
+    "pages": 32
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "G2 생성(tools/gen_c6_public.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+    "log": []
+  },
+  "notes": [
+    "순위(1순위 생계·의료급여, 2순위 국가유공자 등, 3순위 일반)는 신청 자격의 갈래로 판정하고, 같은 순위 안의 배점·추첨은 판정하지 않는다(p.6).",
+    "과거 공공임대주택 불법 양도·전대로 적발된 뒤 4년이 지나지 않은 세대구성원이 있으면 선정될 수 없다 — 이 판정은 묻지 않는다(p.5).",
+    "금융정보 등 제공 동의서를 내지 않으면 신청할 수 없다(p.1). 외국인은 신청할 수 없다(p.6).",
+    "생계·의료급여 수급자 등은 '가군' 임대조건이 따로 적용된다(p.3) — 임대료는 판정하지 않는다."
+  ],
+  "unsupported_layers": [],
+  "tables": {
+    "elderly_terms": {
+      "label": "고령자복지주택 소득 비율(가구원수 가산만): 2순위 70%(1인 90%·2인 80%), 3순위 50%(1인 70%·2인 60%)",
+      "columns": [
+        "size"
+      ],
+      "inputs": {
+        "size": {
+          "var": "household_size"
+        }
+      },
+      "outputs": [
+        "ratio70",
+        "ratio50"
+      ],
+      "rows": [
+        {
+          "when": {
+            "size": 1
+          },
+          "out": [
+            90,
+            70
+          ]
+        },
+        {
+          "when": {
+            "size": 2
+          },
+          "out": [
+            80,
+            60
+          ]
+        },
+        {
+          "when": {
+            "size": "3+"
+          },
+          "out": [
+            70,
+            50
+          ]
+        }
+      ],
+      "source": {
+        "quote": [
+          "1인가구2,669,354원이하3,432,027원이하"
+        ],
+        "page": 6
+      }
+    }
+  },
+  "layers": {
+    "고령자": {
+      "conditions": [
+        {
+          "id": "N55-EW-age",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재만65세이상(1961.08.20.이전출생자)으로서무주택세대구성원요건을만족하고"
+            ],
+            "page": 5
+          },
+          "note": "공고일 현재 만 65세 이상인지",
+          "check": {
+            "gte": [
+              {
+                "var": "age"
+              },
+              65
+            ]
+          }
+        },
+        {
+          "id": "N55-EW-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "현재만65세이상(1961.08.20.이전출생자)으로서무주택세대구성원요건을만족하고"
+            ],
+            "page": 5
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N55-EW-rank",
+          "field": "입주자격",
+          "required": true,
+          "source": {
+            "quote": [
+              "가.국민기초생활보장법상의생계급여수급자또는의료급여수급자"
+            ],
+            "page": 6
+          },
+          "note": "고령자복지주택 공급 신청자격 순위(1순위 가 생계·의료급여 / 2순위 나 국가유공자 등 70% / 3순위 차 일반 50%) 중 하나인지",
+          "tracks": [
+            {
+              "id": "가",
+              "label": "1순위 — 생계급여 또는 의료급여 수급자(소득·자산 검증 없음)",
+              "conditions": [
+                {
+                  "id": "N55-EW-Ta",
+                  "field": "livelihood_medical_recipient",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "가.국민기초생활보장법상의생계급여수급자또는의료급여수급자"
+                    ],
+                    "page": 6
+                  },
+                  "note": "생계급여 또는 의료급여 수급자인지",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "livelihood_medical_recipient"
+                      },
+                      true
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "나",
+              "label": "2순위 — 국가유공자·보훈보상대상자·5·18·특수임무·참전유공자(유족 포함), 소득 70%",
+              "conditions": [
+                {
+                  "id": "N55-EW-Tb",
+                  "field": "merit_person",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "국가유공자등예우및지원에관한법률에따른국가유공자또는그유족"
+                    ],
+                    "page": 6
+                  },
+                  "note": "국가유공자·보훈보상대상자·5·18민주유공자·특수임무유공자(또는 그 유족)·참전유공자인지",
+                  "check": {
+                    "eq": [
+                      {
+                        "var": "merit_person"
+                      },
+                      true
+                    ]
+                  }
+                },
+                {
+                  "id": "N55-EW-Tb-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "월평균소득70%(1인90%,2인80%)이하인"
+                    ],
+                    "page": 6
+                  },
+                  "note": "세대 월평균소득이 70%(1인 90%·2인 80%) 이하인지(가구원수 가산만, 출생자녀 가산 없음)",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard_elderly",
+                          {
+                            "var": "household_size"
+                          },
+                          {
+                            "term": "ratio70"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "elderly_terms"
+                },
+                {
+                  "id": "N55-EW-Tb-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "가액합산기준24,500만원이하"
+                    ],
+                    "page": 7
+                  },
+                  "note": "세대 총자산이 2억4,500만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      245000000
+                    ]
+                  }
+                },
+                {
+                  "id": "N55-EW-Tb-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "개별자동차가액4,542만원이하"
+                    ],
+                    "page": 7
+                  },
+                  "note": "자동차가액(가장 높은 차량가액)이 4,542만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      45420000
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "차",
+              "label": "3순위 — 일반(소득 50%)",
+              "conditions": [
+                {
+                  "id": "N55-EW-Tc-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "50%(1인70%,2인60%)이하인자"
+                    ],
+                    "page": 6
+                  },
+                  "note": "세대 월평균소득이 50%(1인 70%·2인 60%) 이하인지(가구원수 가산만, 출생자녀 가산 없음)",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard_elderly",
+                          {
+                            "var": "household_size"
+                          },
+                          {
+                            "term": "ratio50"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "table": "elderly_terms"
+                },
+                {
+                  "id": "N55-EW-Tc-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "가액합산기준24,500만원이하"
+                    ],
+                    "page": 7
+                  },
+                  "note": "세대 총자산이 2억4,500만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      245000000
+                    ]
+                  }
+                },
+                {
+                  "id": "N55-EW-Tc-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "개별자동차가액4,542만원이하"
+                    ],
+                    "page": 7
+                  },
+                  "note": "자동차가액(가장 높은 차량가액)이 4,542만원 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      45420000
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
