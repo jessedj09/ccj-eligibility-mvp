@@ -76,6 +76,9 @@ DATES = {
     # G5 SH 영구임대(N54 2025.11.13) — 공고일만 쓴다(출생자녀 기준일 2023.3.28. 고정).
     "N54": dict(ann=date(2025, 11, 13), marriage=date(2018, 11, 13), child=date(2018, 11, 14),
                 grad=date(2023, 11, 13), adult=date(2006, 11, 13)),
+    # G7 LH 선택형 공공임대(N57 뉴홈 4차 사전청약 2024.01.04.) — 혼인 7년·6세 이하·19세 미만 자녀는 공고일 기준.
+    "N57": dict(ann=date(2024, 1, 4), marriage=date(2017, 1, 4), child=date(2017, 1, 5),
+                grad=date(2022, 1, 4), adult=date(2005, 1, 4)),
     # G6 LH 나눔형(N56 뉴홈 4차 사전청약 2024.01.03.) — 혼인 7년·6세 이하 자녀는 공고일 기준.
     "N56": dict(ann=date(2024, 1, 3), marriage=date(2017, 1, 3), child=date(2017, 1, 4),
                 grad=date(2022, 1, 3), adult=date(2005, 1, 3)),
@@ -162,7 +165,8 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               **{f"N{n}": "newlywed_town_sale" for n in range(45, 49)},
               "N49": "public_sale", "N50": "public_sale", "N51": "sh_land_sale", "N52": "sh_land_sale",
               "N53": "sh_national_rental", "N54": "sh_permanent_rental",
-              "N55": "elderly_welfare", "N56": "share_sale"}
+              "N55": "elderly_welfare", "N56": "share_sale",
+              "N57": "select_rental"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -204,6 +208,9 @@ SHARE_INCOME = [None, 0, 1] + [v + d for v in (6_509_452, 8_462_288, 9_113_233, 
                                                13_031_113, 14_033_506) for d in (-1, 0, 1)] + [30_000_000]
 SHARE_YOUTH_INCOME = [None, 0] + [4_695_438 + d for d in (-1, 0, 1)]
 SHARE_ASSETS = [None, 0] + [v + d for v in (289_000_000, 379_000_000) for d in (0, 1)]
+# G7 LH 선택형(N57): 1인 120%·2인 110·130·140·150%·3인 100·120·130·140%·8인 140% 경계 ±1원
+SELECT_INCOME = [None, 0, 1] + [v + d for v in (4_024_661, 5_505_914, 6_506_989, 7_007_526, 7_508_064, 6_718_198, 8_061_838,
+                                                8_733_657, 9_405_477, 14_033_506) for d in (-1, 0, 1)] + [30_000_000]
 SHP_ASSETS = [None, 0, 1] + [v + d for v in (237_000_000, 261_000_000, 285_000_000) for d in (0, 1)]
 SHP_CARS = [0, 1, "확인불가"] + [v + d for v in (45_630_000, 50_200_000, 54_760_000) for d in (0, 1)]
 # G3 LH 공공분양: 2025 도시근로자 100~220%(3인 이하·4인·8인) 경계 ±1원, 부동산 3단계
@@ -410,6 +417,7 @@ GROUPS: List[Tuple[str, str]] = [
     *[(nid, layer) for nid in ("N51", "N52") for layer in ("청년", "신혼부부", "생애최초", "신생아", "일반공급")],
     ("N53", "일반"), ("N53", "일반(주거약자용)"), ("N54", "일반"), ("N55", "고령자"),
     *[("N56", layer) for layer in ("청년", "신혼부부", "생애최초", "일반공급")],
+    *[("N57", layer) for layer in ("청년", "다자녀가구", "노부모부양", "생애최초", "신혼부부", "일반공급")],
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -493,6 +501,14 @@ def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, objec
         return _program_attributes("sh_land_sale", layer, pools)
     if PROGRAM_OF.get(nid) == "public_sale":                # G3: 일반공급(전용 60㎡ 이하/초과)도 사업 전용 풀
         return _program_attributes("public_sale", layer, pools)
+    if PROGRAM_OF.get(nid) == "select_rental":              # G7: SH 토지임대부 풀(청년·다자녀·노부모 입력 포함) + 선택형 금액 경계
+        attrs = _program_attributes("sh_land_sale", layer, pools)
+        attrs.update(assets=(SHARE_ASSETS, 1), marriage=(pools["marriage"], date(2022, 1, 1)),
+                     parents_assets=([None, 0, 1_083_000_000, 1_083_000_001], 0),
+                     income=(SHARE_YOUTH_INCOME if layer == "청년" else SELECT_INCOME, 1))
+        if layer == "다자녀가구":
+            attrs.update(kids=(pools["kids"], [date(2010, 1, 1), date(2012, 1, 1), date(2015, 1, 1)]), size=([2, 3, 5, 8], 5))
+        return attrs
     if PROGRAM_OF.get(nid) == "share_sale":                 # G6: SH 토지임대부 풀(청년·부모 자산 등) + 나눔형 금액 경계
         attrs = _program_attributes("sh_land_sale", layer, pools)
         attrs.update(assets=(SHARE_ASSETS, 1), marriage=(pools["marriage"], date(2022, 1, 1)),
