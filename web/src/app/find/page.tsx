@@ -1,34 +1,18 @@
 "use client";
 // 내 조건으로 공고 찾기 — 한 번 입력해 모든 공고·계층을 판정한다(판정 API /match). 입력 양식은 서버(/match/form)가 정한다.
-// 입력한 조건은 서버에 저장하지 않는다 — 내 조건 파일(ccj-profile/1)로 이 기기에 내려받고 다시 불러온다.
+// 입력한 조건은 로그인하지 않으면 서버에 저장하지 않는다 — 내 조건 파일(ccj-profile/1)로 이 기기에 내려받고 다시 불러온다.
+// 로그인했으면 '내 조건 등록하기'에 저장한 조건을 불러오거나(?profile=…) 지금 입력을 저장할 수 있다(2026-11-03).
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import MatchList from "@/components/MatchList";
 import ProfileForm, { initialValues, toProfile, valuesFrom, type Values } from "@/components/ProfileForm";
 import WhatIf from "@/components/WhatIf";
+import { AccountError, getMe, getProfile, saveProfile, type Me } from "@/lib/account";
 import { ApiError, getMatchForm, match, type Form, type MatchResult, type ProfileFile } from "@/lib/api";
+import { fromFile, toFile } from "@/lib/profileFile";
 import { revealOnNarrow } from "@/lib/reveal";
 
-const MASTER = "master.";
 const card = "rounded-lg border border-slate-200 bg-white p-5 shadow-sm";
-
-/** 입력란 항목 → 저장 파일. 'master.x'는 master(모름이면 뺀다), 그 밖은 common(모름은 null 그대로). */
-function toFile(profile: Record<string, unknown>): ProfileFile {
-  const file: ProfileFile = { schema: "ccj-profile/1", master: {}, common: {} };
-  for (const [k, v] of Object.entries(profile)) {
-    if (k.startsWith(MASTER)) {
-      if (v !== null) file.master[k.slice(MASTER.length)] = v;
-    } else file.common[k] = v;
-  }
-  return file;
-}
-
-function fromFile(raw: unknown): Record<string, unknown> {
-  const f = raw as Partial<ProfileFile>;
-  if (!f || f.schema !== "ccj-profile/1") throw new Error("내 조건 파일 형식이 아닙니다(schema가 'ccj-profile/1'이어야 합니다).");
-  const out: Record<string, unknown> = { ...(f.common ?? {}) };
-  for (const [k, v] of Object.entries(f.master ?? {})) out[MASTER + k] = v;
-  return out;
-}
 
 const todayKst = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" });
 
@@ -45,6 +29,8 @@ export default function Find() {
   const fileInput = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const reveal = useRef(false);     // '전체 공고 판정'을 눌렀을 때만 결과로 스크롤(기준일·보기를 바꿀 때는 그대로)
+  const [me, setMe] = useState<Me | null>(null);
+  const [stored, setStored] = useState<{ id: string; alias: string } | null>(null);   // 불러온 저장 조건(덮어쓰기 대상)
 
   useEffect(() => {
     if (result && reveal.current) {
@@ -55,7 +41,19 @@ export default function Find() {
 
   useEffect(() => {
     getMatchForm().then((f) => { setForm(f); setValues(initialValues(f)); }).catch((e: ApiError) => setError(e.message));
+    getMe().then(setMe).catch(() => setMe(null));
   }, []);
+
+  // ?profile=… — 내 조건 등록하기에서 고른 조건으로 입력란을 채운다(로그인한 본인 조건만)
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("profile");
+    if (!form || !id) return;
+    getProfile(id).then((p) => {
+      setValues(valuesFrom(form, fromFile(p.profile)));
+      setStored({ id: p.id, alias: p.alias });
+      setLoaded(`'${p.alias}' 조건으로 입력란을 채웠습니다. 저장하지 않는 민감 항목(수급·장애·국가유공자 등)은 필요하면 직접 넣으세요.`);
+    }).catch((e: AccountError) => setError(e.status === 401 ? "로그인이 필요합니다." : e.message));
+  }, [form]);
 
   // 오늘이면 지금 시각, 다른 날이면 그날 12:00(한국 시간) 기준으로 접수 상태를 본다
   const at = day === todayKst() ? null : `${day}T12:00:00+09:00`;
@@ -110,6 +108,19 @@ export default function Find() {
     URL.revokeObjectURL(a.href);
   }
 
+  async function store() {
+    const alias = stored?.alias ?? prompt("저장할 조건 이름(예: 나, 배우자와 함께)", me?.profiles.length ? "새 조건" : "나");
+    if (!alias) return;
+    try {
+      const p = await saveProfile({ alias, profile: toFile(toProfile(form!, values).profile), status: "done" }, stored?.id);
+      setStored({ id: p.id, alias: p.alias });
+      setLoaded(`'${p.alias}' 조건으로 저장했습니다(민감 항목은 저장하지 않음).`);
+      setError("");
+    } catch (e) {
+      setError((e as AccountError).message);
+    }
+  }
+
   async function load(file: File) {
     try {
       setValues(valuesFrom(form!, fromFile(JSON.parse(await file.text()))));
@@ -144,9 +155,17 @@ export default function Find() {
                 className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">💾 내 조건 파일로 저장</button>
               <input ref={fileInput} type="file" accept=".json,application/json" className="hidden" data-testid="profile-file"
                 onChange={(e) => e.target.files?.[0] && load(e.target.files[0])} />
+              {me && (
+                <button type="button" onClick={store} data-testid="profile-store-account"
+                  className="rounded-md border border-blue-700 px-3 py-1.5 text-sm text-blue-700 hover:bg-blue-50">
+                  {stored ? `'${stored.alias}'에 저장` : "내 조건에 저장"}
+                </button>
+              )}
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              입력한 조건은 서버에 저장하지 않습니다(소득·자산 같은 개인정보). 저장한 파일은 이 기기에만 있고, 다음에 불러오면 입력란이 채워집니다.
+              {me ? <>로그인하면 조건을 <Link href="/me" className="underline">내 조건 등록하기</Link>에 암호화해 저장할 수 있습니다(민감 항목 제외). </>
+                : <>로그인하지 않으면 입력한 조건을 서버에 저장하지 않습니다. </>}
+              파일로 저장하면 이 기기에만 있고, 다음에 불러오면 입력란이 채워집니다.
             </p>
             {loaded && <p className="mt-2 text-sm text-green-800" data-testid="profile-loaded">{loaded}</p>}
           </div>

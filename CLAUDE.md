@@ -98,7 +98,8 @@ Engine**이다.
   원문 대조는 인용문 위치 + 데이터의 월·일·시각이 인용문에 있는지까지(`verify_schedules`). `tests/test_d2_schedule.py`.
   **새 공고를 추가하면 schedules.json에도 접수기간을 넣어야 한다(빠지면 원문 대조가 실패).**
 - **D2b(2026-10-23) 프로필 저장·판정 API**: 저장 파일 형식 `ccj-profile/1`(`src/profile_io.py` — master: 본인·세대 범위 항목,
-  common: 그 밖의 HouseholdProfile 항목, common의 null은 "모름"으로 보존). 서버는 프로필을 저장하지 않는다 — 화면에서
+  common: 그 밖의 HouseholdProfile 항목, common의 null은 "모름"으로 보존). 판정 요청의 프로필은 저장하지 않는다(로그인해 '내 조건
+  등록하기'에 저장한 조건만 — 아래 '회원·내 조건') — 화면에서
   "내 조건 파일로 저장"으로 내려받고 "불러오기"로 다시 채운다(입력란 대응표 `src/profile_form.py`). 같은 파일이 API `/match`의
   요청 본문이다. API `api/main.py`(FastAPI, `requirements-api.txt` — 화면 배포와 분리): `/health`, `/notices`(접수 상태 포함),
   `/evaluate`, `/match`(only_open·기준 시각). 판정 로직 없음 — src/를 그대로 호출. `tests/test_d2b_profile_api.py`.
@@ -205,7 +206,13 @@ Engine**이다.
   **적용(2026-11-02, docs/09 §21)**: 기준 연도가 바뀐 공고 → `reference` 작업 → 운영자가 `tools/reference_candidate.py`(또는 운영자 검토
   화면)로 새 기준표 후보를 원문과 대조해 `successor_of`를 단 새 표로 등록(docs/08 4절) → 같은 연도 새 공고는 자동 분석이 그 표로 바꿔 판정
   (`sheet_extract.swap_successors`). 결정표 금액이 원문 표의 다른 가구원수 칸에만 있으면 보류(`table_positions`). OCR(Mistral)은 보류.
-- pytest: 총 **1413개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+- **회원·내 조건(2026-11-03 사용자 결정 — 개인정보 서버 저장 허용)**: `src/accounts.py`(이메일+비밀번호, 6자리 인증 코드 메일 —
+  `src/mailer.py`, 비밀번호 scrypt·코드·세션 토큰은 해시만), `api/accounts_api.py`(/auth/*, /me, /me/profiles CRUD·/match — Bearer 토큰).
+  화면은 `web /api/account/[...path]`가 httpOnly 쿠키로 중계, `/signup`·`/login`·`/reset`·`/me`(내 조건 등록하기 — 여러 개·대표·작성 중·
+  완성도)·`/privacy`·`/terms`. 내 조건은 ccj-profile/1에서 **민감 항목(SENSITIVE — 수급·장애·국가유공자 등)을 빼고** AES-GCM 암호화
+  (`CCJ_PROFILE_KEY`), DB는 Neon 싱가포르 그대로 + 가입 때 국외 이전 동의(필수 동의 3개). 탈퇴 즉시 파기, 1년 미접속은
+  `tools/purge_accounts.py`. 계정 기능은 공유 저장소와 같은 스위치 — NullStore(시험·`CCJ_STORE=off`)면 503. `tests/test_accounts.py`.
+- pytest: 총 **1423개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

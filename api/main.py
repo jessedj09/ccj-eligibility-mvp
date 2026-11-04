@@ -52,7 +52,11 @@ import whatif  # noqa: E402
 app = FastAPI(title="공공임대 자격 판정 API", version="1",
               description="LH·SH 공고문 기반 결정론적 자격 판정. 신청 자격(필수요건)만 판정하며 순위·가점·당첨은 포함하지 않습니다.")
 app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in os.environ.get(
-    "CCJ_CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()], allow_methods=["GET", "POST"], allow_headers=["*"])
+    "CCJ_CORS_ORIGINS", "http://localhost:3000").split(",") if o.strip()], allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"])
+
+from api.accounts_api import router as accounts_router  # noqa: E402 — 회원가입·로그인·내 조건(2026-11-03)
+app.include_router(accounts_router)
 
 PUBLIC_ENV = "CCJ_AUTO_JUDGE_PUBLIC"
 MAX_UPLOAD = 20 * 1024 * 1024
