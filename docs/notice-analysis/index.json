@@ -390,5 +390,12 @@
     "file": "sample_lh/뉴홈 4차 사전청약 나눔형 공공분양주택 입주자모집공고문.pdf",
     "pages": 21,
     "sha256": "1c4c2bafefc8ce291f5ac53be4862b2b6e073f4cf132e4515ca680738ee83515"
+  },
+  {
+    "key": "LH57",
+    "org": "LH",
+    "file": "sample_lh/뉴홈 4차 사전청약 선택형 공공임대주택 입주자모집공고문.pdf",
+    "pages": 24,
+    "sha256": "51cbd466e6a47935e6ca61195fa4610fe88f374cda1d1cb26b52aefbcb8617f8"
   }
 ]

@@ -555,6 +555,132 @@ def lh_share_sale(nid, residence="수도권", youth_income_quote="청년도시�
 
 
 # ------------------------------------------------------------------------------------------------
+# LH 선택형 공공임대 (뉴홈 4차 사전청약 2024.01.04. — p.1 <표1>, p.9~10 <표3>·<표4>, p.11~17 유형별 신청자격)
+# ------------------------------------------------------------------------------------------------
+# 6년 임대 뒤 분양 전환을 선택하는 분양전환공공임대. 2024.3. 규칙 개정 전 공고(신생아 특별공급 없음, 다자녀 3명, 출생자녀 가산 없음).
+# 소득은 가구원수별(1인·2인 완화) 2023년도 표(income_standard_select_rental) — 유형별 실효 비율을 결정표로 둔다(우선공급의 더 낮은
+# 비율은 선정 순서라 판정하지 않고 잔여공급 기준으로 판정). 기관추천 특별공급은 미지원 계층.
+SELECT_SECTION = {"청년": "2.청년특별공급■신청자격", "다자녀가구": "3.다자녀가구특별공급■신청자격",
+                  "노부모부양": "4.노부모부양특별공급■신청자격", "생애최초": "5.생애최초특별공급■신청자격",
+                  "신혼부부": "6.신혼부부특별공급■신청자격", "일반공급": "7.일반공급■신청자격"}
+# 유형별 소득 비율(가구원수 1·2·3+). None = 그 가구원수로는 신청할 수 없는 조합(입력 확인)
+SELECT_RATIO = {"다자녀가구": (None, None, 120), "노부모부양": (None, 130, 120), "생애최초": (None, 140, 130),
+                "일반공급": (120, 110, 100)}
+SELECT_DUAL = {False: (None, 140, 130), True: (None, 150, 140)}      # 신혼부부 외벌이·맞벌이
+D_SELECT_SIZE = "이 유형은 이 가구원수로 신청할 수 없습니다(다자녀는 자녀 3명 이상, 노부모부양·생애최초·신혼부부는 2인 이상). 입력을 확인해 주세요."
+
+
+def _select_terms(layer):
+    sizes = (1, 2, "3+")
+    if layer == "신혼부부":
+        rows = [r({"size": s, "dual": d}, [SELECT_DUAL[d][i]]) if SELECT_DUAL[d][i] else
+                r({"size": s, "dual": d}, **no_row(D_SELECT_SIZE)) for d in (False, True) for i, s in enumerate(sizes)]
+        return {"label": "선택형 신혼부부 소득 비율: 가구원수 × 맞벌이(2인 140·150%, 3인 이상 130·140%)", "columns": ["size", "dual"],
+                "inputs": {"size": {"var": "household_size"}, "dual": {"var": "dual_income"}}, "outputs": ["ratio"], "rows": rows,
+                "source": {"quote": ["130%(단,맞벌이인경우에는140%)이하[가구원수가2명인경우140%(가구원수가2명이면서맞벌이인경우에는150%)]"]}}
+    ratio = SELECT_RATIO[layer]
+    rows = [r({"size": s}, [ratio[i]]) if ratio[i] else r({"size": s}, **no_row(D_SELECT_SIZE)) for i, s in enumerate(sizes)]
+    quote = {"다자녀가구": "다자녀가구특별공급소득기준3인4인5인6인7인8인", "노부모부양": "노부모부양도시근로자가구원수별가구당월평균소득액의130%6,506,989",
+             "생애최초": "의130%이하(가구원수가2명인경우140%)인분", "일반공급": "일반공급도시근로자가구원수별가구당월평균소득액의120%4,024,661"}[layer]
+    return {"label": f"선택형 {layer} 소득 비율: 가구원수({'·'.join(str(x) + '%' for x in ratio if x)})", "columns": ["size"],
+            "inputs": {"size": {"var": "household_size"}}, "outputs": ["ratio"], "rows": rows, "source": {"quote": [quote]}}
+
+
+def lh_select_rental(nid, residence="수도권", youth_income_quote="청년특별공급도시근로자가구원수별가구당월평균소득액의140%4,695,438",
+                     asset_quote="379,000천원이하", youth_asset_quote="289,000천원이하", parents_quote="1,083,000천원",
+                     dual_quote="맞벌이도시근로자가구원수별가구당월평균소득액의140%9,405,477원"):
+    """residence: '수도권' 또는 None. *_quote: 이 공고의 금액 문구(추출기가 같은 문구일 때만 채운다)."""
+    layers, tables = {}, {}
+    for i, layer in enumerate(["청년", "다자녀가구", "노부모부양", "생애최초", "신혼부부", "일반공급"]):
+        p = f"{nid}-L{i}"
+        head = SELECT_SECTION[layer]
+        if layer == "청년":
+            conds = [cond(f"{p}-home", "home_ownership/self_ever_owned_home",
+                          ["만19세이상~만39세이하로혼인중이아니며,과거주택을소유한사실이없는무주택자"],
+                          "본인이 무주택이고 과거에도 주택을 소유한 적이 없는지",
+                          {"all": [HOME, {"eq": [{"var": "self_ever_owned_home"}, False]}]}),
+                     cond(f"{p}-age", "age", ["만19세이상~만39세이하로혼인중이아니며"], "만 19세 이상 39세 이하인지",
+                          {"between": [{"var": "age"}, 19, 39]}),
+                     cond(f"{p}-marital", "marital_status", ["만19세이상~만39세이하로혼인중이아니며"], "혼인 중이 아닌지",
+                          {"in": [{"var": "marital_status"}, ["미혼", "예비신혼", "한부모"]]})]
+        else:
+            conds = [cond(f"{p}-home", "home_ownership", [head], "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)", HOME)]
+        if residence == "수도권":
+            conds.append(cond(f"{p}-region", "residence_area", ["에거주하면서아래조건"] if layer not in ("청년", "일반공급") else
+                              ["[서울특별시,경기도,인천광역시](공급규칙제4조제3항에따른지역을말함)에거"] if layer == "청년" else [head],
+                              "공고일 현재 서울특별시·인천광역시·경기도에 주민등록이 되어 있는지",
+                              {"in": [{"var": "residence_area"}, capital_areas()]}))
+        conds.append(cond(f"{p}-rewin", "rewin_restricted", ["재당첨제한기간내에있는"],
+                          "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+                          {"eq": [{"var": "rewin_restricted"}, False]}))
+        if layer != "일반공급":
+            conds.append(cond(f"{p}-special", "past_special_supply", ["특별공급은1회에한하여공급함"],
+                              "본인·세대원이 과거에 특별공급을 받은 적이 없는지",
+                              {"eq": [{"var": "past_special_supply"}, False]}))
+        if layer in ("청년", "다자녀가구", "신혼부부"):
+            conds.append(_sale_account(p, 6, "에가입하여6개월이경과되고",
+                                       "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지"))
+        if layer == "청년":
+            conds += [cond(f"{p}-income", "monthly_income", [youth_income_quote],
+                           "본인 월평균소득이 전년도(2023) 도시근로자 1인 가구 월평균소득의 140%(4,695,438원) 이하인지",
+                           {"lte": [{"var": "monthly_income"}, {"lookup": ["income_standard_select_rental", 1, 140]}]}),
+                      cond(f"{p}-assets", "total_assets", [youth_asset_quote], "본인 총자산이 2억8,900만원 이하인지",
+                           {"lte": [{"var": "total_assets"}, 289000000]}),
+                      cond(f"{p}-parents", "parents_total_assets", [parents_quote], "부모 총자산이 10억8,300만원 이하인지",
+                           {"lte": [{"var": "parents_total_assets"}, 1083000000]})]
+            layers[layer] = {"conditions": conds}
+            continue
+        if layer == "다자녀가구":
+            conds.append(cond(f"{p}-kids", "children_birth_dates", ["인자녀(태아나입양아포함)3명이상을둔무주택세대"],
+                              "19세 미만 자녀(태아·입양 포함)가 3명 이상인지", {"gte": [MINORS, 3]}))
+        elif layer == "노부모부양":
+            conds += [cond(f"{p}-parent", "supports_elderly_parent_3y", ["을3년이상계속하여부양"],
+                           "만 65세 이상 직계존속(배우자 직계존속 포함)을 같은 등본에서 3년 이상 계속 부양하는지",
+                           {"eq": [{"var": "supports_elderly_parent_3y"}, True]}),
+                      cond(f"{p}-head", "house_head_status", ["무주택세대구성원중세대주"], "세대주인지",
+                           {"eq": [{"var": "house_head_status"}, "세대주"]}),
+                      _sale_account(p, 12, "월납입금을12회이상납입한분)", "입주자저축 1순위(가입 1년·월납입금 12회 이상)인지")]
+        elif layer == "생애최초":
+            conds += [cond(f"{p}-first", "household_ever_owned_home", ["세대에속한모든분이과거주택소유사실이없어야"],
+                           "세대 전원이 과거에 주택을 소유한 적이 없는지",
+                           {"eq": [{"var": "household_ever_owned_home"}, False]}),
+                      _sale_account(p, 12, "저축액이선납금을포함하여600만원이상", "입주자저축 1순위(가입 1년·월납입금 12회 이상)인지"),
+                      cond(f"{p}-deposit", "subscription_deposit", ["저축액이선납금을포함하여600만원이상"],
+                           "청약 저축액(선납금 포함)이 600만원 이상인지", {"gte": [{"var": "subscription_deposit"}, 6000000]}),
+                      cond(f"{p}-family", "marital_status/children_birth_dates", ["혼인(재혼포함)중이거나미혼인자녀"],
+                           "혼인 중이거나 미혼 자녀(같은 등본, 입양 포함)가 있는지",
+                           {"any": [{"in": [{"var": "marital_status"}, ["혼인중"]]}, {"gte": [MINORS, 1]},
+                                    {"in": [{"var": "marital_status"}, ["미혼", "예비신혼", "한부모"]],
+                                     "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                                        "detail": "성년이어도 미혼 자녀가 같은 등본에 있으면 신청할 수 있습니다. 이 화면은 "
+                                                                  "미성년 자녀만 묻습니다."}}]}),
+                      cond(f"{p}-tax", "income_tax_5y", ["5년이상소득세"],
+                           "신청자 본인이 5년 이상 소득세(근로·사업소득)를 냈고 현재 근로자·자영업자이거나 과거 1년 안에 냈는지",
+                           {"eq": [{"var": "income_tax_5y"}, True]})]
+        elif layer == "신혼부부":
+            conds.append(cond(f"{p}-type", "marital_status/marriage_date/children_birth_dates", ["혼인기간이7년이내"],
+                              "혼인 7년 이내이거나 6세 이하 자녀를 둔 신혼부부, 예비신혼부부, 또는 6세 이하 자녀를 둔 한부모가족인지",
+                              {"any": [{"all": [{"in": [{"var": "marital_status"}, ["혼인중"]]}, NH_DURATION]},
+                                       {"in": [{"var": "marital_status"}, ["예비신혼"]]},
+                                       {"all": [{"in": [{"var": "marital_status"}, ["한부모"]]}, NH_CHILD6]}]}))
+        else:
+            conds.append(cond(f"{p}-account", "has_subscription_account", ["무주택세대구성원으로입주자저축"],
+                              "입주자저축(청약통장)에 가입했는지", {"eq": [{"var": "has_subscription_account"}, True]}))
+        table = f"select_terms_{i}"
+        tables[table] = _select_terms(layer)
+        iq = dual_quote if layer == "신혼부부" else tables[table]["source"]["quote"][0]
+        conds += [cond(f"{p}-income", "monthly_income", [iq],
+                       f"세대 월평균소득이 2023년 도시근로자 가구원수별 월평균소득의 {tables[table]['label'].split(': ')[1]} 이하인지",
+                       {"lte": [{"var": "monthly_income"},
+                                {"lookup": ["income_standard_select_rental", {"var": "household_size"}, {"term": "ratio"}]}]},
+                       table=table),
+                  cond(f"{p}-assets", "total_assets", [asset_quote], "세대 총자산이 3억7,900만원 이하인지(자동차 포함)",
+                       {"lte": [{"var": "total_assets"}, 379000000]})]
+        layers[layer] = {"conditions": conds}
+    return layers, tables
+
+
+# ------------------------------------------------------------------------------------------------
 # 통합공공임대 일반형 (LH 표준 공고 — 평창장평 p.9·p.12·p.14~18)
 # ------------------------------------------------------------------------------------------------
 # 판정은 일반공급 기준(기준중위소득 150% + 가산)이다. 우선공급(청년·신혼부부 등, 100% + 가산)은 일반공급보다 기준이 낮은
@@ -1209,6 +1335,16 @@ SHARE_NOTES = [
     "사전청약 당첨자는 본청약 공고일까지 자격(무주택·거주기간)을 유지해야 한다(p.1) — 이 판정은 사전청약 공고일 기준이다.",
 ]
 
+SELECT_NOTES = [
+    "2024.01.04. 사전청약 공고 — 2024.3. 규칙 개정(신생아 특별공급, 다자녀 2명, 맞벌이 완화, 출생자녀 가산) 전 기준이다. 같은 사업의 "
+    "지금 공고는 금액·비율이 달라 자동 판정하지 않는다.",
+    "선택형 공공임대는 6년 임대 뒤 분양 전환을 선택할 수 있는 분양전환공공임대다(p.4) — 임대조건·분양전환 가격은 판정하지 않는다.",
+    "우선공급(70%)의 더 낮은 소득 비율(생애최초 100%, 신혼부부 100·120% 등)과 가점·지역 우선은 선정 순서다 — 잔여공급 기준(실효 자격)으로 "
+    "판정한다(p.9~17).",
+    "기관추천 특별공급(국가유공자·장애인·철거민 등)은 기관이 정한 대상이라 판정하지 않는다(미지원 계층).",
+    "사전청약 당첨자는 본청약 공고일까지 자격(무주택·거주기간)을 유지해야 한다(p.1) — 이 판정은 사전청약 공고일 기준이다.",
+]
+
 PLAN = [
     dict(nid="N30", key="LH30", title="남양주마석2단지 국민임대주택 예비입주자", ann="2026-09-07",
          program="국민임대주택", template="national_rental", params={"elderly_quote": None},
@@ -1414,6 +1550,15 @@ PLAN = [
                  "asset_quote": "379,000천원이하", "youth_asset_quote": "289백만원이하", "parents_quote": "(부모)1,083백만원이하",
                  "dual_quote": "맞벌이도시근로자가구당월평균소득액의140%9,113,233원"},
          notes=SHARE_NOTES),
+    # G7 — LH 선택형 공공임대(뉴홈 4차 사전청약, 2024.01.04.). 공고 1건(2024.3. 개정 전 기준)으로 만든 틀
+    dict(nid="N57", key="LH57", title="뉴홈 4차 사전청약 선택형 공공임대주택", ann="2024-01-04",
+         program="공공분양(선택형)", template="lh_select_rental",
+         params={"residence": CAPITAL, "youth_income_quote": "청년특별공급도시근로자가구원수별가구당월평균소득액의140%4,695,438",
+                 "asset_quote": "379,000천원이하", "youth_asset_quote": "289,000천원이하", "parents_quote": "1,083,000천원",
+                 "dual_quote": "맞벌이도시근로자가구원수별가구당월평균소득액의140%9,405,477원"},
+         unsupported=[{"name": "기관추천 특별공급(국가유공자 포함)", "page": 11,
+                       "note": "기관이 추천한 대상(국가유공자·장애인·철거민 등)만 신청할 수 있다 — 판정하지 않는다."}],
+         notes=SELECT_NOTES),
 ]
 
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
@@ -1424,7 +1569,8 @@ TEMPLATE_ANCHOR = {"integrated_rental": ("신혼부부,한부모가족을제외�
                    "sh_land_sale": ("청년특별공급■신청자격", 28), "sh_national_rental": ("4.신청자격가.공통사항", 22),
                    "sh_permanent_rental": ("3신청자격", 7),
                    "elderly_welfare": ("4.신청자격", 5),
-                   "lh_share_sale": ("1.청년특별공급■신청자격", 9)}
+                   "lh_share_sale": ("1.청년특별공급■신청자격", 9),
+                   "lh_select_rental": ("2.청년특별공급■신청자격", 11)}
 
 
 def pdf_for(key):
@@ -1445,9 +1591,10 @@ BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_re
             "sh_land_sale": sh_land_sale, "sh_national_rental": sh_national_rental,
             "sh_permanent_rental": sh_permanent_rental,
             "elderly_welfare": elderly_welfare,
-            "lh_share_sale": lh_share_sale}
+            "lh_share_sale": lh_share_sale,
+            "lh_select_rental": lh_select_rental}
 ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH", "public_rental": "LH",
-          "newlywed_town_sale": "LH", "public_sale": "LH", "sh_land_sale": "SH", "sh_national_rental": "SH", "sh_permanent_rental": "SH", "elderly_welfare": "LH", "lh_share_sale": "LH"}
+          "newlywed_town_sale": "LH", "public_sale": "LH", "sh_land_sale": "SH", "sh_national_rental": "SH", "sh_permanent_rental": "SH", "elderly_welfare": "LH", "lh_share_sale": "LH", "lh_select_rental": "LH"}
 
 
 def make_doc(plan, pdf, pages):
