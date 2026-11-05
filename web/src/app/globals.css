@@ -23,3 +23,8 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .hourglass { animation: none; }
 }
+
+/* 공고문 분석 중 표시(components/UploadProgress.tsx) — 움직임 줄이기 설정이면 멈춘다 */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { animation: spin 0.9s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }

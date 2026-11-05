@@ -144,3 +144,19 @@ test("PDF가 아니면 오류를 보이고, 판정할 수 없는 상태로 남�
   await expect(page.getByRole("alert").filter({ hasText: "PDF" })).toContainText("PDF 파일이 아닙니다");
   await expect(page.getByRole("button", { name: "판정하기" })).toHaveCount(0);
 });
+
+test("공고문을 분석하는 동안 진행 막대·단계·경과 시간을 보이고, 끝나면 사라진다", async ({ page }) => {
+  await page.goto("/");
+  // 처음 올리는 큰 공고처럼 응답을 늦춘다(실제 판정 API 응답을 그대로 돌려준다)
+  await page.route("**/upload", async (route) => {
+    await new Promise((r) => setTimeout(r, 3500));
+    await route.continue();
+  });
+  await page.getByTestId("pdf-input").setInputFiles(sourcePdf("N12"));
+  const busy = page.getByTestId("busy");
+  await expect(busy).toContainText("공고문을 읽고 분석하는 중입니다");
+  await expect(page.getByTestId("upload-progress")).toBeVisible();
+  await expect(page.getByRole("progressbar", { name: "분석 진행(예상)" })).toHaveAttribute("aria-valuenow", /\d+/);
+  await expect(busy).toContainText(/[1-9]\d*초/);
+  await expect(busy).toHaveCount(0, { timeout: 60_000 });
+});
