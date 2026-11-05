@@ -1,10 +1,13 @@
 // 공개 화면 점검(④-4) — 판정 API와 Next.js 화면을 함께 띄워 실제 브라우저로 확인한다. PC 브라우저와 휴대폰 브라우저.
 // API는 공유 저장소를 쓰지 않는다(CCJ_STORE=off — 운영 DB에 쓰지 않게).
+import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 const API_PORT = 8765;
 const WEB_PORT = 3100;
 const python = process.env.PYTHON || "python";
+// 회원 기능 점검: 인증 코드 메일을 이 파일에 쓴다(e2e/account.spec.ts가 읽는다) — 회원 저장소는 메모리(CCJ_ACCOUNTS_MEMORY)
+export const MAIL_FILE = path.join(__dirname, "test-results", "mail.txt");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -37,6 +40,10 @@ export default defineConfig({
         CCJ_UPLOAD_PER_HOUR: "0", // 화면 점검은 같은 PC에서 여러 번 올린다 — 업로드 횟수 제한은 API 시험이 따로 본다
         CCJ_CORS_ORIGINS: `http://127.0.0.1:${WEB_PORT},http://localhost:${WEB_PORT}`,
         PYTHONIOENCODING: "utf-8",
+        CCJ_ACCOUNTS_MEMORY: "1",
+        CCJ_MAIL_BACKEND: "file",
+        CCJ_MAIL_FILE: MAIL_FILE,
+        CCJ_PROFILE_KEY: "ZTJlLXRlc3Qta2V5LW5vdC1zZWNyZXQtMzItYnl0ZXM=", // 화면 점검 전용 키(비밀 아님)
       },
     },
     {

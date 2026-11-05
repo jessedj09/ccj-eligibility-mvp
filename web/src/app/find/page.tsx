@@ -222,6 +222,11 @@ export default function Find() {
                   <p className="mb-3 text-xs text-slate-600">
                     아래 항목이 비어 있어 일부 공고를 &lsquo;추가 정보 필요&rsquo;로 두었습니다. 아는 대로 넣고 다시 판정하면 그 공고들이 판정됩니다.
                   </p>
+                  {stored && me && ask.fields.some((f) => me.not_saved.includes(f.name)) && (
+                    <p className="mb-3 text-xs text-amber-800" data-testid="ask-not-saved">
+                      수급·장애·국가유공자 같은 민감 항목은 저장한 조건에 넣지 않기 때문에 여기서 다시 묻습니다(입력해도 저장하지 않습니다).
+                    </p>
+                  )}
                   <ProfileForm form={ask} values={values} onChange={setValues} />
                   <div className="mt-4 flex justify-end">
                     <button type="button" onClick={run} disabled={busy} data-testid="find-rejudge"

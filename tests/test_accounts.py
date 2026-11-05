@@ -211,3 +211,24 @@ def test_postgres_repo_round_trip():
     finally:
         with psycopg.connect(TEST_URL, autocommit=True) as c:
             c.execute(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE')
+
+
+def test_e2e_switches_file_mailer_and_memory_accounts(monkeypatch, tmp_path):
+    """화면 점검 전용 스위치 — 저장소가 없을 때만 메모리 회원 저장소, 메일은 파일(인증 코드를 꺼내는 HTTP 경로는 없다)."""
+    import mailer
+    path = tmp_path / "sub" / "mail.txt"
+    monkeypatch.setenv("CCJ_MAIL_BACKEND", "file")
+    monkeypatch.setenv("CCJ_MAIL_FILE", str(path))
+    m = mailer.mailer_from_env()
+    m.send("a@example.com", "s", "코드는 123456 입니다")
+    assert path.read_text(encoding="utf-8").startswith("to=a@example.com\n")
+    monkeypatch.setenv("CCJ_ACCOUNTS_MEMORY", "1")
+    monkeypatch.setenv("CCJ_PROFILE_KEY", KEY)
+    AA.reset_accounts(None)
+    try:
+        acc = AA.get_accounts()
+        assert isinstance(acc.repo, A.MemoryRepo) and acc.cipher is not None
+    finally:
+        AA.reset_accounts(None)
+    monkeypatch.delenv("CCJ_ACCOUNTS_MEMORY")
+    assert AA.get_accounts() is None
