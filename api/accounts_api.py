@@ -10,6 +10,7 @@
     GET/POST /me/profiles · GET/PUT/DELETE /me/profiles/{id} · POST /me/profiles/{id}/match(저장한 조건으로 전 공고 판정)
 요청 본문(이메일·조건)은 로그에 쓰지 않는다. 계정 저장소가 없으면(DATABASE_URL 없음·CCJ_STORE=off) 503.
 """
+import os
 import threading
 import time
 from typing import Any, Dict, Optional
@@ -36,7 +37,10 @@ def get_accounts() -> Optional[A.Accounts]:
             from store import NullStore, get_store
             st = get_store()
             if type(st) is NullStore:
-                return None
+                # 화면 점검(Playwright) 전용: 저장소가 없을 때만 메모리 회원 저장소(재시작하면 사라짐). DB가 있는 운영에서는 이 스위치를 보지 않는다.
+                if os.environ.get("CCJ_ACCOUNTS_MEMORY") == "1":
+                    _accounts = A.Accounts(A.MemoryRepo(), mailer_from_env(), A.cipher_from_env())
+                return _accounts
             try:
                 _accounts = A.Accounts(A.PgRepo(st.url), mailer_from_env(), A.cipher_from_env())
             except Exception:      # noqa: BLE001 — DB에 닿지 않으면 계정 기능만 멈춘다(판정은 그대로)

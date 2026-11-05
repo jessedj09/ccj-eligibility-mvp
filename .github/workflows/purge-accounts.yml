@@ -1,0 +1,29 @@
+# 1년 넘게 로그인하지 않은 회원 계정·저장한 조건 파기(개인정보 처리방침 2절, tools/purge_accounts.py) — 매주 월요일 03:00(KST).
+# 운영 DB 주소는 저장소 비밀값 PROD_DATABASE_URL — 넣지 않으면 아무것도 하지 않는다(사용자가 넣기로 정할 때까지).
+name: purge-accounts
+on:
+  schedule:
+    - cron: "0 18 * * 0"          # 일요일 18:00 UTC = 월요일 03:00 KST
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+    steps:
+      - name: 비밀값 확인
+        id: cfg
+        run: if [ -n "$DATABASE_URL" ]; then echo "on=1" >> "$GITHUB_OUTPUT"; else echo "PROD_DATABASE_URL 비밀값이 없어 건너뜁니다."; fi
+      - uses: actions/checkout@v5
+        if: steps.cfg.outputs.on == '1'
+      - uses: actions/setup-python@v6
+        if: steps.cfg.outputs.on == '1'
+        with:
+          python-version: "3.12"
+      - if: steps.cfg.outputs.on == '1'
+        run: pip install "psycopg[binary]>=3.2"
+      - if: steps.cfg.outputs.on == '1'
+        run: python tools/purge_accounts.py      # 지운 수만 출력(이메일은 출력하지 않음)

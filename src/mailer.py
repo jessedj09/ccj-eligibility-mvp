@@ -5,6 +5,7 @@
   도메인은 베타 전에 사서 인증한다(2026-11-03 사용자 결정).
 - console: 서버 표준 출력에 메일 내용을 찍는다 — 로컬 개발 전용. 운영(Render)에서는 쓰지 않는다(인증 코드가 로그에 남는다).
 - memory: 시험용(보낸 메일을 outbox에 모은다).
+- file: 화면 점검(Playwright)용 — CCJ_MAIL_FILE 파일에 마지막 메일 내용을 쓴다(같은 PC의 시험이 읽는다). 운영에서는 쓰지 않는다.
 - 설정이 없으면 NoMailer — 가입·비밀번호 재설정이 503으로 멈춘다(메일 없이 계정을 만들지 않는다).
 """
 import json
@@ -35,6 +36,16 @@ class ConsoleMailer:
         print(f"[mail:console] to={to} subject={subject}\n{text}", flush=True)
 
 
+class FileMailer:
+    def __init__(self, path: str):
+        self.path = path
+
+    def send(self, to: str, subject: str, text: str) -> None:
+        os.makedirs(os.path.dirname(self.path) or ".", exist_ok=True)
+        with open(self.path, "w", encoding="utf-8") as f:
+            f.write(f"to={to}\n{text}")
+
+
 class ResendMailer:
     URL = "https://api.resend.com/emails"
 
@@ -60,4 +71,6 @@ def mailer_from_env():
         return ResendMailer(key, sender) if key and sender else NoMailer()
     if kind == "console":
         return ConsoleMailer()
+    if kind == "file" and os.environ.get("CCJ_MAIL_FILE", "").strip():
+        return FileMailer(os.environ["CCJ_MAIL_FILE"].strip())
     return NoMailer()
