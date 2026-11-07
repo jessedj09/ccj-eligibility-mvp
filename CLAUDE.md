@@ -210,7 +210,7 @@ Engine**이다.
   `src/mailer.py`, 비밀번호 scrypt·코드·세션 토큰은 해시만), `api/accounts_api.py`(/auth/*, /me, /me/profiles CRUD·/match — Bearer 토큰).
   화면은 `web /api/account/[...path]`가 httpOnly 쿠키로 중계, `/signup`·`/login`·`/reset`·`/me`(내 조건 등록하기 — 여러 개·대표·작성 중·
   완성도)·`/privacy`·`/terms`. 내 조건은 ccj-profile/1에서 **민감 항목(SENSITIVE — 수급·장애·국가유공자 등)을 빼고** AES-GCM 암호화
-  (`CCJ_PROFILE_KEY`), DB는 Neon 싱가포르 그대로 + 가입 때 국외 이전 동의(필수 동의 3개). 탈퇴 즉시 파기, 1년 미접속은
+  (`CCJ_PROFILE_KEY` — 만드는 명령·운영 설정은 `docs/11-account-setup.md`), DB는 Neon 싱가포르 그대로 + 가입 때 국외 이전 동의(필수 동의 3개). 탈퇴 즉시 파기, 1년 미접속은
   `tools/purge_accounts.py`(GitHub Actions `purge-accounts` 매주 — 비밀값 `PROD_DATABASE_URL`이 있을 때만). 계정 기능은 공유 저장소와 같은
   스위치 — NullStore(시험·`CCJ_STORE=off`)면 503, 화면 점검만 `CCJ_ACCOUNTS_MEMORY=1`(메모리 회원 저장소)·`CCJ_MAIL_BACKEND=file`
   (`CCJ_MAIL_FILE`에 인증 코드)로 켠다(`web/e2e/account.spec.ts`). `tests/test_accounts.py`.

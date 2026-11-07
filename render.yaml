@@ -17,7 +17,7 @@ services:
       - key: CCJ_AUTO_JUDGE_PUBLIC
         value: "1"             # 미등록 공고 자동 판정 공개(2026-11-01 사용자 결정 — 지원 사업만 판정, 나머지는 이유 안내)
       # 회원가입·내 조건(2026-11-03) — 비밀 값은 대시보드에서. 없으면 그 기능만 멈춘다(판정은 그대로).
-      - key: CCJ_PROFILE_KEY      # 내 조건 암호화 키(32바이트 urlsafe base64). 바꾸면 저장한 조건을 못 연다 — 따로 보관
+      - key: CCJ_PROFILE_KEY      # 내 조건 암호화 키(32바이트 urlsafe base64) — 만드는 명령·주의는 docs/11-account-setup.md. 분실·변경하면 저장한 조건을 못 연다
         sync: false
       - key: CCJ_MAIL_BACKEND     # resend(운영) — 비우면 가입·비밀번호 재설정이 503
         sync: false
