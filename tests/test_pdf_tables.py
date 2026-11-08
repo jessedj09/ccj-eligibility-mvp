@@ -61,9 +61,9 @@ def test_range_headers_of_median_income_table(fams):
 def test_previous_year_table_is_recognised_not_matched():
     """장기전세 49차 — 이전 연도 기준표: 표 안은 일관되지만 등록 기준표와는 한 칸도 맞지 않는다(연도 전환 감지).
     G5(2026-11-03)부터 같은 연도 금액의 SH 영구임대 표(N54, income_standard_sh_permanent)가 등록돼 있어 그 표를 빼고 본다 —
-    그 표와는 칸이 맞는다(같은 해 표를 쓴 공고)."""
+    그 표와는 칸이 맞는다(같은 해 표를 쓴 공고). 2026-11-08 N60(SH 2025년 국민임대)의 2024년도 표도 같은 해라 뺀다."""
     refs = P.load_references()
-    others = P.families({k: v for k, v in refs.items() if k != "income_standard_sh_permanent"})
+    others = P.families({k: v for k, v in refs.items() if k not in ("income_standard_sh_permanent", "income_standard_sh_public_2024")})
     same_year = P.families({"income_standard_sh_permanent": refs["income_standard_sh_permanent"]})
     for g in grids("N25", 8):
         assert P.consistent(g) is True

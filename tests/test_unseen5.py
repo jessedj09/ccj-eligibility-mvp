@@ -82,3 +82,10 @@ def test_n61_n62_unseen_drafts_have_no_held_conditions():
     for nid in ("N61", "N62"):
         d = draft.make_draft(sv.pdf_path(nid).read_bytes(), only=None, pages=sv.pdf_pages(nid), exclude=nid)
         assert d.status == draft.OK and d.missing == [] and d.held_conditions == {"고령자": set()}, nid
+
+
+def test_table_bbox_outside_page_is_clipped():
+    """N61 p.5 — 표 선이 쪽 경계를 넘어 pdfplumber within_bbox가 ValueError를 내던 것(표 읽기 평가가 멈춤)."""
+    import pdf_tables as P
+    tables = P.read_tables(sv.pdf_path("N61"), [5])
+    assert tables and any(t.method == "words" for t in tables)
