@@ -9,7 +9,7 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30     # 등록 공고 62건(2026-11-08): 테스트만 약 15분
     services:
       # 공유 저장소 시험(tests/test_d4_store.py) — 운영 DB(Neon)가 아닌 일회용 PostgreSQL
       postgres:
