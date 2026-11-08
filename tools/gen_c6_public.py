@@ -45,11 +45,24 @@ CAR = {"var": "car_value", "unknown_values": ["확인불가"]}
 # ------------------------------------------------------------------------------------------------
 # 국민임대 (LH 표준 공고 — 남양주마석 p.4~6 / 김포 p.5~8)
 # ------------------------------------------------------------------------------------------------
-def national_rental(nid, elderly_quote=None):
+# 자산·자동차 한도 표기: 표준 공고는 백만원·만원 단위("(345)백만원", "0명(기준) 34,500 4,542"), 인제서화(N58 p.5)는 원 단위 한 표
+# ("…소득50%초과소득70%이하1인0인90%345,000,00045,420,000…") — 금액은 같다
+NATIONAL_MONEY = {
+    "million": dict(assets=["총자산가액 합산기준 (345)백만원 이하"], car=["개별자동차가액 (4,542)만원 이하"],
+                    table=["0명(기준) 34,500 4,542", "1명 37,900 4,996", "2명 41,300 5,451"]),
+    "won": dict(assets=["적용자산기준금액총자산가액(원)자동차가액(원)", "소득50%초과소득70%이하1인0인90%345,000,00045,420,000"],
+                car=["적용자산기준금액총자산가액(원)자동차가액(원)", "소득50%초과소득70%이하1인0인90%345,000,00045,420,000"],
+                table=["소득50%초과소득70%이하1인0인90%345,000,00045,420,000", "1인90%379,000,00049,960,000",
+                       "2인이상90%413,000,00054,510,000"]),
+}
+
+
+def national_rental(nid, elderly_quote=None, money="million"):
     """elderly_quote: 고령자 전용 주택형 문구(예: 부천 p.3 '범박1단지46형고령자임대주택은(공고일현재65세이상만신청)가능') —
-    있으면 같은 자격에 '공고일 현재 65세 이상'을 더한 계층을 만든다."""
+    있으면 같은 자격에 '공고일 현재 65세 이상'을 더한 계층을 만든다. money: 자산·자동차 한도 표기(NATIONAL_MONEY)."""
     p = f"{nid}-G"
     terms = "national_terms"
+    mq = NATIONAL_MONEY[money]
     conditions = [
         cond(f"{p}-home", "home_ownership",
              ["현재 무주택세대구성원으로서 아래의 '소득 및 자산보유기준'을 충족하는 사람"],
@@ -69,10 +82,10 @@ def national_rental(nid, elderly_quote=None):
              {"lte": [{"var": "monthly_income"},
                       {"lookup": ["income_standard_public", {"var": "household_size"}, {"term": "ratio"}]}]},
              table=terms),
-        cond(f"{p}-assets", "total_assets", ["총자산가액 합산기준 (345)백만원 이하"],
+        cond(f"{p}-assets", "total_assets", mq["assets"],
              "세대 전원의 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
              {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table=terms),
-        cond(f"{p}-car", "car_value", ["개별자동차가액 (4,542)만원 이하"],
+        cond(f"{p}-car", "car_value", mq["car"],
              "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
              {"lte": [CAR, {"term": "car_limit"}]}, table=terms),
     ]
@@ -91,7 +104,7 @@ def national_rental(nid, elderly_quote=None):
             r({"size": "3+", "child": 1}, [80] + B2),
             r({"size": "3+", "child": "2+"}, [90] + B3),
         ],
-        "source": {"quote": ["0명(기준) 34,500 4,542", "1명 37,900 4,996", "2명 41,300 5,451"]},
+        "source": {"quote": list(mq["table"])},
     }}
     layers = {"일반": {"conditions": conditions}}
     if elderly_quote:
@@ -1347,15 +1360,15 @@ SELECT_NOTES = [
 
 PLAN = [
     dict(nid="N30", key="LH30", title="남양주마석2단지 국민임대주택 예비입주자", ann="2026-09-07",
-         program="국민임대주택", template="national_rental", params={"elderly_quote": None},
+         program="국민임대주택", template="national_rental", params={"elderly_quote": None, "money": "million"},
          notes=NATIONAL_NOTES + ["입주자모집공고일 현재 2세 미만 자녀(태아 포함)가 있으면 모집호수의 30% 범위에서 우선 배정한다(p.3)."]),
     dict(nid="N31", key="LH31", title="김포시지역 국민임대주택 예비입주자(정정)", ann="2026-09-07",
-         program="국민임대주택", template="national_rental", params={"elderly_quote": None},
+         program="국민임대주택", template="national_rental", params={"elderly_quote": None, "money": "million"},
          notes=NATIONAL_NOTES),
     # G2 처음 보는 공고 검증 — 초안은 등록 전에 docs/draft-checks/X-national-bucheon.g2.draft.json에 얼림
     dict(nid="N32", key="LH32", title="부천시지역 국민임대주택 예비입주자", ann="2026-09-07",
          program="국민임대주택", template="national_rental",
-         params={"elderly_quote": "범박1단지46형고령자임대주택은(공고일현재65세이상만신청)가능"},
+         params={"elderly_quote": "범박1단지46형고령자임대주택은(공고일현재65세이상만신청)가능", "money": "million"},
          notes=NATIONAL_NOTES[:2] + [
              "범박1단지 46형 고령자임대주택은 공고일 현재 65세 이상만 신청할 수 있고 다른 주택형과 중복 신청할 수 없다(p.3) — "
              "'일반(고령자 주택형)' 계층으로 판정한다.",
@@ -1559,6 +1572,14 @@ PLAN = [
          unsupported=[{"name": "기관추천 특별공급(국가유공자 포함)", "page": 11,
                        "note": "기관이 추천한 대상(국가유공자·장애인·철거민 등)만 신청할 수 있다 — 판정하지 않는다."}],
          notes=SELECT_NOTES),
+    # 처음 보는 실공고 검증(2026-11-08) — 초안은 등록 전에 docs/draft-checks/Z-lh-national-inje.draft.json에 얼림.
+    # 자산·자동차 한도가 원 단위 한 표(p.5)라 money="won"(금액은 표준과 같음)
+    dict(nid="N58", key="LH58", title="인제서화(고령자) 국민임대주택 입주자", ann="2026-06-08",
+         program="국민임대주택", template="national_rental", params={"elderly_quote": None, "money": "won"},
+         notes=NATIONAL_NOTES + [
+             "전용 50㎡ 미만(44B형)은 월평균소득 50% 이하(1인 70%·2인 60%) 세대가 먼저이고, 50% 초과 70% 이하(1인 90%·2인 80%)도 "
+             "신청할 수 있다(p.5) — 70% 기준(가산 포함)으로 판정한다.",
+             "단지 이름의 '고령자'는 나이 요건이 아니다 — 65세 이상 고령자는 우선공급 대상 중 하나다(p.12)."]),
 ]
 
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}

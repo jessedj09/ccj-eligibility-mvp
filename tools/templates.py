@@ -85,6 +85,8 @@ TEMPLATES: Dict[str, Dict] = {
     # G2(2026-11-01): 공공임대 새 사업 — 공고마다 바뀌는 값은 공고일뿐(자산·자동차 한도는 리터럴, 다음 해 기준이면 인용문 보류)
     "lh.national_rental": dict(module=PUB, builder="national_rental", issuer="LH", program="국민임대", params=[
         Param("elderly_quote", "text", "고령자 전용 주택형 문구(있으면 65세 이상 계층을 더 만든다)", critical=False),
+        Param("money", "choice", "자산·자동차 한도 표기 — 'million'(백만원·만원 단위) / 'won'(원 단위 한 표, 금액은 같음)",
+              critical=False),
     ]),
     "lh.permanent_rental": dict(module=PUB, builder="permanent_rental", issuer="LH", program="영구임대", params=[
         Param("city", "region", "거주 요건 시·군(주민등록 등재) — 표준 지역 이름"),

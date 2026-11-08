@@ -8800,5 +8800,47 @@
    "note": "세대 총자산이 3억7,900만원 이하인지(자동차 포함)",
    "timing": "NOW"
   }
+ ],
+ "N58/일반": [
+  {
+   "id": "N58-G-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.3",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N58-G-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.4",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N58-G-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "세대 전원의 월평균소득 합계가 70%(1인 +20%p·2인 +10%p, 출산자녀 1명 +10%p·2명 이상 +20%p) 기준 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N58-G-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "세대 전원의 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N58-G-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.5",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
  ]
 }

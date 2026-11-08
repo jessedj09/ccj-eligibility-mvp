@@ -397,5 +397,12 @@
     "file": "sample_lh/뉴홈 4차 사전청약 선택형 공공임대주택 입주자모집공고문.pdf",
     "pages": 24,
     "sha256": "51cbd466e6a47935e6ca61195fa4610fe88f374cda1d1cb26b52aefbcb8617f8"
+  },
+  {
+    "key": "LH58",
+    "org": "LH",
+    "file": "sample_lh/인제서화(고령자)_국민임대주택_입주자모집공고문(260608).pdf",
+    "pages": 39,
+    "sha256": "ffecb9821b34f372bdbfed7233fe5f11b32abc10c87e0346a78aaf31d851f1e3"
   }
 ]

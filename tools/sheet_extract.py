@@ -736,8 +736,11 @@ ELDERLY_TYPE = r"[가-힣0-9]{0,20}\d+형고령자[가-힣]*주택은?\(공고�
 
 def _national_rental(pages):
     hit = find_text(pages, ELDERLY_TYPE)
+    won = find_text(pages, re.escape("총자산가액(원)자동차가액(원)"))     # 인제서화(N58 p.5): 원 단위 한 표
     return {"elderly_quote": Field(FILLED, hit[1], hit[0], hit[1], "'○○형 고령자임대주택은(공고일현재65세이상만신청)' 문구")
-            if hit else Field(ABSENT, None, how="고령자 전용 주택형 문구 없음")}
+            if hit else Field(ABSENT, None, how="고령자 전용 주택형 문구 없음"),
+            "money": Field(FILLED, "won", won[0], won[1], "자산 한도 표가 원 단위('총자산가액(원)')") if won else
+            Field(FILLED, "million", how="원 단위 표 머리말 없음 — 표준(백만원·만원 단위) 표기")}
 
 
 # ------------------------------------------------------------------ 영구임대(G2)
