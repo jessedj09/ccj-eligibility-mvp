@@ -61,3 +61,11 @@ def test_unsupported_reason_names_recognized_program():
     assert draft._program_name({"program": None, "issuer": "SH"}) is None
     assert "LH 분양주택" in draft.unsupported_reason("LH 분양주택")
     assert "임대 공고만" not in draft.unsupported_reason("LH 분양주택")      # 공공분양 일부는 이미 판정한다
+
+
+def test_ikgong_type_sale_is_share_sale():
+    """'이익공유형 분양주택'은 나눔형의 법령상 이름(고양창릉 S-3 2026.06.30. 본청약) — 나눔형 틀로 가고, 2024.1. 사전청약 기준과
+    금액·비율 문구가 달라 필수 값이 보류되어 자동 판정하지 않는다."""
+    assert nc.classify(["-1-고양창릉지구S-3블록이익공유형분양주택입주자모집공고❚공급위치:경기도고양시", "LH청약플러스"]) == \
+        ("LH", "공공분양(나눔형)")
+    assert X.choose_template("LH", "공공분양(나눔형)") == "lh.share_sale"
