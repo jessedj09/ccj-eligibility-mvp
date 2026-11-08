@@ -16,8 +16,8 @@ def test_cached_text_equals_fresh_extraction(monkeypatch, tmp_path):
 def test_cache_key_changes_with_content_and_extractor(monkeypatch):
     a = sv._cache_key(b"pdf-a")
     assert a != sv._cache_key(b"pdf-b")
-    import pypdf
-    monkeypatch.setattr(pypdf, "__version__", "0.0-test")
+    import pypdfium2
+    monkeypatch.setattr(pypdfium2.version, "PYPDFIUM_INFO", "0.0-test")
     assert sv._cache_key(b"pdf-a") != a
 
 

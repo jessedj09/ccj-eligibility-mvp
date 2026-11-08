@@ -31,7 +31,7 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT / "tools")]
 import llm_slot as L  # noqa: E402
 import source_verify as sv  # noqa: E402
 
-CACHE = ROOT / ".cache" / "ledger_units_v2"     # v2(2026-11-03): 쪽 번호 줄 건너뜀
+CACHE = ROOT / ".cache" / "ledger_units_v4"     # v2(2026-11-03): 쪽 번호 줄 건너뜀, v4(2026-11-09): 추출기 pypdfium2·줄 안 목록 기호
 
 MARK = re.compile(r"^\s*([•■①-⑳*※○□▶◆◇·ㆍ\-–]|\d+[.)]|[가-하][.)]|\(\d+\)|\d+순위)")
 # '~인 자·~한 자'는 띄어쓰기를 지운 원문에서 '출생한자녀'·'있는자녀'와 겹친다 — 뒤에 '녀'가 오면 조건 표현이 아니다(G1 2026-11-01)
@@ -80,6 +80,12 @@ UNCLASSIFIED = "미분류"
 
 # 쪽 번호 줄. 쪽 경계에서 앞 문장과 잇지는 않는다 — 머리글(www…|25 제50차…)이 조건 문장에 붙어 '안내'로 가릴 수 있다(N26 p.24)
 PAGE_NO = re.compile(r"^\s*[-–]\s*\d{1,3}\s*[-–]\s*$")
+# 한 줄 안의 목록 기호 — 문장 끝('…다.'·'…함'·닫는 괄호) 바로 뒤에 오는 •·※·■ 등에서도 새 단위를 연다. pypdf는 이 자리를 줄로
+# 나눴는데 pypdfium2(2026-11-09)는 한 줄로 읽는 곳이 있다(N37 p.4 "…평지붕입니다.※청약신청은…") — 새 공고와 형제 공고가 같은
+# 함수로 나누므로 더 잘게 나누면 문장이 서로 맞는다.
+# 문장 끝 뒤의 '·'도 목록 기호(N42 p.9 "…신청할수없습니다.·청약제한사항확인방법"). '■'(절 머리)는 줄 어디서든 새 단위(N39 p.5 "…거주자에게공급■일반공급대상자간경쟁시…"), 닫는 괄호 뒤의 •·※도(N36 p.7 "…참고)•신청").
+INLINE_MARK = re.compile(r"(?<=[다함음됨임]\.)\s*(?=[•■※○□▪◆◇▶·ㆍ])|(?<=[다함음됨])\s+(?=[•■※○□▪◆◇▶])|(?<=\S)\s*(?=■)"
+                         r"|(?<=\))\s*(?=[•※])")
 
 
 def _units_from_raw(raw: Sequence[str]) -> List[Tuple[int, str]]:
@@ -87,7 +93,7 @@ def _units_from_raw(raw: Sequence[str]) -> List[Tuple[int, str]]:
     out = []
     for page, text in enumerate(raw, 1):
         cur = None
-        for line in text.splitlines():
+        for line in (seg for ln in text.splitlines() for seg in INLINE_MARK.split(ln)):
             if not line.strip() or PAGE_NO.match(line):      # 쪽 번호('- 7 -')는 목록 기호 '-'로 보여 새 단위를 열었다
                 continue
             if cur is None or MARK.match(line):
@@ -163,14 +169,21 @@ def _mask(s: str) -> str:
 
 
 class Known:
-    """형제 공고들의 문장(숫자를 가린 것 그대로 + 비슷한 문장 85% 이상)."""
+    """형제 공고들의 문장(숫자를 가린 것 그대로 + 형제 본문 어딘가에 그대로 있음 + 비슷한 문장 85% 이상).
+    본문 포함은 문장 나누기(줄바꿈)에 기대지 않는다 — 추출기를 pypdfium2로 바꾼 뒤(2026-11-09) 표 칸이 다른 줄 순서로 나와
+    형제에도 있는 문장이 단위 경계만 달라 '미분류'가 됐다(N20 '7.그밖에공급신청자와생계및주거를달리한다고…')."""
+    MIN_SUBSTRING = 10                # 짧은 조각은 어디에나 있어 본문 포함으로 보지 않는다(목록 기호를 뺀 길이)
+    LEAD = re.compile(r"^[•■①-⑳*※○□▶◆◇·ㆍ\-–▪]+")   # 목록 기호는 공고마다 다르다('•건설공사종사자' / '-건설공사종사자')
 
     def __init__(self, sibling_units: Sequence[Tuple[int, str]]):
         self.masked = {_mask(u) for _, u in sibling_units}
         self.texts = [u for _, u in sibling_units]
+        self.body = "\n".join(sorted(self.masked))
 
     def has(self, u: str) -> bool:
-        if _mask(u) in self.masked:
+        m = _mask(u)
+        core = self.LEAD.sub("", m)
+        if m in self.masked or (len(core) >= self.MIN_SUBSTRING and core in self.body):
             return True
         for s in self.texts:
             if abs(len(s) - len(u)) >= len(u) * 0.3:

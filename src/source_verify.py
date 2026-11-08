@@ -30,6 +30,8 @@ SAMPLE_DIRS = ("sample_lh", "sample_sh")
 _DINGBAT = {chr(0x2780 + i): chr(0x2460 + i) for i in range(10)}
 _DINGBAT.update({chr(0x278A + i): chr(0x2460 + i) for i in range(10)})
 _DINGBAT.update({"“": '"', "”": '"', "‘": "'", "’": "'"})
+# 가운뎃점: 같은 공고를 PDFium은 '・'(U+30FB)로, pypdf는 '·'로 읽었다(N25·N26 p.20 "미성년자(만19세미만)・외국인") — '·'로 맞춘다
+_DINGBAT["・"] = "·"
 
 
 def normalize(text: str) -> str:
@@ -60,18 +62,91 @@ def pdf_path(nid: str) -> Path:
 EXTRACTION_FAILURES: Dict[str, List[int]] = {}
 
 
-# 추출 텍스트 캐시(.cache/pdf_text/, git 제외). PDF 26건 추출이 테스트 시간의 대부분(약 2분)이라 한 번 추출한 결과를 재사용한다.
-# 키 = PDF 내용 sha256 + pypdf 버전 + 정규화 코드 — 셋 중 하나라도 바뀌면 다시 추출하므로 대조 결과는 캐시가 없을 때와 같다.
+# 추출 텍스트 캐시(.cache/pdf_text/, git 제외). 한 번 추출한 결과를 재사용한다.
+# 키 = PDF 내용 sha256 + 추출기(pypdfium2) 버전 + 추출·정규화 코드 — 하나라도 바뀌면 다시 추출하므로 대조 결과는 캐시가 없을 때와 같다.
 # CCJ_NO_PDF_CACHE=1이면 캐시를 쓰지 않는다.
 PDF_CACHE = PROJECT / ".cache" / "pdf_text"
 
 
 def _cache_key(data: bytes) -> str:
     import inspect
-    import pypdf
-    code = inspect.getsource(normalize) + repr(sorted(_DINGBAT.items()))
+    import pypdfium2
+    code = inspect.getsource(normalize) + inspect.getsource(_page_text) + inspect.getsource(_hidden_objects) + repr(sorted(_DINGBAT.items()))
     return hashlib.sha256(data).hexdigest()[:32] + "-" + hashlib.sha256(
-        f"{pypdf.__version__}|{code}".encode("utf-8")).hexdigest()[:16]
+        f"pypdfium2 {pypdfium2.version.PYPDFIUM_INFO}|{code}".encode("utf-8")).hexdigest()[:16]
+
+
+# 추출기: pypdfium2(PDFium, BSD·Apache) — 2026-11-08 사용자 결정으로 pypdf에서 교체(공고 1건 약 7.8초 → 0.3초,
+# 처음 보는 공고 평가에서 위험 0·같음 동급, docs/10 '추출기 교체'). PDFium은 스레드 안전하지 않아 한 번에 하나만 읽는다.
+_PDFIUM_LOCK = threading.Lock()
+_INVISIBLE = (3, 7)                    # 글자 그리기 방식 3(보이지 않음)·7(자르기만) — 화면에 안 보이는 글자
+
+
+def _hidden_objects(page) -> set:
+    """쪽의 글자 묶음 중 화면에 안 보이는 것(그리기 방식 3·7, 쪽 영역 밖 — 예: N52 p.6 지도 밖으로 나간 도로 이름)의 주소. 보이는
+    글자가 하나도 없는 쪽(스캔 PDF의 OCR 글자 층)이면 빈 집합. 흰 글자·도형에 덮인 글자는 배경을 알아야 해서 거르지 않는다(어두운
+    머리띠의 흰 제목은 보이는 글자다). 아주 작은 글자도 거르지 않는다 — 묶음 영역은 글꼴 크기가 아니라 글자 모양 크기라 '-'·'.'도 작다."""
+    import ctypes
+    import pypdfium2.raw as pr
+    x0, y0, x1, y1 = page.get_bbox()           # 쪽 영역(보이는 범위)
+    hidden, total = set(), 0
+    for o in page.get_objects(filter=[pr.FPDF_PAGEOBJ_TEXT]):
+        total += 1
+        left, bottom, right, top = o.get_bounds()
+        if (pr.FPDFTextObj_GetTextRenderMode(o.raw) in _INVISIBLE or right < x0 or left > x1 or top < y0
+                or bottom > y1):
+            hidden.add(ctypes.cast(o.raw, ctypes.c_void_p).value)
+    return hidden if len(hidden) < total else set()
+
+
+def _page_text(page, textpage) -> str:
+    """쪽의 원문(줄바꿈 유지). 보이는 글자가 있는 쪽에서는 **화면에 안 보이는 글자**(_hidden_objects)를 뺀다 — 정정 공고가 옛 내용을
+    투명 글자로 남긴 경우 등 틀린 값이 섞이지 않게. PDFium이 줄 끝 하이픈 자리에 넣는 U+FFFE는 지운다(단어가 끊기지 않게)."""
+    import ctypes
+    import pypdfium2.raw as pr
+    text = textpage.get_text_range()
+    hidden = _hidden_objects(page)
+    if hidden:
+        keep, run = [], None
+        for i in range(textpage.count_chars()):
+            obj = pr.FPDFText_GetTextObject(textpage.raw, i)
+            visible = not obj or ctypes.cast(obj, ctypes.c_void_p).value not in hidden   # 엔진이 넣은 공백·줄바꿈은 둔다
+            if visible and run is None:
+                run = i
+            elif not visible and run is not None:
+                keep.append(textpage.get_text_range(index=run, count=i - run))
+                run = None
+        if run is not None:
+            keep.append(textpage.get_text_range(index=run, count=textpage.count_chars() - run))
+        text = "".join(keep)
+    return text.replace("\r\n", "\n").replace("\r", "\n").replace("\ufffe", "")
+
+
+def _read_pdf(data: bytes):
+    """PDF 바이트 → (쪽별 원문, 실패한 쪽 번호). 열 수 없으면 ValueError."""
+    import pypdfium2 as pdfium
+    with _PDFIUM_LOCK:
+        try:
+            doc = pdfium.PdfDocument(data)
+        except pdfium.PdfiumError as e:
+            raise ValueError(f"PDF를 열 수 없습니다: {e}") from None
+        raws, failures = [], []
+        try:
+            for i in range(len(doc)):
+                try:
+                    page = doc[i]
+                    textpage = page.get_textpage()
+                    try:
+                        raws.append(_page_text(page, textpage))
+                    finally:
+                        textpage.close()
+                        page.close()
+                except Exception:   # noqa: BLE001 — 라이브러리 내부 오류 등, 쪽 단위로 격리
+                    failures.append(i + 1)
+                    raws.append("")
+        finally:
+            doc.close()
+    return raws, failures
 
 
 # 업로드 파일(cache=False)의 추출 텍스트는 디스크에 두지 않고 메모리에만 잠깐 둔다 — 한 업로드에서 식별·분석이 같은 PDF를
@@ -85,8 +160,14 @@ _recent_lock = threading.Lock()
 
 
 def raw_text(t: str) -> str:
-    """pypdf 쪽 텍스트에서 제어문자만 뺀 원문(띄어쓰기·줄바꿈 유지)."""
+    """추출한 쪽 텍스트에서 제어문자만 뺀 원문(띄어쓰기·줄바꿈 유지)."""
     return "".join(ch for ch in t if ch >= " " or ch in "\n\t")
+
+
+def raw_pages_bytes(data: bytes) -> List[str]:
+    """띄어쓰기 유지 원문(조항 장부·LLM용). 방금 업로드에서 추출했으면 그 결과, 아니면 다시 읽는다(실패한 쪽은 빈 문자열)."""
+    hit = recent_raw_pages(data)
+    return hit if hit is not None else [raw_text(t) for t in _read_pdf(data)[0]]
 
 
 def recent_raw_pages(data: bytes) -> Optional[List[str]]:
@@ -104,8 +185,6 @@ def extract_pages(path) -> List[str]:
 def extract_pages_bytes(data: bytes, label: str = "<업로드>", cache: bool = True) -> List[str]:
     """PDF 바이트에서 쪽별 정규화 텍스트. 화면 업로드(P0)는 cache=False — 사용자가 올린 파일은 디스크에 남기지 않는다.
     PDF가 아니거나 깨져 읽을 수 없으면 ValueError."""
-    import io
-    import logging
     import os
     key = _cache_key(data)
     cache_file = PDF_CACHE / f"{key}.json"
@@ -123,23 +202,9 @@ def extract_pages_bytes(data: bytes, label: str = "<업로드>", cache: bool = T
             return hit["pages"]
         except (ValueError, KeyError):
             pass                       # 깨진 캐시는 무시하고 다시 추출
-    from pypdf import PdfReader
-    from pypdf.errors import PdfReadError
-    logging.getLogger("pypdf").setLevel(logging.ERROR)
-    try:
-        reader_pages = PdfReader(io.BytesIO(data)).pages
-    except (PdfReadError, ValueError, OSError) as e:
-        raise ValueError(f"PDF를 열 수 없습니다: {e}") from None
-    pages, raws, failures = [], [], []
-    for i, page in enumerate(reader_pages, 1):
-        try:
-            t = page.extract_text() or ""
-            pages.append(normalize(t))
-            raws.append(raw_text(t))
-        except Exception:   # noqa: BLE001 — 라이브러리 내부 디코딩 오류 등, 쪽 단위로 격리
-            failures.append(i)
-            pages.append("")
-            raws.append("")
+    texts, failures = _read_pdf(data)
+    pages = [normalize(t) for t in texts]
+    raws = [raw_text(t) for t in texts]
     if failures:
         EXTRACTION_FAILURES.setdefault(label, []).extend(failures)
     if use_cache:
