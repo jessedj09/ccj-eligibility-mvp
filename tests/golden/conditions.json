@@ -9252,5 +9252,359 @@
    "note": "고령자복지주택 공급 신청자격 순위(1순위 가 생계·의료급여 / 2순위 나 국가유공자 등 70% / 3순위 차 일반 50%) 중 하나인지",
    "timing": "NOW"
   }
+ ],
+ "N63/청년": [
+  {
+   "id": "N63-H0-home",
+   "field": "home_ownership/self_ever_owned_home",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "본인이 무주택이고 과거에도 주택을 소유한 적이 없는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H0-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "만 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H0-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "혼인 중이 아닌지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H0-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "공고일 현재 서울특별시·인천광역시·경기도에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H0-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.30",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H0-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(혼인·출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H0-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H0-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "본인 월평균소득이 전년도 도시근로자 1인 가구 월평균소득의 140%(출산자녀 1명 150%·2명 이상 160%) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H0-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "본인 총자산이 2억7,600만원(출산자녀 1명 3억1,100만원·2명 이상 3억4,500만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H0-parents",
+   "field": "parents_total_assets",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "부모 총자산이 10억3,500만원 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N63/신혼부부": [
+  {
+   "id": "N63-H1-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H1-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "공고일 현재 서울특별시·인천광역시·경기도에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H1-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.30",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H1-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(혼인·출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H1-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H1-type",
+   "field": "marital_status/marriage_date/children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "혼인 7년 이내이거나 6세 이하 자녀를 둔 신혼부부, 예비신혼부부, 또는 6세 이하 자녀를 둔 한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H1-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 130%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H1-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "세대 총자산이 3억6,200만원(출산자녀 1명 3억9,700만원·2명 이상 4억3,100만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N63/생애최초": [
+  {
+   "id": "N63-H2-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H2-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "공고일 현재 서울특별시·인천광역시·경기도에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H2-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.30",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H2-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(혼인·출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H2-first",
+   "field": "household_ever_owned_home",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "세대 전원이 과거에 주택을 소유한 적이 없는지(배우자의 혼인 전 소유·처분은 예외)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H2-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "입주자저축 1순위(가입 1년·월납입금 12회 이상)인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H2-deposit",
+   "field": "subscription_deposit",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "청약 저축액(선납금 포함)이 600만원 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H2-family",
+   "field": "marital_status/children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "혼인 중이거나 미혼 자녀(같은 등본, 태아 포함)가 있는지(1인 가구는 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H2-tax",
+   "field": "income_tax_5y",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "신청자 본인이 5년 이상 소득세(근로·사업소득)를 냈고 현재 근로자·자영업자이거나 과거 1년 안에 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H2-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.24",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 130%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H2-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "세대 총자산이 3억6,200만원(출산자녀 1명 3억9,700만원·2명 이상 4억3,100만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N63/신생아": [
+  {
+   "id": "N63-H3-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H3-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "공고일 현재 서울특별시·인천광역시·경기도에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H3-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.30",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H3-special",
+   "field": "past_special_supply",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지(혼인·출산 특례는 수동 확인)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H3-account",
+   "field": "has_subscription_account/subscription_months/subscription_payment_count",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H3-newborn",
+   "field": "children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "2세 미만 자녀(2세가 되는 날 포함, 태아·입양 포함)가 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H3-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 140%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H3-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "세대 총자산이 3억6,200만원(출산자녀 1명 3억9,700만원·2명 이상 4억3,100만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N63/일반공급": [
+  {
+   "id": "N63-H4-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H4-region",
+   "field": "residence_area",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "공고일 현재 서울특별시·인천광역시·경기도에 주민등록이 되어 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H4-rewin",
+   "field": "rewin_restricted",
+   "required": true,
+   "source_ref": "공고문 p.30",
+   "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H4-account",
+   "field": "has_subscription_account",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "입주자저축(청약통장)에 가입했는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H4-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "세대 월평균소득이 전년도 도시근로자 월평균소득의 100%(본인·배우자 모두 소득이 있으면 200%, 출산자녀 1명 +10%p·2명 이상 +20%p) 이하인지 — 3인 이하는 3인 기준",
+   "timing": "NOW"
+  },
+  {
+   "id": "N63-H4-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "세대 총자산이 3억6,200만원(출산자녀 1명 3억9,700만원·2명 이상 4억3,100만원) 이하인지",
+   "timing": "NOW"
+  }
  ]
 }

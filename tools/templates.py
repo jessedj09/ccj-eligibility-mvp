@@ -159,7 +159,9 @@ TEMPLATES: Dict[str, Dict] = {
         Param("asset_quote", "text", "세대 총자산 한도 문구(판정 틀과 같아야)"),
         Param("youth_asset_quote", "text", "청년 본인 총자산 한도 문구"),
         Param("parents_quote", "text", "청년 부모 총자산 한도 문구"),
-        Param("dual_quote", "text", "신혼부부 맞벌이 140% 문구(개정 뒤 공고는 200%라 보류)"),
+        Param("dual_quote", "text", "신혼부부 맞벌이 소득 문구(판 마다 — 2024 140% 금액 / 2026 '본인및배우자…200%')"),
+        Param("edition", "choice", "판 — '2024'(2024.1. 사전청약, 개정 전) / '2026'(2024.3. 개정 뒤 본청약: 신생아 특별공급·맞벌이 200%·"
+              "출산가구 가산). 원문 금액 문구로 고른다", critical=False),
     ]),
     # G7 LH 선택형 공공임대: 청년·다자녀·노부모부양·생애최초·신혼부부 특별공급 + 일반공급(2024.1. 사전청약 기준)
     "lh.select_rental": dict(module=PUB, builder="lh_select_rental", issuer="LH", program="LH 선택형 공공임대", params=[

@@ -85,6 +85,9 @@ DATES = {
                 grad=date(2024, 6, 8), adult=date(2007, 6, 8)),
     "N62": dict(ann=date(2026, 8, 24), marriage=date(2019, 8, 24), child=date(2019, 8, 25),
                 grad=date(2024, 8, 24), adult=date(2007, 8, 24)),
+    # 2026 판 LH 나눔형(N63 고양창릉 S-3 2026.06.30.) — p.24 혼인 '2019.06.30.~2026.06.30.', 2세 미만 = 공고일−2년(당일 포함)
+    "N63": dict(ann=date(2026, 6, 30), marriage=date(2019, 6, 30), child=date(2019, 7, 1),
+                grad=date(2024, 6, 30), adult=date(2007, 7, 1), newborn=date(2024, 6, 30)),
     # G5 SH 국민임대(N53 2026.08.20) — 공고일만 쓴다(출생자녀 가산 기준일 2023.3.28. 고정, 미성년 = 공고일−19년).
     "N53": dict(ann=date(2026, 8, 20), marriage=date(2019, 8, 20), child=date(2019, 8, 21),
                 grad=date(2024, 8, 20), adult=date(2007, 8, 20)),
@@ -182,7 +185,7 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               "N53": "sh_national_rental", "N54": "sh_permanent_rental",
               "N55": "elderly_welfare", "N56": "share_sale",
               "N57": "select_rental", "N58": "national_rental", "N59": "integrated_rental", "N60": "sh_national_rental",
-              "N61": "elderly_welfare", "N62": "elderly_welfare"}
+              "N61": "elderly_welfare", "N62": "elderly_welfare", "N63": "share_sale_2026"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -445,6 +448,7 @@ GROUPS: List[Tuple[str, str]] = [
     ("N58", "일반"),
     ("N59", "청년"), ("N59", "신혼부부"), ("N59", "한부모"), ("N59", "고령자"), ("N59", "일반"),
     ("N60", "일반"), ("N60", "일반(주거약자용)"), ("N61", "고령자"), ("N62", "고령자"),
+    *[("N63", layer) for layer in ("청년", "신혼부부", "생애최초", "신생아", "일반공급")],
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -524,7 +528,7 @@ def _pools(nid: str) -> Dict[str, list]:
 
 def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, object]]:
     """계층별 (값 풀, 기준 프로필의 기본값). 기본값은 '모든 조건이 통과'하는 쪽."""
-    if PROGRAM_OF.get(nid) == "sh_land_sale":
+    if PROGRAM_OF.get(nid) in ("sh_land_sale", "share_sale_2026"):   # 2026 판 나눔형은 SH 토지임대부와 같은 기준·금액
         return _program_attributes("sh_land_sale", layer, pools)
     if PROGRAM_OF.get(nid) == "public_sale":                # G3: 일반공급(전용 60㎡ 이하/초과)도 사업 전용 풀
         return _program_attributes("public_sale", layer, pools)

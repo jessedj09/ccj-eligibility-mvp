@@ -496,10 +496,62 @@ def _share_income(p, ratio, quote, note):
                 {"lte": [{"var": "monthly_income"}, {"lookup": ["income_standard_share_sale", SHARE_SIZE, ratio]}]})
 
 
+# 2026 판(2024.3. 개정 뒤 본청약 — 고양창릉 S-3 2026.06.30.): 신생아 특별공급, 맞벌이 200%, 출산가구 소득·자산 +10/+20%p,
+# 2025년도 소득표, 세대 총자산 362백만·청년 본인 276백만·부모 1,035백만. 자격 기준이 SH 토지임대부(N51·N52, 같은 해 같은 법령)와
+# 같아 그 판정 틀(sh_land_sale, 투기과열 아님)을 쓰고 인용문만 LH 공고 표현으로 바꾼다. 유형별 우선·일반·추첨공급 중 가장 넓은 단계
+# (추첨공급)의 소득 기준이 신청 자격이다 — 더 낮은 단계 비율은 선정 순서.
+SHARE_2026_QUOTES = {
+    "로혼인중이아니며,과거주택을소유한사실이없는무주택자": "로혼인중이아니며,과거주택을소유한사실이없는사람으로한정)인분",
+    "19세이상~39세이하": "청년(19세이상39세이하로혼인중이아니며",
+    "(청년계층은신청자본인276백만원이하": "(청년특별공급은신청자본인276,000천원이하",
+    "부모1,035백만원이하": "및부모1,035,000천원이하",
+    "혼인기간이7년이내이거나": "혼인중인사람으로서혼인기간이7년이내",
+    "예비신혼부부[혼인을계획중이고": "예비신혼부부[혼인을계획중이며",
+    "한부모가족[6세이하의자녀": "한부모가족[6세이하(만7세미만을말함)자녀",
+    "의130%(단,본인및배우자가모두소득이있는경우에는200%)이하인분": "의130%(본인및배우자가모두소득이있는경우200%)이하인분",
+    "의140%(단,본인및배우자가모두소득이있는경우에는200%)이하인분": "의140%(본인및배우자가모두소득이있는경우200%)이하인분",
+    "의100%이하인분(단,본인및배우자가모두소득이있는경우에는200%)": "의100%(본인및배우자가모두소득이있는경우200%)이하인분",
+    "합계액에서5를차감한금액이362백만원이하": "합계액에서5를차감한금액이362,000천원이하",
+    "무주택세대구성원으로입주자저축": "무주택세대구성원(3페이지참조)으로서입주자저축에가입한분",
+    "(신청자본인)311백만원이하": "본인311,000천원이하",
+    "(신청자본인)345백만원이하": "본인345,000천원이하",
+    "397백만원이하": "397,000천원이하",
+    "431백만원이하": "431,000천원이하",
+}
+SHARE_2026_LABEL = {"SH 토지임대부": "LH 나눔형(2026 판)"}
+
+
+def _share_sale_2026(nid, residence, youth_income_quote, asset_quote, youth_asset_quote, parents_quote, dual_quote):
+    layers, tables = sh_land_sale(nid, residence, overheated=False)
+    extra = {"income": None}
+
+    def fix(source):
+        source["quote"] = [SHARE_2026_QUOTES.get(q, q) for q in source.get("quote", [])]
+
+    for layer, ld in layers.items():
+        for c in walk(ld["conditions"]):
+            fix(c["source"])
+            suffix = c["id"].rsplit("-", 1)[-1]
+            add = {("청년", "income"): youth_income_quote, ("청년", "assets"): youth_asset_quote,
+                   ("청년", "parents"): parents_quote}.get((layer, suffix))
+            if add is None and layer != "청년":
+                add = {"assets": asset_quote, "income": dual_quote}.get(suffix)
+            if add and add not in c["source"]["quote"]:
+                c["source"]["quote"].append(add)
+    for t in tables.values():
+        fix(t["source"])
+        for a, b in SHARE_2026_LABEL.items():
+            t["label"] = t["label"].replace(a, b)
+    return layers, tables
+
+
 def lh_share_sale(nid, residence="수도권", youth_income_quote="청년도시근로자가구원수별가구당월평균소득액의140%4,695,438원",
                   asset_quote="379,000천원이하", youth_asset_quote="289백만원이하", parents_quote="(부모)1,083백만원이하",
-                  dual_quote="맞벌이도시근로자가구당월평균소득액의140%9,113,233원"):
-    """residence: '수도권' 또는 None. *_quote: 이 공고의 금액·비율 문구(추출기가 같은 문구일 때만 채운다)."""
+                  dual_quote="맞벌이도시근로자가구당월평균소득액의140%9,113,233원", edition="2024"):
+    """residence: '수도권' 또는 None. *_quote: 이 공고의 금액·비율 문구(추출기가 같은 문구일 때만 채운다).
+    edition: '2024'(2024.1. 사전청약 — 개정 전) / '2026'(개정 뒤 본청약 — SHARE_2026_QUOTES)."""
+    if edition == "2026":
+        return _share_sale_2026(nid, residence, youth_income_quote, asset_quote, youth_asset_quote, parents_quote, dual_quote)
     layers = {}
     for i, layer in enumerate(["청년", "신혼부부", "생애최초", "일반공급"]):
         p = f"{nid}-N{i}"
@@ -1376,6 +1428,14 @@ SELECT_NOTES = [
     "사전청약 당첨자는 본청약 공고일까지 자격(무주택·거주기간)을 유지해야 한다(p.1) — 이 판정은 사전청약 공고일 기준이다.",
 ]
 
+SHARE_2026_NOTES = [
+    "2024.3. 규칙 개정 뒤 본청약 공고 — 신생아 특별공급, 맞벌이 200%, '23.3.28. 이후 출생 자녀 1명 +10%p·2명 이상 +20%p 소득·자산 완화(p.19~21).",
+    "유형마다 우선·일반·추첨 공급 단계의 소득 비율이 다르다(예: 신혼부부 우선 130%·추첨 130%/맞벌이 200%) — 가장 넓은 단계(추첨공급)가 신청 "
+    "자격이고, 낮은 비율 단계는 선정 순서라 판정하지 않는다(p.20).",
+    "일반공급은 1순위(가입 1년·12회)·2순위(가입) 모두 신청할 수 있어 가입 여부만 판정한다. 지역 우선(고양시 1년·경기도 6개월)·배점은 선정 순서다.",
+    "이익공유형(나눔형)은 거주의무 5년이고, 처분하려면 LH에 환매해 처분손익의 70%를 받는다(p.1) — 판정하지 않는다.",
+]
+
 PLAN = [
     dict(nid="N30", key="LH30", title="남양주마석2단지 국민임대주택 예비입주자", ann="2026-09-07",
          program="국민임대주택", template="national_rental", params={"elderly_quote": None, "money": "million"},
@@ -1579,7 +1639,7 @@ PLAN = [
          program="공공분양(나눔형)", template="lh_share_sale",
          params={"residence": CAPITAL, "youth_income_quote": "청년도시근로자가구원수별가구당월평균소득액의140%4,695,438원",
                  "asset_quote": "379,000천원이하", "youth_asset_quote": "289백만원이하", "parents_quote": "(부모)1,083백만원이하",
-                 "dual_quote": "맞벌이도시근로자가구당월평균소득액의140%9,113,233원"},
+                 "dual_quote": "맞벌이도시근로자가구당월평균소득액의140%9,113,233원", "edition": "2024"},
          notes=SHARE_NOTES),
     # G7 — LH 선택형 공공임대(뉴홈 4차 사전청약, 2024.01.04.). 공고 1건(2024.3. 개정 전 기준)으로 만든 틀
     dict(nid="N57", key="LH57", title="뉴홈 4차 사전청약 선택형 공공임대주택", ann="2024-01-04",
@@ -1651,6 +1711,15 @@ PLAN = [
              "과거 공공임대주택 불법 양도·전대로 적발된 뒤 4년이 지나지 않은 세대구성원이 있으면 선정될 수 없다 — 이 판정은 묻지 않는다(p.4).",
              "금융정보 등 제공 동의서를 내지 않으면 신청할 수 없다(p.4). 외국인은 신청할 수 없다(p.5).",
              "생계·의료급여 수급자 등은 '가군' 임대조건이 따로 적용된다(p.3) — 임대료는 판정하지 않는다."]),
+    # 2026 판 나눔형(이익공유형) 본청약 — 고양창릉 S-3. 초안은 등록 전에 docs/draft-checks/Z-lh-share-goyang-s3.draft.json에 얼림(막힘)
+    dict(nid="N63", key="LH63", title="고양창릉 S-3블록 이익공유형(나눔형) 분양주택", ann="2026-06-30",
+         program="공공분양(나눔형)", template="lh_share_sale",
+         params={"residence": CAPITAL, "youth_income_quote": "청년특별공급도시근로자가구원수별가구당월평균소득액의140%5,338,708",
+                 "asset_quote": "362,000천원이하", "youth_asset_quote": "276,000천원이하", "parents_quote": "1,035,000천원이하",
+                 "dual_quote": "(본인및배우자가모두소득이있는경우200%)이하인분", "edition": "2026"},
+         unsupported=[{"name": "사전청약 당첨자", "page": 2,
+                       "note": "2024년 사전청약 당첨자(입주예약자)는 따로 신청한다(7.20.~7.21.) — 판정하지 않는다."}],
+         notes=SHARE_2026_NOTES),
 ]
 
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
