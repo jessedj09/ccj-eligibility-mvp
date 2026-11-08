@@ -144,6 +144,13 @@ TEMPLATES: Dict[str, Dict] = {
         Param("car_quote", "text", "자동차 한도 문구(판정 틀의 금액과 같아야)"),
     ]),
     # G5 LH 고령자복지주택(영구임대형): 65세 이상 + 1순위 생계·의료급여 / 2순위 국가유공자 등 70% / 3순위 일반 50%
+    # SH 다자녀 매입임대: 미성년 자녀 2명 이상 + 1·2순위(수급자 등, 소득·자산 검증 없음) / 3순위(소득 70%·국민임대 자산) — 금액은 리터럴
+    "sh.multichild_rental": dict(module=PUB, builder="sh_multichild_rental", issuer="SH", program="SH 다자녀 매입임대", params=[
+        Param("eligibility_quote", "text", "공통 신청자격 문장('두 명 이상의 직계비속(태아 포함, 미성년)을 양육하고 무주택세대구성원')"),
+        Param("income_quote", "text", "3순위 소득 70% 표 문구(판정 틀 금액과 같아야)"),
+        Param("asset_quote", "text", "총자산 34,500만원 문구(판정 틀 금액과 같아야)"),
+        Param("car_quote", "text", "자동차 4,542만원 문구(판정 틀 금액과 같아야)"),
+    ]),
     "lh.elderly_welfare": dict(module=PUB, builder="elderly_welfare", issuer="LH", program="고령자복지주택(영구임대형)", params=[
         Param("kind", "choice", "영구임대형인지(제목 '고령자복지주택(영구임대)') — 아니면 자동 판정하지 않는다"),
         Param("eligibility_quote", "text", "공통 신청자격 문장('현재 만65세 이상 … 무주택세대구성원 요건을 만족하고')"),
@@ -193,7 +200,8 @@ _PLAN_TEMPLATE = {(LH, "youth_rental"): "lh.youth_rental", (LH, "newlywed_rental
                   (PUB, "newlywed_town_sale"): "lh.newlywed_town_sale", (PUB, "public_sale"): "lh.public_sale",
                   (PUB, "sh_land_sale"): "sh.land_sale", (PUB, "sh_national_rental"): "sh.national_rental",
                   (PUB, "sh_permanent_rental"): "sh.permanent_rental", (PUB, "elderly_welfare"): "lh.elderly_welfare",
-                  (PUB, "lh_share_sale"): "lh.share_sale", (PUB, "lh_select_rental"): "lh.select_rental"}
+                  (PUB, "lh_share_sale"): "lh.share_sale", (PUB, "lh_select_rental"): "lh.select_rental",
+                  (PUB, "sh_multichild_rental"): "sh.multichild_rental"}
 BASE_NOTICES = ("N1", "N2", "N3")      # 시트 없음(템플릿 원본·손으로 만든 공고)
 
 

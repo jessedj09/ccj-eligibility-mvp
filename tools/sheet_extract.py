@@ -373,6 +373,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None if issuer == "SH" else "lh.select_rental"
     if program == "공공분양(나눔형)":     # G6: LH 나눔형(2024.1. 사전청약 기준 — 같은 금액·비율 문구의 공고만)
         return None if issuer == "SH" else "lh.share_sale"
+    if program == "다자녀 매입임대":      # SH 다자녀 매입임대(2026.5.29.) — LH 다자녀 매입임대는 아직 검증 전
+        return "sh.multichild_rental" if issuer == "SH" else None
     if program == "고령자복지주택":       # G5: LH 고령자복지주택(영구임대형만 — 국민임대형 등은 gate가 막는다)
         return None if issuer == "SH" else "lh.elderly_welfare"
     if program == "공공임대주택":       # G4: LH 공공임대(10년·분양전환·50년) 예비입주자 — 최초 입주자 모집은 gate에서 막는다
@@ -845,6 +847,24 @@ ELD_GENERAL = r"50%\(1인70%,2인60%\)이하인자"
 ELD_KIND = r"고령자복지주택\(영구임대\)"
 
 
+# SH 다자녀 매입임대(2026.5.29. p.6·p.9): 공통 자격 문장, 3순위 소득·자산 금액은 이 공고의 리터럴일 때만 채운다(다른 해 금액이면 보류)
+MULTI_ELIGIBILITY = r"두명이상의직계비속\(태아를포함하며,「민법」상미성년자로한정함\)을양육하고,무주택세대구성원으로서"
+MULTI_LITERALS = (("income_quote", "70%이하5,717,9006,161,5416,528,8906,934,3847,339,8797,745,373", "3순위 소득 70% 표(2025년도)"),
+                  ("asset_quote", "총자산가액:34,500만원이하", "총자산 34,500만원"),
+                  ("car_quote", "자동차가액(현재가치기준):4,542만원이하", "자동차 4,542만원"))
+
+
+def _sh_multichild(pages):
+    hit = find_text(pages, MULTI_ELIGIBILITY)
+    f = {"eligibility_quote": Field(FILLED, hit[1], hit[0], hit[1], "공통 신청자격 문장(미성년 자녀 2명 이상·무주택세대구성원)")
+         if hit else Field(HELD, None, how="공통 신청자격 문장을 찾지 못함")}
+    for key, lit, how in MULTI_LITERALS:
+        page = on_page(pages, lit)
+        f[key] = Field(FILLED, lit, page, lit, how) if page else \
+            Field(HELD, None, how=f"{how} 문구가 없음(다른 기준 연도일 수 있음)")
+    return f
+
+
 def _elderly_welfare(pages):
     hit = find_text(pages[:3], ELD_KIND)
     f = {"kind": Field(FILLED, "영구임대", hit[0], hit[1], "제목·첫 쪽의 '고령자복지주택(영구임대)'") if hit else
@@ -1085,7 +1105,7 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
           "sh.land_sale": lambda: _sh_land_sale(pages),
           "sh.national_rental": lambda: _sh_national_rental(pages),
           "sh.permanent_rental": lambda: _sh_permanent_rental(pages),
-          "lh.elderly_welfare": lambda: _elderly_welfare(pages),
+          "lh.elderly_welfare": lambda: _elderly_welfare(pages), "sh.multichild_rental": lambda: _sh_multichild(pages),
           "lh.share_sale": lambda: _share_sale(pages),
           "lh.select_rental": lambda: _select_rental(pages),
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),

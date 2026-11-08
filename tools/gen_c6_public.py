@@ -434,6 +434,65 @@ def sh_permanent_rental(nid, eligibility_quote, adult_quote, income_quote, asset
 ELD_ASSETS, ELD_CAR = 245000000, 45420000
 
 
+# ------------------------------------------------------------------------------------------------
+# SH 다자녀 매입임대 (2026.5.29. — p.3 요약, p.6 신청자격·순위, p.9~10 소득·자산)
+# ------------------------------------------------------------------------------------------------
+# 공통: 미성년 직계비속(태아 포함) 2명 이상을 양육하는 무주택세대구성원(서울 거주 요건 없음 — 타지역 거주자도 신청 가능).
+# 1순위(신생아가구)·2순위: 수급자(생계·주거·의료·교육급여)·차상위계층·지원대상 한부모가족 — 소득·자산 검증 없음.
+# 3순위: 월평균소득 70%(2025년도 표, 국민임대와 같은 금액) + 총자산 34,500만·자동차 4,542만(출생자녀 가산 37,900·41,300 / 4,996·5,451).
+# 1순위와 2순위의 차이(신생아가구)는 선정 순서라 하나의 갈래로 판정한다. 금액 문구는 이 공고의 리터럴(다른 해 금액이면 추출기가 보류).
+MULTI_B = ([345000000, 45420000], [379000000, 49960000], [413000000, 54510000])
+
+
+def sh_multichild_rental(nid, eligibility_quote, income_quote, asset_quote, car_quote):
+    p = f"{nid}-M"
+    terms = "multichild_terms"
+    tracks = [
+        {"id": "수급자등", "label": "1·2순위 — 수급자(생계·주거·의료·교육급여)·차상위계층·지원대상 한부모가족(소득·자산 검증 없음)",
+         "conditions": [
+             cond(f"{p}-Twelfare", "welfare_status/is_supported_single_parent",
+                  ["생계·주거·의료·교육급여중어느하나에해당하는급여를받는수급자가구", "제2조제10호에해당하는차상위계층가구",
+                   "제3조에따라여성가족부장관이정하는기준에해당하는한부모가족"],
+                  "수급자(생계·주거·의료·교육급여)·차상위계층 가구이거나 지원대상 한부모가족(증명서 발급 가능)인지",
+                  {"any": [{"in": [{"var": "welfare_status"}, WELFARE_ANY]},
+                           {"eq": [{"var": "is_supported_single_parent"}, True]}]})]},
+        {"id": "일반", "label": "3순위 — 그 밖의 다자녀가구(월평균소득 70% 이하 + 국민임대 자산 기준)", "conditions": [
+            cond(f"{p}-income", "monthly_income", [income_quote],
+                 "세대 월평균소득이 전년도(2025) 도시근로자 가구원수별 월평균소득의 70% 이하인지",
+                 {"lte": [{"var": "monthly_income"}, {"lookup": ["income_standard_public", {"var": "household_size"}, 70]}]}),
+            cond(f"{p}-assets", "total_assets", [asset_quote],
+                 "세대 총자산이 3억4,500만원(출생자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+                 {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}, table=terms),
+            cond(f"{p}-car", "car_value", [car_quote],
+                 "자동차가액이 4,542만원(출생자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+                 {"lte": [CAR, {"term": "car_limit"}]}, table=terms)]},
+    ]
+    conditions = [
+        cond(f"{p}-home", "home_ownership", [eligibility_quote], "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)", HOME),
+        cond(f"{p}-kids", "children_birth_dates", [eligibility_quote],
+             "미성년 자녀(태아 포함, 조손가정은 같은 등본의 미성년 손자녀)가 2명 이상인지", {"gte": [MINORS, 2]}),
+        cond(f"{p}-adult", "age", ["민법상미성년자(19세미만)는공급신청이불가하나"],
+             "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+             {"any": [{"gte": [{"var": "age"}, 19]},
+                      {"lte": [{"var": "age"}, 18],
+                       "review_if_true": {"code": "AMBIGUOUS_SOURCE",
+                                          "detail": "미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청할 수 있습니다. "
+                                                    "예외 해당 여부는 이 화면이 묻지 않습니다."}}]}),
+        {"id": f"{p}-rank", "field": "입주자격", "required": True,
+         "source": {"quote": ["1·2순위(수급자,차상위계층,보호대상한부모가족)는소득및자산검증대상에서제외"]},
+         "note": "신청 순위(1·2순위 수급자·차상위·지원대상 한부모 / 3순위 소득 70%·자산) 중 하나인지", "tracks": tracks},
+    ]
+    tables = {terms: {
+        "label": "SH 다자녀 매입임대 3순위 총자산·자동차 한도: 출생자녀수('23.3.28. 이후 출생 자녀 — 1명 / 1명+이전 자녀·2명 이상)",
+        "columns": ["child"], "inputs": {"child": {"fn": "child_bonus_count"}},
+        "outputs": ["asset_limit", "car_limit"],
+        "rows": [r({"child": 0}, MULTI_B[0]), r({"child": 1}, MULTI_B[1]), r({"child": "2+"}, MULTI_B[2])],
+        "source": {"quote": ["총자산가액379,000,000원이하413,000,000원이하413,000,000원이하",
+                             "자동차가액49,960,000원이하54,510,000원이하54,510,000원이하"]},
+    }}
+    return {"다자녀가구": {"conditions": conditions}}, tables
+
+
 def elderly_welfare(nid, eligibility_quote, merit_quote, general_quote, kind="영구임대",
                     asset_quote="가액합산기준24,500만원이하", car_quote="개별자동차가액4,542만원이하"):
     """kind: 공고가 영구임대형인지(추출기가 확인 — 아니면 자동 판정하지 않는다). 한도 문구는 리터럴과 같은 공고에서만 찾아진다."""
@@ -1550,6 +1609,15 @@ SELECT_2026_NOTES = [
     "입주 후 분양 전환 때까지 무주택세대구성원을 유지해야 하고, 분양전환 공공임대라 재당첨 제한 5년이 적용된다(p.2).",
 ]
 
+MULTICHILD_NOTES = [
+    "1순위(신생아가구 — '24.5.30. 이후 출생 자녀·태아)와 2순위는 같은 자격(수급자·차상위·지원대상 한부모)의 선정 순서라 한 갈래로 판정하고, "
+    "배점(미성년 자녀 수·서울 거주기간·청약 회차 등)은 판정하지 않는다(p.6~7).",
+    "서울 거주 요건은 없다 — 타지역 거주자도 신청할 수 있다(p.3).",
+    "조손가정은 미성년 손자녀 2명 이상이 신청자와 같은 등본에 있어야 한다(p.3) — 이 화면의 '자녀'로 입력한다.",
+    "과거 공공임대 불법 양도·전대로 적발된 뒤 4년이 지나지 않은 세대구성원이 있으면 선정될 수 없고, 외국인은 신청할 수 없다(p.9) — 묻지 않는다.",
+    "1세대 1주택 신청 원칙 — 중복 신청은 모두 무효(p.9).",
+]
+
 PLAN = [
     dict(nid="N30", key="LH30", title="남양주마석2단지 국민임대주택 예비입주자", ann="2026-09-07",
          program="국민임대주택", template="national_rental", params={"elderly_quote": None, "money": "million"},
@@ -1845,6 +1913,13 @@ PLAN = [
                       {"name": "사전청약 당첨자", "page": 13,
                        "note": "사전청약 당첨자(입주예약자)는 7.13.~7.14. 따로 신청한다 — 판정하지 않는다."}],
          notes=SELECT_2026_NOTES),
+    # SH 다자녀 매입임대(2026.5.29.) — 판정 틀의 첫 공고. 초안은 등록 전에 docs/draft-checks/Z-sh-multichild-2026.draft.json(미지원 사업)
+    dict(nid="N65", key="SH65", title="SH 2026년 다자녀 매입임대주택 입주자모집", ann="2026-05-29",
+         program="다자녀 매입임대", template="sh_multichild_rental",
+         params={"eligibility_quote": "두명이상의직계비속(태아를포함하며,「민법」상미성년자로한정함)을양육하고,무주택세대구성원으로서",
+                 "income_quote": "70%이하5,717,9006,161,5416,528,8906,934,3847,339,8797,745,373",
+                 "asset_quote": "총자산가액:34,500만원이하", "car_quote": "자동차가액(현재가치기준):4,542만원이하"},
+         notes=MULTICHILD_NOTES),
 ]
 
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
@@ -1855,6 +1930,7 @@ TEMPLATE_ANCHOR = {"integrated_rental": ("신혼부부,한부모가족을제외�
                    "sh_land_sale": ("청년특별공급■신청자격", 28), "sh_national_rental": ("4.신청자격가.공통사항", 22),
                    "sh_permanent_rental": ("3신청자격", 7),
                    "elderly_welfare": ("4.신청자격", 5),
+                   "sh_multichild_rental": ("2신청자격및신청순위■신청자격", 6),
                    "lh_share_sale": ("1.청년특별공급■신청자격", 9),
                    "lh_select_rental": ("2.청년특별공급■신청자격", 11)}
 
@@ -1876,11 +1952,12 @@ BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_re
             "public_rental": public_rental, "newlywed_town_sale": newlywed_town_sale, "public_sale": public_sale,
             "sh_land_sale": sh_land_sale, "sh_national_rental": sh_national_rental,
             "sh_permanent_rental": sh_permanent_rental,
-            "elderly_welfare": elderly_welfare,
+            "elderly_welfare": elderly_welfare, "sh_multichild_rental": sh_multichild_rental,
             "lh_share_sale": lh_share_sale,
             "lh_select_rental": lh_select_rental}
 ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH", "public_rental": "LH",
-          "newlywed_town_sale": "LH", "public_sale": "LH", "sh_land_sale": "SH", "sh_national_rental": "SH", "sh_permanent_rental": "SH", "elderly_welfare": "LH", "lh_share_sale": "LH", "lh_select_rental": "LH"}
+          "newlywed_town_sale": "LH", "public_sale": "LH", "sh_land_sale": "SH", "sh_national_rental": "SH", "sh_permanent_rental": "SH", "elderly_welfare": "LH", "lh_share_sale": "LH", "lh_select_rental": "LH",
+          "sh_multichild_rental": "SH"}
 
 
 def make_doc(plan, pdf, pages):

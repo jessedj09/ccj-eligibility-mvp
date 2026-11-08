@@ -10100,5 +10100,39 @@
    "note": "세대 총자산이 3억6,200만원(출산자녀 1명 3억9,700만원·2명 이상 4억3,100만원) 이하인지",
    "timing": "NOW"
   }
+ ],
+ "N65/다자녀가구": [
+  {
+   "id": "N65-M-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N65-M-kids",
+   "field": "children_birth_dates",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "미성년 자녀(태아 포함, 조손가정은 같은 등본의 미성년 손자녀)가 2명 이상인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N65-M-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N65-M-rank",
+   "field": "입주자격",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "신청 순위(1·2순위 수급자·차상위·지원대상 한부모 / 3순위 소득 70%·자산) 중 하나인지",
+   "timing": "NOW"
+  }
  ]
 }

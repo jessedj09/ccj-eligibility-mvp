@@ -446,5 +446,12 @@
     "file": "sample_lh/군포대야미A-1블록6년분양전환공공임대주택입주자모집공고문.pdf",
     "pages": 41,
     "sha256": "59dcf0e838e16bf3cf7dee326df2482869fdc6e9cd68f29a2fafcc37157112af"
+  },
+  {
+    "key": "SH65",
+    "org": "SH",
+    "file": "sample_sh/(게시용) 2026년 다자녀매입임대주택 입주자 모집공고(2026_ 5_ 29_).pdf",
+    "pages": 35,
+    "sha256": "2dcc6289e82ef765146f97633a26df137cde97338016332473c2d93cd1fc2e54"
   }
 ]
