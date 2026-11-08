@@ -176,7 +176,7 @@ def _raw_pages(data: bytes) -> List[str]:
 def _unclassified(pdf: Path, doc: Dict, template: Optional[str], exclude: str = "") -> List[tuple]:
     """조항 장부(v3 ②): 규칙 근거·형제 공고·무관 범주 어디에도 없는 조건형 문장 (쪽, 문장)."""
     import clause_ledger as CL
-    rows = CL.ledger_for_draft(pdf, doc, CL.template_siblings(template, exclude))
+    rows = CL.ledger_for_draft(pdf, doc, CL.template_siblings(template, exclude), exclude)
     return [(p, u) for p, u, label in rows if label == CL.UNCLASSIFIED]
 
 
