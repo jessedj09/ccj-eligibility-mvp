@@ -109,7 +109,7 @@ Engine**이다.
   추가(`tools/gen_c5_housing_weak.py`, 골든 76개 그룹 — 기존 73개 불변). ② 새 공고 등록용 내부 도구 `tools/notice_intake.py`:
   PDF → 공고일·접수기간(schedules 초안)·소득표 쪽·기준일 리터럴·계층 키워드·유사 공고/생성 스크립트 후보 보고서, `--audit`로
   등록 누락 점검(pytest가 같은 점검). 절차는 `docs/08-adding-a-notice.md`. 판정은 하지 않는다.
-- **E2(2026-10-24) 정비**: PDF 추출 텍스트 캐시(`.cache/pdf_text/`, git 제외 — 키 = PDF sha256 + pypdf 버전 + 정규화 코드,
+- **E2(2026-10-24) 정비**: PDF 추출 텍스트 캐시(`.cache/pdf_text/`, git 제외 — 키 = PDF sha256 + 추출기(2026-11-09부터 pypdfium2) 버전 + 추출·정규화 코드,
   `CCJ_NO_PDF_CACHE=1`이면 끔, CI는 actions/cache), 골든 입력 그룹 단위 생성(`golden_cases.cases(only=…)` — 같은 입력),
   `mvp0/` 삭제, `pytest.ini`(경고 필터 — **ASCII만**: pytest가 OS 인코딩 cp949로 읽는다). 기획 정리 `기획서/PRD_v2.md`(로컬, 저장소 밖).
 - **P0(2026-10-25) 공고 업로드 판정 기본형**(주요 기능1, `docs/09`): 메인 화면 사이드바 "공고문 PDF 올리기" → `src/notice_identify.py`가
@@ -215,7 +215,7 @@ Engine**이다.
   `tools/purge_accounts.py`(GitHub Actions `purge-accounts` 매주 — 비밀값 `PROD_DATABASE_URL`이 있을 때만). 계정 기능은 공유 저장소와 같은
   스위치 — NullStore(시험·`CCJ_STORE=off`)면 503, 화면 점검만 `CCJ_ACCOUNTS_MEMORY=1`(메모리 회원 저장소)·`CCJ_MAIL_BACKEND=file`
   (`CCJ_MAIL_FILE`에 인증 코드)로 켠다(`web/e2e/account.spec.ts`). `tests/test_accounts.py`.
-- pytest: 총 **1476개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+- pytest: 총 **1482개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

@@ -107,28 +107,21 @@ def test_income_reference_is_checked_per_notice(monkeypatch, tmp_path):
 
 
 def test_one_failing_page_does_not_stop_verification(monkeypatch, tmp_path):
-    """pypdf 버전에 따라 특정 쪽 추출이 예외를 낸다(6.21: SH 장기미임대 p.26). 그 쪽만 빈 텍스트로 두고 계속해야 한다."""
-    import pypdf
+    """추출기 버전에 따라 특정 쪽 추출이 예외를 낸다(pypdf 6.21: SH 장기미임대 p.26). 그 쪽만 빈 텍스트로 두고 계속해야 한다."""
+    real, calls = sv._page_text, []
 
-    class Page:
-        def __init__(self, text, boom=False):
-            self.text, self.boom = text, boom
+    def flaky(page, textpage):
+        calls.append(1)
+        if len(calls) == 2:
+            raise UnicodeDecodeError("utf-16-be", b".", 0, 1, "truncated data")
+        return real(page, textpage)
 
-        def extract_text(self):
-            if self.boom:
-                raise UnicodeDecodeError("utf-16-be", b".", 0, 1, "truncated data")
-            return self.text
-
-    class Reader:
-        def __init__(self, path):
-            self.pages = [Page("첫 쪽 무주택"), Page("", boom=True), Page("셋째 쪽 소득")]
-
-    monkeypatch.setattr(pypdf, "PdfReader", Reader)
+    monkeypatch.setattr(sv, "_page_text", flaky)
     monkeypatch.setattr(sv, "PDF_CACHE", tmp_path / "cache")
     fake = tmp_path / "fake.pdf"
-    fake.write_bytes(b"%PDF-fake")
+    fake.write_bytes(sv.pdf_path("N2").read_bytes() + b"\n%flaky\n")     # 지문을 바꿔 다른 캐시에 걸리지 않게
     pages = sv.extract_pages(fake)
-    assert pages == ["첫쪽무주택", "", "셋째쪽소득"]
+    assert pages[1] == "" and pages[0] == sv.pdf_pages("N2")[0] and pages[2] == sv.pdf_pages("N2")[2]
     assert sv.EXTRACTION_FAILURES[str(fake)] == [2]
     # 캐시에서 읽어도 실패한 쪽 기록이 되살아나야 한다(대조 보고에서 그 쪽이 빈 텍스트임을 알 수 있게)
     sv.EXTRACTION_FAILURES.pop(str(fake))

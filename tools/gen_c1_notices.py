@@ -16,7 +16,6 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 import source_verify as sv  # noqa: E402
 
-from pypdf import PdfReader  # noqa: E402
 import logging  # noqa: E402
 logging.disable(logging.CRITICAL)
 

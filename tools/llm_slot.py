@@ -29,21 +29,8 @@ SYSTEM = ("너는 한국 공공임대주택 입주자모집공고문에서 문�
 def raw_pages(pdf) -> List[str]:
     """LLM에게 보여 줄 쪽 텍스트(띄어쓰기 유지 — 대조용 정규화 텍스트는 띄어쓰기가 없어 읽기 어렵다).
     방금 업로드에서 추출한 PDF면 그 결과를 쓴다(source_verify.recent_raw_pages — 같은 PDF를 두 번 읽지 않게)."""
-    import logging
     import source_verify as sv
-    from pypdf import PdfReader
-    hit = sv.recent_raw_pages(Path(pdf).read_bytes())
-    if hit is not None:
-        return hit
-    logging.getLogger("pypdf").setLevel(logging.ERROR)
-    out = []
-    for page in PdfReader(str(pdf)).pages:
-        try:
-            t = page.extract_text() or ""
-        except Exception:   # noqa: BLE001 — 쪽 단위 추출 실패는 빈 쪽
-            t = ""
-        out.append(sv.raw_text(t))
-    return out
+    return sv.raw_pages_bytes(Path(pdf).read_bytes())
 
 
 def page_block(raw: List[str], page_nos: List[int], limit: int = 6000, focus: str = "") -> str:
