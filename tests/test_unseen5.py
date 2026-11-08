@@ -3,6 +3,7 @@
 
 - N58 인제서화 국민임대: 자산·자동차 한도가 원 단위 한 표(p.5 "총자산가액(원)자동차가액(원)") — 금액은 표준과 같다.
 """
+import json
 import sys
 from pathlib import Path
 
@@ -43,3 +44,24 @@ def test_n59_integrated_layers_and_elderly_weak_type_unsupported():
     assert [u["name"] for u in n.meta["unsupported_layers"]] == ["주거약자용주택(31AS형)"]
     d = draft.make_draft(sv.pdf_path("N59").read_bytes(), only=None, pages=sv.pdf_pages("N59"), exclude="N59")
     assert d.status == draft.OK and d.template == "lh.integrated_rental" and d.missing == []
+
+
+def test_sh_national_edition_picked_from_asset_table():
+    assert X._sh_national_rental(sv.pdf_pages("N60"))["edition"].value == "2025"
+    assert X._sh_national_rental(sv.pdf_pages("N53"))["edition"].value == "2026"
+    assert X._sh_national_rental(["자산기준(단위:만원)기본35,0004,600"])["edition"].value == "2026"   # 모르는 판 → 기본(보류됨)
+
+
+def test_n60_uses_2024_income_table_and_2025_limits():
+    n = load_notice("N60")
+    doc = json.loads((Path(__file__).resolve().parent.parent / "rules" / "notices" / "N60.json").read_text(encoding="utf-8"))
+    assert "income_standard_sh_public_2024" in json.dumps(doc["layers"], ensure_ascii=False)
+    rows = doc["tables"]["sh_national_terms"]["rows"]
+    assert rows[0]["out"] == [90, 337_000_000, 38_030_000]
+    assert list(n.layers) == ["일반", "일반(주거약자용)"]
+
+
+def test_n60_unseen_draft_has_no_held_conditions():
+    d = draft.make_draft(sv.pdf_path("N60").read_bytes(), only=None, pages=sv.pdf_pages("N60"), exclude="N60")
+    assert d.status == draft.OK and d.missing == [] and d.stale == []
+    assert d.held_conditions == {"일반": set(), "일반(주거약자용)": set()}

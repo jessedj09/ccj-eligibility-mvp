@@ -132,6 +132,8 @@ TEMPLATES: Dict[str, Dict] = {
         Param("income_quote", "text", "소득 기준 문장(70% 이하)"),
         Param("near_quote", "text", "서울 밖 일부 시 거주자도 받는 단지 문구(있을 때만)", critical=False),
         Param("weak_quote", "text", "일반공급(주거약자) 신청자격 문구(있으면 주거약자 계층을 더 만든다)", critical=False),
+        Param("edition", "choice", "소득 기준표·자산 한도 판 — '2026'(2025년도 소득·기본 34,500만) / '2025'(2024년도 소득·기본 33,700만). "
+              "원문 자산 표 리터럴로 고른다", critical=False),
     ]),
     # G5 SH 영구임대: 서울 거주 + 별표3 1순위(가~자), 총자산·자동차 한도는 공고 1건의 리터럴(다르면 보류)
     "sh.permanent_rental": dict(module=PUB, builder="sh_permanent_rental", issuer="SH", program="SH 영구임대", params=[

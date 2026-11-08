@@ -802,6 +802,10 @@ def _sh_national_rental(pages):
         f["near_quote"] = Field(ABSENT, None, how="서울 밖 거주 허용 문구 없음")
     hit = find_text(pages, SH_WEAK)
     f["weak_quote"] = Field(FILLED, hit[1], hit[0], hit[1], "일반공급(주거약자) 신청자격 문구") if hit else         Field(ABSENT, None, how="일반공급(주거약자) 문구 없음")
+    # 판(소득 기준표·자산 한도): 원문 자산 표 리터럴이 판정 틀의 판과 같을 때만 그 판. 모르는 금액이면 기본 판 — 인용문을 못 찾아 보류된다
+    import gen_c6_public as G
+    ed = next(((k, h) for k, e in G.SH_NATIONAL_EDITION.items() for h in [find_text(pages, re.escape(e["quotes"][0]))] if h), None)
+    f["edition"] = Field(FILLED, ed[0], ed[1][0], ed[1][1], "자산 표 '기본' 행 금액이 판정 틀의 판과 같음") if ed else         Field(FILLED, "2026", how="자산 표 금액이 판정 틀의 어느 판과도 다름 — 기본 판(자산·소득 조건은 인용문을 못 찾아 보류)")
     return f
 
 

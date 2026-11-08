@@ -77,6 +77,9 @@ DATES = {
     # 혼인 7년은 원문에 날짜가 없어 공고일−7년(당일 포함, N35·N36과 같음).
     "N59": dict(ann=date(2026, 10, 15), marriage=date(2019, 10, 15), child=date(2019, 10, 16),
                 grad=date(2024, 10, 15), adult=date(2007, 10, 15)),
+    # SH 2025년 1차 국민임대(N60 2025.08.20.) — 공고일만 쓴다(출생자녀 가산 기준일 2023.3.28. 고정).
+    "N60": dict(ann=date(2025, 8, 20), marriage=date(2018, 8, 20), child=date(2018, 8, 21),
+                grad=date(2023, 8, 20), adult=date(2006, 8, 20)),
     # G5 SH 국민임대(N53 2026.08.20) — 공고일만 쓴다(출생자녀 가산 기준일 2023.3.28. 고정, 미성년 = 공고일−19년).
     "N53": dict(ann=date(2026, 8, 20), marriage=date(2019, 8, 20), child=date(2019, 8, 21),
                 grad=date(2024, 8, 20), adult=date(2007, 8, 20)),
@@ -173,7 +176,7 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               "N49": "public_sale", "N50": "public_sale", "N51": "sh_land_sale", "N52": "sh_land_sale",
               "N53": "sh_national_rental", "N54": "sh_permanent_rental",
               "N55": "elderly_welfare", "N56": "share_sale",
-              "N57": "select_rental", "N58": "national_rental", "N59": "integrated_rental"}
+              "N57": "select_rental", "N58": "national_rental", "N59": "integrated_rental", "N60": "sh_national_rental"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -199,6 +202,13 @@ NAT_INCOME = [None, 0, 1] + [v + d for v in (3_432_027, 4_693_016, 5_279_643, 5_
                                             6_161_541, 7_921_982, 7_339_879, 9_436_987, 7_745_373, 9_958_337)
                              for d in (-1, 0, 1)] + [30_000_000]
 NAT_ASSETS = [None, 0, 1] + [v + d for v in (345_000_000, 379_000_000, 413_000_000) for d in (0, 1)]
+# SH 국민임대 2025년 공고(N60): 2024년도 소득표 70·80·90% 열(1~6인) 경계 ±1원, 2025년 자산·자동차 3단계 한도 경계(p.24)
+SHN25_NIDS = ("N60",)
+SHN25_INCOME = [None, 0, 1] + [v + d for v in (3_238_348, 4_381_602, 4_929_303, 5_338_881, 6_101_578, 6_864_276,
+                                              6_004_662, 7_720_279, 6_813_160, 8_759_777)
+                               for d in (-1, 0, 1)] + [30_000_000]
+SHN25_ASSETS = [None, 0, 1] + [v + d for v in (337_000_000, 371_000_000, 405_000_000) for d in (0, 1)]
+SHN25_CARS = [0, 1, "확인불가"] + [v + d for v in (38_030_000, 41_830_000, 45_630_000) for d in (-1, 0, 1)]
 # G2 영구임대: 신분별 기준(50·70·100%)과 가산이 만드는 경계 ±1원(1·2·3·7인), 자산 3단계
 PERM_INCOME = [None, 0, 1] + [v + d for v in (2_669_354, 3_432_027, 4_576_036, 3_519_762, 4_693_016, 6_452_897, 4_106_389,
                                               4_084_215, 5_717_900, 8_168_429, 4_901_057, 9_802_115, 5_242_771, 12_582_649)
@@ -428,6 +438,7 @@ GROUPS: List[Tuple[str, str]] = [
     # 처음 보는 실공고 검증(2026-11-08) — 초안은 docs/draft-checks/Z-*.draft.json
     ("N58", "일반"),
     ("N59", "청년"), ("N59", "신혼부부"), ("N59", "한부모"), ("N59", "고령자"), ("N59", "일반"),
+    ("N60", "일반"), ("N60", "일반(주거약자용)"),
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -540,6 +551,8 @@ def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, objec
         attrs["residence_area"] = ([None, "서울특별시", "의정부시", "포천시", "수원시", "부산광역시", "해당없음"], "서울특별시")
         if "주거약자" in layer:
             attrs["weak"] = (WEAK, "장애인")
+        if nid in SHN25_NIDS:                               # 2025년 공고: 2024년도 소득·2025년 자산 한도 경계
+            attrs.update(income=(SHN25_INCOME, 1), assets=(SHN25_ASSETS, 1), car=(SHN25_CARS, 0))
         return attrs
     if PROGRAM_OF.get(nid) == "national_rental":            # G2: 변형 계층(고령자 주택형)도 사업 전용 풀
         return _program_attributes("national_rental", layer, pools)

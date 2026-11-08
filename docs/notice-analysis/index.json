@@ -411,5 +411,12 @@
     "file": "sample_lh/(★공고)부산모라1블록통합공공임대입주자최초모집공고문_v2.pdf",
     "pages": 28,
     "sha256": "d0dc58f423311c9ad96cc71e4b3daa8b2fe7a658c80f57b2cc64d958daa4ceaf"
+  },
+  {
+    "key": "SH60",
+    "org": "SH",
+    "file": "sample_sh/★2025년-1차-국민임대-공고문20250820.pdf",
+    "pages": 64,
+    "sha256": "43b7351d2e8db93a519dab96575a50cc47af1174ebaccebcb1cda7f99dfe90c3"
   }
 ]
