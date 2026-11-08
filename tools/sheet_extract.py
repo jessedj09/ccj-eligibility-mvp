@@ -908,10 +908,25 @@ SELECT_LITERALS = (("youth_income_quote", "청년특별공급도시근로자가�
                    ("dual_quote", "맞벌이도시근로자가구원수별가구당월평균소득액의140%9,405,477원", "신혼부부 맞벌이 140% 금액(3인)"))
 
 
+# 2026 판(개정 뒤 6년 분양전환 공공임대 최초 모집, N64): 이 문구가 모두 있으면 2026 판
+SELECT_2026_LITERALS = (("youth_income_quote", "청년특별공급도시근로자가구원수별가구당월평균소득액의140%5,338,708", "청년 본인 소득 140% 금액(2025년도)"),
+                        ("asset_quote", "362,000천원이하", "세대 총자산 3억6,200만원"),
+                        ("youth_asset_quote", "276,000천원이하", "청년 본인 총자산 2억7,600만원"),
+                        ("parents_quote", "1,035,000천원이하", "청년 부모 총자산 10억3,500만원"),
+                        ("dual_quote", "가구원수가2명인경우에는140%(본인및배우자가모두소득이있는경우에는200%)", "2인 가구·맞벌이 200% 문구"))
+
+
 def _select_rental(pages):
     hit = find_text(pages, r"수도권\[서울특별시,경기도,인천광역시\]")
     f = {"residence": Field(FILLED, "수도권", hit[0], hit[1], "'수도권[서울특별시, 경기도, 인천광역시]' 거주 문구") if hit else
          Field(HELD, None, how="수도권 거주 요건 문구를 확인하지 못함")}
+    if all(on_page(pages, lit) for _, lit, _ in SELECT_2026_LITERALS):
+        f["edition"] = Field(FILLED, "2026", how="2026 판(개정 뒤 6년 분양전환) 금액 문구가 모두 있음")
+        for key, lit, how in SELECT_2026_LITERALS:
+            page = on_page(pages, lit)
+            f[key] = Field(FILLED, lit, page, lit, how)
+        return f
+    f["edition"] = Field(FILLED, "2024", how="2026 판 금액 문구가 모두 있지 않음 — 2024 판 문구로 확인")
     for key, lit, how in SELECT_LITERALS:
         page = on_page(pages, lit)
         f[key] = Field(FILLED, lit, page, lit, how) if page else \

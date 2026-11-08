@@ -439,5 +439,12 @@
     "file": "sample_lh/(260630)고양창릉S-3블록입주자모집공고문.pdf",
     "pages": 49,
     "sha256": "002777e2a5475ca0bf93203c221a0e104b7256c391f837bd5df1f13c140ee31b"
+  },
+  {
+    "key": "LH64",
+    "org": "LH",
+    "file": "sample_lh/군포대야미A-1블록6년분양전환공공임대주택입주자모집공고문.pdf",
+    "pages": 41,
+    "sha256": "59dcf0e838e16bf3cf7dee326df2482869fdc6e9cd68f29a2fafcc37157112af"
   }
 ]
