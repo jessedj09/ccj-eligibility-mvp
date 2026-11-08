@@ -40,9 +40,15 @@ CONDLIKE = re.compile(r"((?:인|한|된|는)자(?!녀)|인사람|한사람|는�
 STRONG = re.compile(r"(만신청|에한하여신청|신청할수없|신청불가|신청이불가|신청제한|거주하는자|거주자만|이상거주|이내인자|이하인자|"
                     r"이상인자|미만인자|소유하지않은자|해당하지않는자)")
 COMMON = re.compile(r"(외국인|재외국민|중복신청|중복당첨|중복으로|말소|거주불명|행방불명|가출|무효처리|부정당첨|불법전대|"
-                    r"1세대1주택|1주택만|1주택형만|1주택단지만|1개주택단지만|타[가-힣]{0,8}공고|다른공고|동일유형|동일한유형)")
+                    r"1세대1주택|1주택만|1주택형만|1주택단지만|1개주택단지만|타[가-힣]{0,8}공고|다른공고|동일유형|동일한유형|"
+                    # 사전청약 당첨자(그 세대)의 신청 제한·부적격 — 공통 결격사유처럼 안내만 한다(PRD 4.2, 2026-11-09 N56·N57)
+                    r"사전청약당첨자|당첨되더라도부적격)")
 DEFINITION = re.compile(r"(이란|란,|말함|말한다|의미|산정|산출|가액은|공시지가|평가하|기준으로하며|기준으로합니다|포함됩니다|포함한다|포함함|"
                         r"재산|정자료|감가상각|경과년수)")
+# 주택을 소유하지 않은 것으로 보는 경우(주택공급에 관한 규칙 제53조 — 선착순 분양권, 비도시지역 주택, 경매·공매로 산 임차주택 등).
+# 무주택으로 인정해 주는 예외라 신청을 막지 않는다 — 정의로 본다(2026-11-09 N22·N51·N56·N57)
+OWNERSHIP_EXCEPTION = re.compile(r"(소유하지아니한것으로인정|소유하지않은것으로인정|선착순의방법으로공급받아|"
+                                 r"도시지역이아닌지역또는면의행정구역|경매또는공매로매수)")
 # 공급 주택 목록 표(부록) — 머리글에 '…이내인 자'가 붙어도 주택 목록일 뿐(N20 p.58) — 강한 표현이 있어도 안내
 HOUSE_LIST = re.compile(r"주택목록|공급주택현황|연번자치구주택형|주택명주소")
 RANK = re.compile(r"\d순위")
@@ -50,6 +56,14 @@ RANK = re.compile(r"\d순위")
 BOILERPLATE = re.compile(r"(관계법령등에서정한|입주자격을유지|민감정보|본인정보제공|개인정보수집|"
                          # 공고 첫머리의 공급 계층 소개("…은 공고일 현재 다음 중 하나에 해당하는 사람에게 공급") — 계층마다 조건이 따로 있다
                          r"다음중하나(?:의계층)?에해당하는(?:사람|자)에게공급)")
+# 지역별 물량 배분(분양 — 해당 지역·도·기타 지역 몇 %, 미달 물량 넘기기)과 장기복무군인 지역 예외는 같은 순위 안의 **선정 순서**다.
+# 신청 자격은 규칙의 거주 조건(수도권 등)이 따로 판정한다. 같은 문장에 '만 신청·신청할 수 없·신청 불가'가 있으면 자격 제한일 수 있어
+# 이 분류를 쓰지 않는다(2026-11-09 보류 원인 분석 — 분양 공고 보류의 대부분이 이 문장들이었다).
+ALLOCATION = re.compile(r"(미달된물량|남은물량은|물량을배정|%배정|우선공급비율|지역우선공급기준|우선공급에서낙첨|낙첨될경우|"
+                        r"\d{2}%\.(?:사전청약|입주자모집)?공고일현재|장기복무군인)")
+ALLOCATION_GUARD = re.compile(r"(만신청|신청할수없|신청불가|신청이불가)")
+# 주택형마다 배정 물량이 있는 유형에만 신청(접수 화면 안내) — '만 신청'이 들어 있지만 자격이 아니다
+TYPE_QUOTA = re.compile(r"배정물량이있는(?:유형|주택형)")
 # '■우선공급대상자' 절 — 일반공급 요건을 갖춘 사람 중 지역·배점으로 먼저 뽑는 몫. 판정은 일반공급 자격 기준이라 그 절의 지역요건 등은
 # 새 자격 조건이 아니다(B단계 2026-11-01: 새 공고의 '과천시에 거주하는 자'가 미분류로 남아 지원 가능을 모두 보류로 낮췄다).
 PRIORITY_HEAD = re.compile(r"^■[^■]{0,6}우선공급")
@@ -175,15 +189,24 @@ class Known:
     MIN_SUBSTRING = 10                # 짧은 조각은 어디에나 있어 본문 포함으로 보지 않는다(목록 기호를 뺀 길이)
     LEAD = re.compile(r"^[•■①-⑳*※○□▶◆◇·ㆍ\-–▪]+")   # 목록 기호는 공고마다 다르다('•건설공사종사자' / '-건설공사종사자')
 
-    def __init__(self, sibling_units: Sequence[Tuple[int, str]]):
+    COMMON_MIN = 2                    # 다른 사업 등록 공고 몇 건 이상에 있으면 공통 안내로 보나
+
+    def __init__(self, sibling_units: Sequence[Tuple[int, str]], common_bodies: Sequence[str] = ()):
+        """common_bodies: 다른 사업 등록 공고들의 본문(공고마다 하나) — 판정 틀에 공고가 1건뿐이라 형제가 없는 사업(N56·N57 등)도
+        주택 소유 예외·자산 산정·소득 자료 같은 공통 안내를 알아보게(2026-11-09). 강한 제한 표현이 있는 문장은 쓰지 않는다 —
+        다른 사업의 자격 조건이 이 공고의 새 조건일 수 있다."""
         self.masked = {_mask(u) for _, u in sibling_units}
         self.texts = [u for _, u in sibling_units]
         self.body = "\n".join(sorted(self.masked))
+        self.common = list(common_bodies)
 
     def has(self, u: str) -> bool:
         m = _mask(u)
         core = self.LEAD.sub("", m)
         if m in self.masked or (len(core) >= self.MIN_SUBSTRING and core in self.body):
+            return True
+        if len(core) >= self.MIN_SUBSTRING and not STRONG.search(u) and \
+                sum(core in b for b in self.common) >= self.COMMON_MIN:
             return True
         for s in self.texts:
             if abs(len(s) - len(u)) >= len(u) * 0.3:
@@ -218,11 +241,13 @@ def classify(units: Sequence[Tuple[int, str]], doc: Dict, known: Known) -> List[
             label = "무관:공통 제한"
         elif BOILERPLATE.search(u):
             label = "무관:일반 안내"
-        elif HOUSE_LIST.search(u):
+        elif HOUSE_LIST.search(u) or TYPE_QUOTA.search(u):
             label = "무관:안내"
+        elif ALLOCATION.search(u) and not ALLOCATION_GUARD.search(u):
+            label = "무관:선정·순위"
         elif RANK.search(u) and "모집하지않" not in u:     # 순위 정의(경쟁 순서 — 자격 아님). '그 순위만 모집'은 제한 문구 점검이 잡는다
             label = "무관:선정·순위"
-        elif DEFINITION.search(u) and not STRONG.search(u):
+        elif (DEFINITION.search(u) and not STRONG.search(u)) or OWNERSHIP_EXCEPTION.search(u):
             label = "무관:정의"
         else:
             cat = None if STRONG.search(VISIT_ONLY.sub("", u)) else next((k for k, rx in UNRELATED.items() if rx.search(u)), None)
@@ -252,14 +277,26 @@ def siblings_of(nid: str) -> List[str]:
     return template_siblings(_templates().get(nid), exclude=nid)
 
 
+@lru_cache(maxsize=None)
+def _common_body(nid: str) -> str:
+    """등록 공고 본문(숫자 가림) — 다른 사업 공고의 공통 안내 대조용."""
+    return "\n".join(_mask(u) for _, u in registered_units(nid))
+
+
+def common_bodies(exclude: Sequence[str]) -> List[str]:
+    from rule_data import notice_ids
+    return [_common_body(n) for n in notice_ids() if n not in set(exclude)]
+
+
 def ledger_for_registered(nid: str) -> List[Tuple[int, str, str]]:
-    known = Known([u for s in siblings_of(nid) for u in registered_units(s)])
+    sibs = siblings_of(nid)
+    known = Known([u for s in sibs for u in registered_units(s)], common_bodies([nid, *sibs]))
     return classify(registered_units(nid), sv.notice_doc(nid), known)
 
 
-def ledger_for_draft(pdf: Path, doc: Dict, sibling_nids: Sequence[str]) -> List[Tuple[int, str, str]]:
-    """새 공고(초안 규칙 doc) — 형제는 그 템플릿의 등록 공고."""
-    known = Known([u for s in sibling_nids for u in registered_units(s)])
+def ledger_for_draft(pdf: Path, doc: Dict, sibling_nids: Sequence[str], exclude: str = "") -> List[Tuple[int, str, str]]:
+    """새 공고(초안 규칙 doc) — 형제는 그 템플릿의 등록 공고, 공통 안내는 나머지 등록 공고(exclude는 평가에서 뺄 자기 공고)."""
+    known = Known([u for s in sibling_nids for u in registered_units(s)], common_bodies([exclude, *sibling_nids]))
     return classify(units_of_pdf(pdf), doc, known)
 
 
