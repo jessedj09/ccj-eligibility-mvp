@@ -198,6 +198,7 @@ Engine**이다.
   G3-2(2026-11-01): LH 공공분양 `lh.public_sale`(N49 양주회천 A-26·N50 안산신길2 B-1 처음 보는 공고 위험 0 — 공개 전), 특별공급 5종 + 일반공급 60㎡ 이하/초과, 기준표 income_standard_sale, 새 입력 부동산 가액·생애최초 3종·노부모 3년 — 상세 docs/10 G3-2.
   **2026-11-02 사용자 결정: 판정 틀이 있는 사업은 모두 새 업로드 자동 판정 공개**(PASSING 15종 — 처음 보는 공고 3건·독립 검증은 권장 절차로).
   G3-3(2026-11-01): SH 토지임대부 분양 `sh.land_sale`(N51 마곡17·N52 고덕강일3 처음 보는 공고 위험 0 — 공개 전), 청년 특공·총자산·투기과열 1순위, 기준표 income_standard_youth_sale, 새 입력 본인 과거 주택 소유·세대 5년 내 당첨 — 상세 docs/10 G3-3.
+  처음 보는 실공고 5건(2026-11-08): N58 인제서화 국민임대·N59 부산모라 통합공공임대·N60 SH 2025년 1차 국민임대·N61·N62 고령자복지주택 — 등록 전 초안 얼림, B2 모두 위험 0. 보강: 국민임대 `money`(원 단위 자산 표), SH 국민임대 `edition`(앞선 해 소득표 `income_standard_sh_public_2024`·자산 한도), 고령자복지주택 정규식, 표 영역 쪽 경계 자르기. 전체 평가 같음 73.8%·위험 0 — 상세 docs/10.
   모바일 웹 = 같은 화면 반응형(lg 미만 1단). **화면을 고치면 PC·휴대폰 둘 다 점검**(Playwright pc-chromium·mobile-chromium, `e2e/mobile.spec.ts`).
 - **표 칸 위치 읽기(2026-11-01, docs/09 §19 — 평가 단계, 판정 경로 미연결)**: `src/pdf_tables.py`(pdfplumber **0.11.9 고정** — 0.11.10은
   Pillow ≥12.2라 streamlit과 충돌) — 선(lines)·글자 좌표(words) 두 방법, 소득 기준표 해석(1·2인 가산 풀기 등), 검증 4종(교차·일관성·방법 일치·
@@ -214,7 +215,7 @@ Engine**이다.
   `tools/purge_accounts.py`(GitHub Actions `purge-accounts` 매주 — 비밀값 `PROD_DATABASE_URL`이 있을 때만). 계정 기능은 공유 저장소와 같은
   스위치 — NullStore(시험·`CCJ_STORE=off`)면 503, 화면 점검만 `CCJ_ACCOUNTS_MEMORY=1`(메모리 회원 저장소)·`CCJ_MAIL_BACKEND=file`
   (`CCJ_MAIL_FILE`에 인증 코드)로 켠다(`web/e2e/account.spec.ts`). `tests/test_accounts.py`.
-- pytest: 총 **1430개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+- pytest: 총 **1476개 전부 통과**(8개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.

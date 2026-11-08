@@ -736,8 +736,11 @@ ELDERLY_TYPE = r"[가-힣0-9]{0,20}\d+형고령자[가-힣]*주택은?\(공고�
 
 def _national_rental(pages):
     hit = find_text(pages, ELDERLY_TYPE)
+    won = find_text(pages, re.escape("총자산가액(원)자동차가액(원)"))     # N58 p.5: 원 단위 한 표
     return {"elderly_quote": Field(FILLED, hit[1], hit[0], hit[1], "'○○형 고령자임대주택은(공고일현재65세이상만신청)' 문구")
-            if hit else Field(ABSENT, None, how="고령자 전용 주택형 문구 없음")}
+            if hit else Field(ABSENT, None, how="고령자 전용 주택형 문구 없음"),
+            "money": Field(FILLED, "won", won[0], won[1], "자산 한도 표가 원 단위('총자산가액(원)')") if won else
+            Field(FILLED, "million", how="원 단위 표 머리말 없음 — 표준(백만원·만원 단위) 표기")}
 
 
 # ------------------------------------------------------------------ 영구임대(G2)
@@ -799,6 +802,10 @@ def _sh_national_rental(pages):
         f["near_quote"] = Field(ABSENT, None, how="서울 밖 거주 허용 문구 없음")
     hit = find_text(pages, SH_WEAK)
     f["weak_quote"] = Field(FILLED, hit[1], hit[0], hit[1], "일반공급(주거약자) 신청자격 문구") if hit else         Field(ABSENT, None, how="일반공급(주거약자) 문구 없음")
+    # 판(소득 기준표·자산 한도): 원문 자산 표 리터럴이 판정 틀의 판과 같을 때만 그 판. 모르는 금액이면 기본 판 — 인용문을 못 찾아 보류된다
+    import gen_c6_public as G
+    ed = next(((k, h) for k, e in G.SH_NATIONAL_EDITION.items() for h in [find_text(pages, re.escape(e["quotes"][0]))] if h), None)
+    f["edition"] = Field(FILLED, ed[0], ed[1][0], ed[1][1], "자산 표 '기본' 행 금액이 판정 틀의 판과 같음") if ed else         Field(FILLED, "2026", how="자산 표 금액이 판정 틀의 어느 판과도 다름 — 기본 판(자산·소득 조건은 인용문을 못 찾아 보류)")
     return f
 
 
@@ -828,9 +835,11 @@ def _sh_permanent_rental(pages):
 
 
 # ------------------------------------------------------------------ LH 고령자복지주택(G5)
-# N55 p.5 "입주자모집공고일(2026.08.20.)현재만65세이상(1961.08.20.이전출생자)으로서무주택세대구성원요건을만족하고"
-ELD_ELIGIBILITY = r"현재만65세이상\(\d{4}\.\d{2}\.\d{2}\.이전출생자?\)으로서무주택세대구성원요건을만족하고"
-ELD_MERIT = r"월평균소득70%\(1인90%,2인80%\)이하인"
+# N55 p.5 "입주자모집공고일(2026.08.20.)현재만65세이상(1961.08.20.이전출생자)으로서무주택세대구성원요건을만족하고",
+# N61·N62 p.4 "…현재만65세이상으로서무주택세대구성원요건을만족하고"(출생일 없음)
+ELD_ELIGIBILITY = r"현재만65세이상(?:\(\d{4}\.\d{2}\.\d{2}\.이전출생자?\))?으로서무주택세대구성원요건을만족하고"
+# 2순위: N55 "…으로서월평균소득70%(1인90%,2인80%)이하인사람", N61·N62 "…으로서소득70%(1인90%,2인80%)이하인자"
+ELD_MERIT = r"(?:월평균)?소득70%\(1인90%,2인80%\)이하인자?"
 ELD_GENERAL = r"50%\(1인70%,2인60%\)이하인자"
 # 판정 틀은 영구임대형 리터럴(총자산 24,500만·자동차 4,542만) — 제목·첫 쪽에 '고령자복지주택(영구임대)'가 있을 때만
 ELD_KIND = r"고령자복지주택\(영구임대\)"

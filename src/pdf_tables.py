@@ -73,9 +73,15 @@ def _norm(text) -> str:
 
 
 # ------------------------------------------------------------------ T1 표 읽기
+def _inside(page, bbox):
+    """쪽 밖으로 삐져나온 표 영역(N61 p.5 — 표 선이 쪽 경계를 넘음)은 쪽 안으로 잘라 읽는다. within_bbox는 쪽 밖 영역이면 ValueError."""
+    x0, top, x1, bottom = page.bbox
+    return page.within_bbox((max(bbox[0], x0), max(bbox[1], top), min(bbox[2], x1), min(bbox[3], bottom)))
+
+
 def _words_rows(page, bbox) -> List[List[str]]:
     """표 영역의 글자를 줄로 묶고 금액 열 위치로 칸을 나눈다. 첫 칸 = 첫 금액 열 왼쪽 글자(행 머리)."""
-    words = page.within_bbox(bbox).extract_words(x_tolerance=1.5, y_tolerance=2)
+    words = _inside(page, bbox).extract_words(x_tolerance=1.5, y_tolerance=2)
     lines: List[List[dict]] = []
     for w in sorted(words, key=lambda w: (w["top"], w["x0"])):
         if lines and abs(lines[-1][0]["top"] - w["top"]) <= LINE_GAP:
@@ -117,7 +123,7 @@ def read_tables(pdf, pages: Iterable[int]) -> List[Table]:
             for t in page.find_tables():
                 rows = [[_norm(c) for c in r] for r in t.extract()]
                 if not any(money(c) for r in rows for c in r) and not any(
-                        money(_norm(w["text"])) for w in page.within_bbox(t.bbox).extract_words()):
+                        money(_norm(w["text"])) for w in _inside(page, t.bbox).extract_words()):
                     continue
                 out.append(Table(no, tuple(t.bbox), "lines", rows))
                 out.append(Table(no, tuple(t.bbox), "words", _words_rows(page, t.bbox)))
