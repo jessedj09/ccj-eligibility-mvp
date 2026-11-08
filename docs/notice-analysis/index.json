@@ -418,5 +418,19 @@
     "file": "sample_sh/★2025년-1차-국민임대-공고문20250820.pdf",
     "pages": 64,
     "sha256": "43b7351d2e8db93a519dab96575a50cc47af1174ebaccebcb1cda7f99dfe90c3"
+  },
+  {
+    "key": "LH61",
+    "org": "LH",
+    "file": "sample_lh/인제서화_고령자복지주택(영구임대)_입주자모집공고문(260608).pdf",
+    "pages": 30,
+    "sha256": "c2dac2c63ae983917f5966eb9897f7c0ae9c9954f5c6583cff898011130aff5f"
+  },
+  {
+    "key": "LH62",
+    "org": "LH",
+    "file": "sample_lh/동해천곡_고령자복지주택(영구임대)_입주자모집공고문(최종)_260824.pdf",
+    "pages": 29,
+    "sha256": "2041d45fee9f22fd4c160f5c5504f203d228bcba0da1a3f9cec205191e0772e8"
   }
 ]

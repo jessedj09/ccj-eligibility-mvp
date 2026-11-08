@@ -2,6 +2,9 @@
 """test_unseen5.py — 처음 보는 실공고 5건 검증(2026-11-08, 초안은 docs/draft-checks/Z-*.draft.json)에서 보강한 판정 틀.
 
 - N58 인제서화 국민임대: 자산·자동차 한도가 원 단위 한 표(p.5 "총자산가액(원)자동차가액(원)") — 금액은 표준과 같다.
+- N59 부산모라 통합공공임대: 초안이 모든 값을 찾음, 주거약자용주택(31AS형)은 미지원 계층.
+- N60 SH 2025년 1차 국민임대: 한 해 앞 공고 — 2024년도 소득표·2025년 자산 한도(판 edition="2025").
+- N61·N62 고령자복지주택: 신청자격 문장에 출생일 없음·2순위 "소득70%(…)이하인자" 표현.
 """
 import json
 import sys
@@ -65,3 +68,17 @@ def test_n60_unseen_draft_has_no_held_conditions():
     d = draft.make_draft(sv.pdf_path("N60").read_bytes(), only=None, pages=sv.pdf_pages("N60"), exclude="N60")
     assert d.status == draft.OK and d.missing == [] and d.stale == []
     assert d.held_conditions == {"일반": set(), "일반(주거약자용)": set()}
+
+
+def test_elderly_extractor_reads_both_wordings():
+    for nid in ("N55", "N61", "N62"):
+        f = X._elderly_welfare(sv.pdf_pages(nid))
+        assert f["eligibility_quote"].status == X.FILLED and f["merit_quote"].status == X.FILLED, nid
+    assert X._elderly_welfare(sv.pdf_pages("N55"))["merit_quote"].value == "월평균소득70%(1인90%,2인80%)이하인"   # 등록 시트 그대로
+    assert X._elderly_welfare(sv.pdf_pages("N61"))["eligibility_quote"].value == "현재만65세이상으로서무주택세대구성원요건을만족하고"
+
+
+def test_n61_n62_unseen_drafts_have_no_held_conditions():
+    for nid in ("N61", "N62"):
+        d = draft.make_draft(sv.pdf_path(nid).read_bytes(), only=None, pages=sv.pdf_pages(nid), exclude=nid)
+        assert d.status == draft.OK and d.missing == [] and d.held_conditions == {"고령자": set()}, nid
