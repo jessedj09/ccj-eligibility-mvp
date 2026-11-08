@@ -361,6 +361,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return "sh.national_rental" if issuer == "SH" else "lh.national_rental"
     if "영구임대" in program:          # G2: LH 영구임대 표준 공고, G5: SH 영구임대(서울 거주·1순위 가~자)
         return "sh.permanent_rental" if issuer == "SH" else "lh.permanent_rental"
+    if program == "통합공공임대(일자리연계형)":   # 2026-11-09: 일자리연계형 지원주택(직업기준 + 일반형 신분)
+        return None if issuer == "SH" else "lh.integrated_job"
     if "통합공공임대" in program:      # G2: LH 통합공공임대 일반형 — 일자리연계형 등 변형은 gate에서 막는다
         return None if issuer == "SH" else "lh.integrated_rental"
     if program == "토지임대부 분양주택":  # G3-3: SH 토지임대부 분양(LH 토지임대부는 아직 검증 전)
@@ -854,6 +856,21 @@ MULTI_LITERALS = (("income_quote", "70%이하5,717,9006,161,5416,528,8906,934,38
                   ("car_quote", "자동차가액(현재가치기준):4,542만원이하", "자동차 4,542만원"))
 
 
+# 통합공공임대 일자리연계형(전주 p.10 / 담양 p.9): 직업기준 종류와 문장
+JOB_REGIONAL = r"지역전략산업에종사하는사람등[가-힣]{1,10}(?:시장|군수|구청장|도지사)이지역전략산업의육성을위해필요하다고인정한사람"
+JOB_EARNER = r"「소득세법」제19조제1항또는제20조제1항에따른사업소득또는근로소득이있는사람"
+
+
+def _integrated_job(pages):
+    for kind, rx, how in (("regional", JOB_REGIONAL, "직업기준 '지역전략산업 종사자'(지자체·기관 인정)"),
+                          ("earner", JOB_EARNER, "직업기준 '사업·근로소득자'")):
+        hit = find_text(pages, rx)
+        if hit:
+            return {"job_kind": Field(FILLED, kind, hit[0], hit[1], how), "job_quote": Field(FILLED, hit[1], hit[0], hit[1], how)}
+    return {"job_kind": Field(HELD, None, how="직업기준을 읽지 못함(판정 틀에 없는 직업기준일 수 있음)"),
+            "job_quote": Field(HELD, None, how="직업기준 문장을 찾지 못함")}
+
+
 def _sh_multichild(pages):
     hit = find_text(pages, MULTI_ELIGIBILITY)
     f = {"eligibility_quote": Field(FILLED, hit[1], hit[0], hit[1], "공통 신청자격 문장(미성년 자녀 2명 이상·무주택세대구성원)")
@@ -1106,6 +1123,7 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
           "sh.national_rental": lambda: _sh_national_rental(pages),
           "sh.permanent_rental": lambda: _sh_permanent_rental(pages),
           "lh.elderly_welfare": lambda: _elderly_welfare(pages), "sh.multichild_rental": lambda: _sh_multichild(pages),
+          "lh.integrated_job": lambda: _integrated_job(pages),
           "lh.share_sale": lambda: _share_sale(pages),
           "lh.select_rental": lambda: _select_rental(pages),
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),

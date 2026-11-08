@@ -10134,5 +10134,385 @@
    "note": "신청 순위(1·2순위 수급자·차상위·지원대상 한부모 / 3순위 소득 70%·자산) 중 하나인지",
    "timing": "NOW"
   }
+ ],
+ "N66/청년": [
+  {
+   "id": "N66-IY-job",
+   "field": "job_criterion_met",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "이 공고의 직업기준(지자체·기관이 인정하는 지역전략산업 종사자)을 충족하는지 — 심사는 지자체·기관이 한다",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IY-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "무주택자인지(본인 기준 — 세대 내 다른 구성원의 주택 소유는 무관)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IY-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "공고일 현재 만 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IY-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "혼인 중이 아닌지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IY-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.12",
+   "note": "본인 월평균소득(세대원이 있는 세대주는 세대 전체)이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IY-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "본인 총자산(세대원이 있는 세대주는 세대 전체)이 3억4,500만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IY-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "자동차가액이 4,542만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N66/신혼부부": [
+  {
+   "id": "N66-IM-job",
+   "field": "job_criterion_met",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "이 공고의 직업기준(지자체·기관이 인정하는 지역전략산업 종사자)을 충족하는지 — 심사는 지자체·기관이 한다",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IM-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "혼인 중이거나 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IM-duration",
+   "field": "marriage_duration_or_child",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아 포함)를 두었는지(예비신혼부부는 이 요건이 없음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IM-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IM-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IM-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.12",
+   "note": "세대 월평균소득(예비신혼부부는 혼인으로 구성될 세대 합계)이 기준중위소득 150%(2인 +10%p, 출산자녀 가산, 부부 모두 근로·사업소득이 있으면 +30%p) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IM-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IM-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "자동차가액이 4,542만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N66/한부모": [
+  {
+   "id": "N66-IS-job",
+   "field": "job_criterion_met",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "이 공고의 직업기준(지자체·기관이 인정하는 지역전략산업 종사자)을 충족하는지 — 심사는 지자체·기관이 한다",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IS-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IS-child6",
+   "field": "youngest_child_birth_date",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "6세 이하 자녀(같은 주민등록표에 등재)를 둔 한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IS-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.12",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IS-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IS-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.12",
+   "note": "세대 월평균소득이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산 반영) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IS-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N66-IS-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.11",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N67/청년": [
+  {
+   "id": "N67-IY-job",
+   "field": "has_earned_income",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "근로소득 또는 사업소득이 있는 사람인지(직업기준 '사업·근로소득자')",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IY-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "무주택자인지(본인 기준 — 세대 내 다른 구성원의 주택 소유는 무관)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IY-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "공고일 현재 만 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IY-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "혼인 중이 아닌지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IY-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "본인 월평균소득(세대원이 있는 세대주는 세대 전체)이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IY-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "본인 총자산(세대원이 있는 세대주는 세대 전체)이 3억4,500만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IY-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "자동차가액이 4,542만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N67/신혼부부": [
+  {
+   "id": "N67-IM-job",
+   "field": "has_earned_income",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "근로소득 또는 사업소득이 있는 사람인지(직업기준 '사업·근로소득자')",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IM-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "혼인 중이거나 예비신혼부부인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IM-duration",
+   "field": "marriage_duration_or_child",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "혼인기간 7년 이내이거나 6세 이하 자녀(태아 포함)를 두었는지(예비신혼부부는 이 요건이 없음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IM-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IM-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IM-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "세대 월평균소득(예비신혼부부는 혼인으로 구성될 세대 합계)이 기준중위소득 150%(2인 +10%p, 출산자녀 가산, 부부 모두 근로·사업소득이 있으면 +30%p) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IM-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IM-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "자동차가액이 4,542만원(출산자녀 가산) 이하인지",
+   "timing": "NOW"
+  }
+ ],
+ "N67/한부모": [
+  {
+   "id": "N67-IS-job",
+   "field": "has_earned_income",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "근로소득 또는 사업소득이 있는 사람인지(직업기준 '사업·근로소득자')",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IS-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IS-child6",
+   "field": "youngest_child_birth_date",
+   "required": true,
+   "source_ref": "공고문 p.9",
+   "note": "6세 이하 자녀(같은 주민등록표에 등재)를 둔 한부모가족인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IS-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IS-adult",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.7",
+   "note": "성년(만 19세 이상)인지 — 미성년자는 자녀를 양육하는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IS-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "세대 월평균소득이 기준중위소득 150%(1인 +20%p·2인 +10%p, 출산자녀 가산 반영) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IS-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "세대 총자산이 3억4,500만원(출산자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N67-IS-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.10",
+   "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출산자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+   "timing": "NOW"
+  }
  ]
 }

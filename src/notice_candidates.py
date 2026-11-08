@@ -205,6 +205,9 @@ def classify(pages: List[str]):
         found = [(text.find(key), -len(key), iss, program) for key, (iss, program) in PROGRAMS if key in text]
         if found:
             _, _, iss, program = min(found)
+            # 통합공공임대 일자리연계형 지원주택(전주동서학·담양삼만 표지) — 같은 사업 이름 뒤에 붙어 따로 나눈다(2026-11-09)
+            if program == "통합공공임대주택" and "일자리연계형" in text:
+                program = "통합공공임대(일자리연계형)"
             # 사업 이름이 LH로 정해 둔 것이어도 SH 주소가 있으면 SH(2026-11-08: SH '자립준비청년 청년매입임대'가 LH로 잡혔다)
             return ("SH" if issuer == "SH" else iss or issuer), program
     return issuer, None

@@ -234,6 +234,10 @@ class HouseholdProfile:
     # G3(SH 토지임대부 분양): 청년 본인이 과거 주택을 소유한 적 있는지 / 투기과열지구 1순위 — 세대 전원 과거 5년 안에 다른 주택에 당첨된
     # 적 있는지. None = 모름. 둘 다 없어야(False) 충족
     self_ever_owned_home: Optional[bool] = None
+    # 통합공공임대 일자리연계형(2026-11-09): 그 공고의 직업기준(지자체·기관이 인정하는 지역전략산업 종사자 등)을 충족하는지 /
+    # 근로소득 또는 사업소득이 있는지(직업기준이 '사업·근로소득자'인 공고). None = 모름
+    job_criterion_met: Optional[bool] = None
+    has_earned_income: Optional[bool] = None
     household_won_5y: Optional[bool] = None
     # C5b(SH 장기전세2): 신청자·배우자(예비배우자)가 공고일 기준 최근 5년 안에 주택을 소유한 적이 있는지 — 없어야(False) 충족
 

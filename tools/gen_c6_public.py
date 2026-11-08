@@ -1090,6 +1090,60 @@ def integrated_rental(nid):
     return layers, tables
 
 
+
+# ------------------------------------------------------------------------------------------------
+# 통합공공임대 일자리연계형 지원주택 (2026-11-09 — 전주동서학 2026.09.14. p.9~12, 담양삼만 2026.10.29. p.9~11)
+# ------------------------------------------------------------------------------------------------
+# 일반형과 같은 신분(청년·신혼부부·한부모)·소득(기준중위소득 150%, 1인 170·2인 160, 출산 가산, 신혼 맞벌이 +30%p)·자산(34,500만·4,542만)
+# 기준에 **직업기준**이 더해진다. 직업기준은 공고마다 다르다 — 'regional'(지역전략산업 종사자: 지자체·기관이 심사해 인정, 전주) /
+# 'earner'(사업·근로소득자, 담양). 장기종사자(중소기업 근속 등)와 주거약자용 주택은 미지원 계층. 고령자·일반 계층은 없다.
+JOB_LAYERS = ["청년", "신혼부부", "한부모"]
+JOB_KIND_NOTE = {"regional": "이 공고의 직업기준(지자체·기관이 인정하는 지역전략산업 종사자)을 충족하는지 — 심사는 지자체·기관이 한다",
+                 "earner": "근로소득 또는 사업소득이 있는 사람인지(직업기준 '사업·근로소득자')"}
+JOB_KIND_FIELD = {"regional": "job_criterion_met", "earner": "has_earned_income"}
+
+
+# 일자리연계형 공고는 신분·소득·자산을 표로 적는다 — 일반형 인용문을 이 표현으로(전주·담양 같은 문구)
+JOB_QUOTES = {
+    "무주택자로서다음의요건을모두갖춘사람": "❶청년19세이상39세이하이면서혼인중이아닌사람",
+    "18세이상39세이하일것": "❶청년19세이상39세이하이면서혼인중이아닌사람",
+    "혼인중이아닐것": "❶청년19세이상39세이하이면서혼인중이아닌사람",
+    "기준중위소득의150퍼센트(1~2인가구및출산가구의경우에는우대비율을가산)이하일것": "신분기준중청년의소득금액은신청자본인에한하여검증",
+    "총자산345,000,000원및자동차45,420,000원이하": "총자산가액345,000,000원이하379,000,000원이하413,000,000원이하",
+    "예비신혼부부(혼인을계획중이며해당주택의입주전까지혼인사실을증명할수있는사람)":
+        "예비신혼부부혼인을계획중이며해당주택의입주전까지혼인사실을증명할수있는사람",
+    "무주택세대구성원(예비신혼부부의경우혼인으로구성될세대의세대구성원모두무주택자인경우)일것":
+        "성년자인무주택세대구성원(청년은입주자본인,예비신혼부부는혼인으로구성될세대원)",
+    "기준중위소득의150퍼센트(맞벌이,2인가구및출산가구의경우에는우대비율을가산)이하일것": "기준중위소득대비아래의기준비율이하",
+    "신혼부부맞벌이우대비율:30%p가산": "모두가소득(사업소득또는근로소득)이있는경우에는상기비율에30%p를추가우대",
+    "를둔한부모가족(자녀가신청자와동일한세대별주민등록표에등재된경우에한함)": "한부모가족(모자가족또는부자가족)으로서6세이하의자녀가있는사람",
+    "무주택세대구성원으로서해당세대의월평균소득이기준중위소득의150퍼센트": "기준중위소득대비아래의기준비율이하",
+    "신혼부부,한부모가족을제외한모든계층×1인0인170%": "3인이상(+0%p)150%160%170%",
+    "○2인0인190%": "모두가소득(사업소득또는근로소득)이있는경우에는상기비율에30%p를추가우대",
+    "청년계층의소득및자산은신청자본인에한하여검증": "신분기준중청년의소득금액은신청자본인에한하여검증",
+}
+JOB_CAR_QUOTE = "자동차가액45,420,000원이하49,960,000원이하54,510,000원이하"
+
+
+def integrated_job_rental(nid, job_kind, job_quote):
+    layers, tables = integrated_rental(nid)
+    layers = {k: layers[k] for k in JOB_LAYERS}
+    field = JOB_KIND_FIELD[job_kind]
+    for layer, ld in layers.items():
+        for c in walk(ld["conditions"]):
+            c["source"]["quote"] = [JOB_QUOTES.get(q, q) for q in c["source"].get("quote", [])]
+            if c["id"].endswith("-car"):
+                c["source"]["quote"] = [JOB_CAR_QUOTE]
+            if c["id"].endswith("-age"):              # 일자리연계형 청년은 19세 이상(일반형 18세 이상과 다름 — 전주 p.11·담양 p.9)
+                c["note"] = "공고일 현재 만 19세 이상 39세 이하인지"
+                c["check"] = {"between": [{"var": "age"}, 19, 39]}
+        prefix = ld["conditions"][0]["id"].rsplit("-", 1)[0]
+        ld["conditions"].insert(0, cond(f"{prefix}-job", field, [job_quote], JOB_KIND_NOTE[job_kind],
+                                        {"eq": [{"var": field}, True]}))
+    for t in tables.values():
+        t["source"]["quote"] = [JOB_QUOTES.get(q, q) for q in t["source"].get("quote", [])]
+    return layers, tables
+
 INTEGRATED_NOTES = [
     "판정은 일반공급 기준(기준중위소득 150% + 가산)이다. 우선공급(청년·신혼부부 등, 기준중위소득 100% + 가산)은 모집 인원을 "
     "먼저 배정하는 선정 순서라 판정하지 않는다 — 우선공급 신청자는 같은 주택형 일반공급에도 자동 신청된다.",
@@ -1618,6 +1672,14 @@ MULTICHILD_NOTES = [
     "1세대 1주택 신청 원칙 — 중복 신청은 모두 무효(p.9).",
 ]
 
+JOB_NOTES = [
+    "일자리연계형 지원주택은 직업기준과 신분기준(청년·신혼부부·한부모·장기종사자)을 모두 충족해야 한다 — 직업기준은 공고마다 다르다.",
+    "장기종사자(미성년 자녀 포함 3인 이상 세대 + 중소기업·동일기업 근속, 동일사업 영위)와 주거약자용 주택은 판정하지 않는다(미지원 계층).",
+    "청년은 19세 이상 39세 이하(일반형 통합공공임대의 18세와 다르다). 청년의 소득·자산은 본인만(세대원이 있는 세대주 청년은 세대 전체).",
+    "소득은 기준중위소득 150%(1인 170·2인 160%, 출산자녀 1명 +10%p·2명 이상 +20%p, (예비)신혼부부 맞벌이 +30%p), 자산은 총자산 "
+    "34,500만·자동차 4,542만(출산자녀 가산)이다 — 일반형과 같다.",
+]
+
 PLAN = [
     dict(nid="N30", key="LH30", title="남양주마석2단지 국민임대주택 예비입주자", ann="2026-09-07",
          program="국민임대주택", template="national_rental", params={"elderly_quote": None, "money": "million"},
@@ -1920,6 +1982,24 @@ PLAN = [
                  "income_quote": "70%이하5,717,9006,161,5416,528,8906,934,3847,339,8797,745,373",
                  "asset_quote": "총자산가액:34,500만원이하", "car_quote": "자동차가액(현재가치기준):4,542만원이하"},
          notes=MULTICHILD_NOTES),
+    # 통합공공임대 일자리연계형 — 판정 틀의 첫 두 공고(전주는 지역전략산업 종사자, 담양은 사업·근로소득자). 초안은 등록 전에
+    # docs/draft-checks/Z-lh-integrated-jeonju-job·Z-lh-integrated-damyang-job.draft.json(변형 공고라 막힘)
+    dict(nid="N66", key="LH66", title="전주동서학 통합공공임대 일자리연계형 지원주택 입주자", ann="2026-09-14",
+         program="통합공공임대(일자리연계형)", template="integrated_job_rental",
+         params={"job_kind": "regional",
+                 "job_quote": "지역전략산업에종사하는사람등전주시장이지역전략산업의육성을위해필요하다고인정한사람"},
+         unsupported=[{"name": "장기종사자", "page": 11, "note": "미성년 자녀 포함 3인 이상 세대 + 중소기업·동일기업 근속 또는 동일사업 "
+                                                                "영위 — 근속 기간을 묻지 않아 판정하지 않는다."},
+                      {"name": "주거약자용주택(31AS형)", "page": 13, "note": "고령자·장애인 등 주거약자만 신청하는 별도 주택형 — 판정하지 않는다."}],
+         notes=JOB_NOTES + ["직업기준은 전주시·국가유산청이 인정한 무형유산 종사자(전북 주민등록 + 국가·전북 무형유산 보유자·전승교육사·이수자) "
+                            "또는 예술인 종사자(전주 주민등록 + 예술활동증명)다 — 사전 상담 필수, '직업기준 충족'을 묻는다(p.10)."]),
+    dict(nid="N67", key="LH67", title="담양삼만 통합공공임대 일자리연계형 지원주택 추가 입주자", ann="2026-10-29",
+         program="통합공공임대(일자리연계형)", template="integrated_job_rental",
+         params={"job_kind": "earner", "job_quote": "「소득세법」제19조제1항또는제20조제1항에따른사업소득또는근로소득이있는사람"},
+         unsupported=[{"name": "장기종사자", "page": 9, "note": "미성년 자녀 포함 3인 이상 세대 + 중소기업·동일기업 근속 또는 동일사업 "
+                                                               "영위 — 근속 기간을 묻지 않아 판정하지 않는다."},
+                      {"name": "주거약자용주택", "page": 1, "note": "고령자·장애인 등 주거약자만 신청하는 별도 주택형 — 판정하지 않는다."}],
+         notes=JOB_NOTES + ["직업기준은 사업소득 또는 근로소득이 있는 사람이다(p.9)."]),
 ]
 
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
@@ -1931,6 +2011,7 @@ TEMPLATE_ANCHOR = {"integrated_rental": ("신혼부부,한부모가족을제외�
                    "sh_permanent_rental": ("3신청자격", 7),
                    "elderly_welfare": ("4.신청자격", 5),
                    "sh_multichild_rental": ("2신청자격및신청순위■신청자격", 6),
+                   "integrated_job_rental": ("신분기준", 11),
                    "lh_share_sale": ("1.청년특별공급■신청자격", 9),
                    "lh_select_rental": ("2.청년특별공급■신청자격", 11)}
 
@@ -1953,11 +2034,12 @@ BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_re
             "sh_land_sale": sh_land_sale, "sh_national_rental": sh_national_rental,
             "sh_permanent_rental": sh_permanent_rental,
             "elderly_welfare": elderly_welfare, "sh_multichild_rental": sh_multichild_rental,
+            "integrated_job_rental": integrated_job_rental,
             "lh_share_sale": lh_share_sale,
             "lh_select_rental": lh_select_rental}
 ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH", "public_rental": "LH",
           "newlywed_town_sale": "LH", "public_sale": "LH", "sh_land_sale": "SH", "sh_national_rental": "SH", "sh_permanent_rental": "SH", "elderly_welfare": "LH", "lh_share_sale": "LH", "lh_select_rental": "LH",
-          "sh_multichild_rental": "SH"}
+          "sh_multichild_rental": "SH", "integrated_job_rental": "LH"}
 
 
 def make_doc(plan, pdf, pages):

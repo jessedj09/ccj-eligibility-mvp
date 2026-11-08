@@ -77,6 +77,8 @@ C4_BOOLS = {
     "income_tax_5y": "신청자 본인이 5년 이상 소득세(근로·사업소득)를 냈음(현재 근로자·자영업자이거나 과거 1년 안에 납부)",
     "supports_elderly_parent_3y": "만 65세 이상 부모(배우자 부모 포함)를 같은 등본에서 3년 이상 계속 부양",
     "self_ever_owned_home": "신청자 본인이 과거에 주택을 소유한 적 있음",
+    "job_criterion_met": "이 공고의 직업기준(지자체·기관이 인정하는 지역전략산업 종사자 등)을 충족함 — 공고문 직업기준과 사전 상담으로 확인",
+    "has_earned_income": "근로소득 또는 사업소득이 있음(일자리연계형 '사업·근로소득자' 직업기준)",
     "household_won_5y": "세대 전원 중 과거 5년 안에 다른 주택(분양 등)에 당첨된 사람이 있음",
 }
 SUBSCRIPTION_INTS = {
@@ -218,7 +220,8 @@ def master_form() -> Dict:
         *[yes_no(f, C4_BOOLS[f]) for f in ("livelihood_medical_recipient", "merit_person", "north_korean_defector",
                                             "child_facility_leaver", "supports_elderly_parent", "rewin_restricted",
                                             "past_special_supply", "household_ever_owned_home", "income_tax_5y",
-                                            "supports_elderly_parent_3y", "self_ever_owned_home", "household_won_5y")],
+                                            "supports_elderly_parent_3y", "self_ever_owned_home", "household_won_5y",
+                                            "job_criterion_met", "has_earned_income")],
         *[_f(f, C4_AMOUNTS[f], "amount", EXTRA) for f in ("real_estate_value", "subscription_deposit")],
     ]
     return {"announcement_date": None, "layer": None, "notes": [], "sections": [BASIC, MONEY, CHILDREN, REGION, EXTRA],
