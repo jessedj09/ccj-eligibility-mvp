@@ -114,7 +114,7 @@ def test_unsupported_programs_are_recognized():
     for text, want in cases.items():
         assert nc.classify([text]) == want, text
     assert nc.is_sale("토지임대부 분양주택") and not nc.is_sale("국민임대주택")
-    assert "다음 단계" in draft.unsupported_reason("토지임대부 분양주택")
+    assert "이 분양 공고(토지임대부 분양주택)" in draft.unsupported_reason("토지임대부 분양주택")   # 공공분양 일부는 판정 — '다음 단계' 안내는 뺐다
     assert "차례로 추가" in draft.unsupported_reason("국민임대주택")
 
 

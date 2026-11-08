@@ -49,13 +49,22 @@ NOTE = "검증 전 초안 — 자동으로 읽은 공고입니다. 신청 전 �
 
 
 def unsupported_reason(program: Optional[str]) -> str:
-    """판정하지 않는 사업의 안내 — 분양은 다음 단계(⑥), 임대는 정확도를 검증하며 차례로."""
+    """판정하지 않는 사업의 안내 — 분양도 일부(LH 공공분양·나눔형·선택형 등)는 판정하므로 사업 이름만 알리고, 지원 사업 목록은
+    화면이 함께 보여 준다(api /upload supported_programs)."""
     import notice_candidates as nc
     if not program:
         return "공고문에서 사업 유형을 알아보지 못했습니다."
     if nc.is_sale(program):
-        return f"분양 공고({program})는 아직 자동 판정을 지원하지 않습니다. 지금은 임대 공고만 판정합니다(분양은 다음 단계에서 추가)."
+        return f"이 분양 공고({program})는 아직 자동 판정을 지원하지 않습니다(정확도를 검증하며 차례로 추가합니다)."
     return f"이 사업({program})은 아직 자동 판정을 지원하지 않습니다(정확도를 검증하며 차례로 추가합니다)."
+
+
+def _program_name(ext: Dict) -> Optional[str]:
+    """미지원 안내에 쓸 사업 이름 — 판정 틀이 없어도 사업을 알아봤으면 기관과 함께 알린다(예 'SH 매입임대주택')."""
+    program, issuer = ext["program"], ext.get("issuer")
+    if not program or not issuer or program.startswith(issuer):
+        return program
+    return f"{issuer} {program}"
 
 
 def passing_programs() -> List[str]:
@@ -128,7 +137,7 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
     base = dict(template=ext["template"], program=ext["program"], announcement_date=ann,
                 fields={"announcement_date": rep["announcement_date"], **rep["fields"]})
     if not ext["template"] or (only is not None and ext["template"] not in only):
-        return Draft(UNSUPPORTED, unsupported_reason(ext["program"] if ext["template"] else None), **base)
+        return Draft(UNSUPPORTED, unsupported_reason(_program_name(ext)), **base)
     fd, tmp = tempfile.mkstemp(suffix=".pdf")
     try:
         with os.fdopen(fd, "wb") as f:
@@ -142,7 +151,8 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
     base.update(held_fields=g["held"], missing=g["missing"], stale=g["stale"], restrictions=g["restrictions"],
                 sheet=X.to_sheet(ext, DRAFT_ID), doc=g["doc"], unclassified=unclassified)
     if g["blocked"] or g["critical_held"]:
-        reason = g["blocked"] or "판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다: " + ", ".join(g["critical_held"])
+        reason = g["blocked"] or "판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다: " + \
+            ", ".join(X.field_label(ext["template"], p) for p in g["critical_held"])
         return Draft(BLOCKED, reason, **base)
     base["doc"] = dict(g["doc"], title=f"{ext['program']} (검증 전 초안)")
     notice = build_notice(base["doc"])

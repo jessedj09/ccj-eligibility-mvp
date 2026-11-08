@@ -198,7 +198,8 @@ def classify(pages: List[str]):
         found = [(text.find(key), -len(key), iss, program) for key, (iss, program) in PROGRAMS if key in text]
         if found:
             _, _, iss, program = min(found)
-            return iss or issuer, program
+            # 사업 이름이 LH로 정해 둔 것이어도 SH 주소가 있으면 SH(2026-11-08: SH '자립준비청년 청년매입임대'가 LH로 잡혔다)
+            return ("SH" if issuer == "SH" else iss or issuer), program
     return issuer, None
 
 

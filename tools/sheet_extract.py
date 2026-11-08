@@ -379,7 +379,7 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None if issuer == "SH" else "lh.public_rental"
     for key, t in PROGRAM_TEMPLATE:
         if key in program and t:
-            return t
+            return None if issuer == "SH" and t.startswith("lh.") else t   # LH 틀은 SH 공고에 쓰지 않는다
     return None
 
 
@@ -1105,6 +1105,15 @@ def field_report(ext: Dict) -> Dict:
 CRITICAL_QUOTE_KEYS = {"assets", "car", "minor_date", "with_elderly"}
 
 
+def field_label(template: Optional[str], path: str) -> str:
+    """보류 빈칸 경로 → 화면에 보일 이름(템플릿 빈칸 설명의 앞부분). 모르는 경로·범위 점검 문구는 그대로."""
+    head = path.partition(".")[0]
+    if head == "announcement_date" and ":" not in path:
+        return "모집공고일"
+    p = next((p for p in T.TEMPLATES.get(template, {}).get("params", []) if p.name == head), None)
+    return p.note.split(" — ")[0] if p and ":" not in path else path
+
+
 def is_critical(template: str, path: str) -> bool:
     """보류된 빈칸이 판정에 직접 쓰이는 값인지(기준일·한도·계층 구성 등). 인용 위치만 정하는 문장은 아님."""
     head, _, rest = path.partition(".")
@@ -1257,7 +1266,10 @@ def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW", llm: Optional[LLM] 
     try:
         out["doc"], out["missing"] = _build(ext, nid, pdf, pages)
     except (KeyError, TypeError, ValueError) as e:     # 필수 빈칸이 보류라 규칙을 만들 수 없음
-        out["blocked"] = f"규칙을 만들 수 없음: {type(e).__name__} {e}"
+        # 화면에 그대로 나가는 이유 — 내부 오류 문구 대신 보류 빈칸을 알린다(critical_held가 있으면 그 안내가 쓰인다)
+        out["build_error"] = f"{type(e).__name__} {e}"
+        if not critical:
+            out["blocked"] = "공고문에서 판정 규칙을 만드는 데 필요한 값을 모두 찾지 못해 자동 판정하지 않습니다."
         return out
     if ext["template"] == "lh.happy_housing" and out["missing"]:
         ov = _relocated_overrides(out["doc"], out["missing"], pages, nid)
@@ -1433,7 +1445,9 @@ RELAXED = re.compile(r"입주자격완화|【완화조건】|완화기준은해�
 
 # 변형 공고: 통합공공임대 일자리연계형 지원주택은 직업·근무지 요건과 거주기간이 일반형과 달라 일반형 틀로 판정하지 않는다(G2).
 # 공공임대 틀은 예비입주자 모집만 — 최초 입주자 모집(특별·일반공급, 소득·자산 기준)은 다른 사업이다(G4).
-VARIANT = {"lh.integrated_rental": (re.compile(r"일자리연계형"), True,
+VARIANT = {"lh.youth_rental": (re.compile(r"자립준비청년"), True,      # 보호종료 5년 이내 등 — 나이 기준일이 없다(2026-11-08)
+                                "청년매입임대 '{}' 우선공급 공고(p.1) — 보호종료·시설 퇴소 요건이 일반 청년과 달라 자동 판정하지 않습니다"),
+           "lh.integrated_rental": (re.compile(r"일자리연계형"), True,
                                     "통합공공임대 '{}' 공고(p.1) — 직업·근무지 요건이 일반형과 달라 자동 판정하지 않습니다"),
            "lh.public_rental": (re.compile(r"예비입주자"), False,
                                 "공공임대 최초 입주자 모집 공고(p.1에 '예비입주자' 없음) — 특별·일반공급과 소득·자산 기준이 있어 "
