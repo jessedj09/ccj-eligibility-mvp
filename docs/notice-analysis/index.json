@@ -404,5 +404,12 @@
     "file": "sample_lh/인제서화(고령자)_국민임대주택_입주자모집공고문(260608).pdf",
     "pages": 39,
     "sha256": "ffecb9821b34f372bdbfed7233fe5f11b32abc10c87e0346a78aaf31d851f1e3"
+  },
+  {
+    "key": "LH59",
+    "org": "LH",
+    "file": "sample_lh/(★공고)부산모라1블록통합공공임대입주자최초모집공고문_v2.pdf",
+    "pages": 28,
+    "sha256": "d0dc58f423311c9ad96cc71e4b3daa8b2fe7a658c80f57b2cc64d958daa4ceaf"
   }
 ]

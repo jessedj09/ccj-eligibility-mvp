@@ -35,3 +35,11 @@ def test_n58_unseen_draft_has_no_held_conditions():
 def test_n58_registered_layers():
     n = load_notice("N58")
     assert list(n.layers) == ["일반"]
+
+
+def test_n59_integrated_layers_and_elderly_weak_type_unsupported():
+    n = load_notice("N59")
+    assert list(n.layers) == ["청년", "신혼부부", "한부모", "고령자", "일반"]
+    assert [u["name"] for u in n.meta["unsupported_layers"]] == ["주거약자용주택(31AS형)"]
+    d = draft.make_draft(sv.pdf_path("N59").read_bytes(), only=None, pages=sv.pdf_pages("N59"), exclude="N59")
+    assert d.status == draft.OK and d.template == "lh.integrated_rental" and d.missing == []

@@ -73,6 +73,10 @@ DATES = {
     # 처음 보는 실공고 검증(2026-11-08) 인제서화 국민임대(N58 2026.06.08.) — 공고일만 쓴다(출산자녀 기준일 2023.3.28. 고정).
     "N58": dict(ann=date(2026, 6, 8), marriage=date(2019, 6, 8), child=date(2019, 6, 9),
                 grad=date(2024, 6, 8), adult=date(2007, 6, 8)),
+    # 부산모라 통합공공임대(N59 2026.10.15.) — N59 p.11 "6세이하자녀(2019.10.16.이후출생", 청년 "1986.10.16.~2008.10.15.".
+    # 혼인 7년은 원문에 날짜가 없어 공고일−7년(당일 포함, N35·N36과 같음).
+    "N59": dict(ann=date(2026, 10, 15), marriage=date(2019, 10, 15), child=date(2019, 10, 16),
+                grad=date(2024, 10, 15), adult=date(2007, 10, 15)),
     # G5 SH 국민임대(N53 2026.08.20) — 공고일만 쓴다(출생자녀 가산 기준일 2023.3.28. 고정, 미성년 = 공고일−19년).
     "N53": dict(ann=date(2026, 8, 20), marriage=date(2019, 8, 20), child=date(2019, 8, 21),
                 grad=date(2024, 8, 20), adult=date(2007, 8, 20)),
@@ -169,7 +173,7 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               "N49": "public_sale", "N50": "public_sale", "N51": "sh_land_sale", "N52": "sh_land_sale",
               "N53": "sh_national_rental", "N54": "sh_permanent_rental",
               "N55": "elderly_welfare", "N56": "share_sale",
-              "N57": "select_rental", "N58": "national_rental"}
+              "N57": "select_rental", "N58": "national_rental", "N59": "integrated_rental"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -423,6 +427,7 @@ GROUPS: List[Tuple[str, str]] = [
     *[("N57", layer) for layer in ("청년", "다자녀가구", "노부모부양", "생애최초", "신혼부부", "일반공급")],
     # 처음 보는 실공고 검증(2026-11-08) — 초안은 docs/draft-checks/Z-*.draft.json
     ("N58", "일반"),
+    ("N59", "청년"), ("N59", "신혼부부"), ("N59", "한부모"), ("N59", "고령자"), ("N59", "일반"),
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
