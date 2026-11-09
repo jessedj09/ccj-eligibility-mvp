@@ -8,6 +8,7 @@
     s.put_pdf(sha, data)  /  s.get_pdf(sha)  /  s.delete_pdf(sha)
     s.save_ident(sha, version, data)  /  s.get_ident(sha, version)   # 식별 결과 — 같은 파일을 다시 읽지 않게(A2)
     s.record_comparison(program, same, cautious, danger)  /  s.demoted_programs()   # 사업별 정확도·자동 강등(A3)
+    s.upsert_live(rows)  /  s.live_notices(open_only=True)  /  s.live_detail_needed()  # 지금 모집 중인 공고(docs/12)
 
 - DB는 원본이 아니다(원본 = git의 검증된 규칙 + 공고 원문). 공유 캐시·작업 대기열·분석 중 PDF만 둔다.
 - 사용자 조건·판정 결과·IP는 저장하지 않는다(usage_daily는 날짜별 건수만).
@@ -89,6 +90,16 @@ CREATE TABLE IF NOT EXISTS usage_daily (
     day date PRIMARY KEY,
     uploads int NOT NULL DEFAULT 0, judged int NOT NULL DEFAULT 0, unjudged int NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS live_notices (                -- 공공데이터포털에서 모은 공고 목록(docs/12) — 개인정보 없음
+    source text NOT NULL, external_id text NOT NULL,     -- lh / applyhome, 공고 ID
+    title text NOT NULL, issuer text, kind text, region text,
+    announced date, window_start date, window_end date, status text, url text,
+    program text, template text, registered_id text, route text,   -- 판정과 잇기(live_notices.link)
+    detail_key jsonb, detail_fetched_at timestamptz,     -- LH 상세 조회 인자·마지막 조회 시각
+    first_seen timestamptz NOT NULL DEFAULT now(), last_seen timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (source, external_id)
+);
+CREATE INDEX IF NOT EXISTS live_notices_open ON live_notices (window_end, last_seen);
 """
 
 
@@ -152,6 +163,9 @@ class NullStore:
     def close_job(self, job_id, status, note=""): return False
     def latest_snapshot(self, sha): return None
     def usage(self, days=14): return []
+    def upsert_live(self, rows, detail_fetched=()): return 0
+    def live_notices(self, open_only=True, limit=500): return []
+    def live_detail_needed(self, keys): return set(keys)
 
 
 def _safe(default):
@@ -415,6 +429,58 @@ class Store(NullStore):
         rows = self._run(lambda c: c.execute(
             "SELECT day, uploads, judged, unjudged FROM usage_daily ORDER BY day DESC LIMIT %s", (days,)).fetchall())
         return [dict(zip(("day", "uploads", "judged", "unjudged"), r)) for r in rows]
+
+    # ---- 지금 모집 중인 공고(docs/12 — tools/collect_live_notices.py) ----
+    LIVE_COLS = ("source", "external_id", "title", "issuer", "kind", "region", "announced", "window_start", "window_end",
+                 "status", "url", "program", "template", "registered_id", "route")
+
+    @_safe(0)
+    def upsert_live(self, rows, detail_fetched=()) -> int:
+        """수집한 공고(LiveNotice.as_dict())를 넣거나 갱신. 상세에서 접수기간을 못 얻은 공고는 이전 접수기간을 지우지 않는다.
+        detail_fetched: 이번에 상세를 조회한 (source, external_id) — 조회 시각을 남겨 다음 수집 때 다시 부르지 않게."""
+        fetched = set(detail_fetched)
+        cols = self.LIVE_COLS
+
+        def go(c):
+            for r in rows:
+                key = (r["source"], r["external_id"])
+                c.execute(
+                    f"""INSERT INTO live_notices ({", ".join(cols)}, detail_key, detail_fetched_at)
+                        VALUES ({", ".join(["%s"] * len(cols))}, %s::jsonb, CASE WHEN %s THEN now() END)
+                        ON CONFLICT (source, external_id) DO UPDATE SET
+                          title = EXCLUDED.title, issuer = EXCLUDED.issuer, kind = EXCLUDED.kind, region = EXCLUDED.region,
+                          announced = EXCLUDED.announced, status = EXCLUDED.status, url = EXCLUDED.url,
+                          window_start = COALESCE(EXCLUDED.window_start, live_notices.window_start),
+                          window_end = COALESCE(EXCLUDED.window_end, live_notices.window_end),
+                          program = EXCLUDED.program, template = EXCLUDED.template,
+                          registered_id = EXCLUDED.registered_id, route = EXCLUDED.route, detail_key = EXCLUDED.detail_key,
+                          detail_fetched_at = COALESCE(EXCLUDED.detail_fetched_at, live_notices.detail_fetched_at),
+                          last_seen = now()""",
+                    tuple(r.get(k) for k in cols) + (json.dumps(r.get("detail_key") or {}, ensure_ascii=False), key in fetched))
+            return len(rows)
+        return self._run(go)
+
+    @_safe([])
+    def live_notices(self, open_only=True, limit=500) -> list:
+        """모은 공고(마감 안 된 것 — 마감일이 오늘 이후이거나 모름, 최근 공고부터)."""
+        rows = self._run(lambda c: c.execute(
+            f"""SELECT {", ".join(self.LIVE_COLS)}, first_seen, last_seen FROM live_notices
+                WHERE NOT %s OR window_end IS NULL OR window_end >= (now() AT TIME ZONE 'Asia/Seoul')::date
+                ORDER BY announced DESC NULLS LAST, first_seen DESC LIMIT %s""", (open_only, limit)).fetchall())
+        return [dict(zip(self.LIVE_COLS + ("first_seen", "last_seen"), r)) for r in rows]
+
+    @_safe(None)
+    def live_detail_needed(self, keys) -> set:
+        """상세를 다시 불러야 하는 공고 — 처음 보거나, 상세를 한 번도 못 불렀거나, 하루가 지났거나(접수기간 정정)."""
+        keys = list(keys)
+        if not keys:
+            return set()
+        rows = self._run(lambda c: c.execute(
+            """SELECT source, external_id FROM live_notices
+               WHERE (source, external_id) IN (SELECT * FROM unnest(%s::text[], %s::text[]))
+                 AND detail_fetched_at > now() - interval '1 day'""",
+            ([k[0] for k in keys], [k[1] for k in keys])).fetchall())
+        return set(keys) - {tuple(r) for r in rows}
 
 
 _store = None

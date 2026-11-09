@@ -1,0 +1,244 @@
+[
+ {
+  "dsSch": [
+   {
+    "PAN_ID": "2015122300021011",
+    "CCR_CNNT_SYS_DS_CD": "03",
+    "SPL_INF_TP_CD": "062",
+    "UPP_AIS_TP_CD": "06",
+    "AIS_TP_CD": "09"
+   }
+  ]
+ },
+ {
+  "dsSplScdl": [
+   {
+    "PPR_SBM_OPE_ANC_DT": "",
+    "PPR_ACP_CLSG_DT": "",
+    "PZWR_ANC_DT": "2027.03.10",
+    "CTRT_ED_DT": "",
+    "SBD_LGO_NM": "원주흥업 LH천년나무 2단지",
+    "SBSC_ACP_ST_DT": "2026.11.25",
+    "ACP_DTTM": "~",
+    "SBSC_ACP_CLSG_DT": "2026.11.27",
+    "CTRT_ST_DT": "",
+    "PPR_ACP_ST_DT": ""
+   },
+   {
+    "PPR_SBM_OPE_ANC_DT": "",
+    "PPR_ACP_CLSG_DT": "",
+    "PZWR_ANC_DT": "2027.03.10",
+    "CTRT_ED_DT": "",
+    "SBD_LGO_NM": "원주태장 LH천년나무 5단지",
+    "SBSC_ACP_ST_DT": "2026.11.25",
+    "ACP_DTTM": "~",
+    "SBSC_ACP_CLSG_DT": "2026.11.27",
+    "CTRT_ST_DT": "",
+    "PPR_ACP_ST_DT": ""
+   },
+   {
+    "PPR_SBM_OPE_ANC_DT": "",
+    "PPR_ACP_CLSG_DT": "",
+    "PZWR_ANC_DT": "2027.03.10",
+    "CTRT_ED_DT": "",
+    "SBD_LGO_NM": "원주태장8 영구임대",
+    "SBSC_ACP_ST_DT": "2026.11.25",
+    "ACP_DTTM": "~",
+    "SBSC_ACP_CLSG_DT": "2026.11.27",
+    "CTRT_ST_DT": "",
+    "PPR_ACP_ST_DT": ""
+   }
+  ],
+  "dsSbdAhflNm": [
+   {
+    "LCC_NT_NM": "단지명",
+    "AHFL_URL": "다운로드",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "파일구분명",
+    "CMN_AHFL_NM": "첨부파일명"
+   }
+  ],
+  "dsSbdNm": [
+   {
+    "LGDN_ADR": "단지주소",
+    "LGDN_DTL_ADR": "단지상세주소",
+    "HSH_CNT": "총세대수",
+    "HTN_FMLA_DESC": "난방방식",
+    "LCC_NT_NM": "단지명",
+    "DDO_AR": "전용면적",
+    "SPL_INF_GUD_FCTS": "안내사항",
+    "MVIN_XPC_YM": "입주예정월"
+   }
+  ],
+  "dsEtcInfo": [
+   {
+    "ETC_CTS": "",
+    "CRC_RSN": ""
+   }
+  ],
+  "dsAhflInfo": [
+   {
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=69288829",
+    "SL_PAN_AHFL_DS_CD_NM": "공고문(hwp)",
+    "CMN_AHFL_NM": "원주시지역영구임대주택예비입주자모집공고문(2026.11.09).hwpx"
+   },
+   {
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=69288832",
+    "SL_PAN_AHFL_DS_CD_NM": "공고문(PDF)",
+    "CMN_AHFL_NM": "원주시지역영구임대주택예비입주자모집공고문(2026.11.09).pdf"
+   }
+  ],
+  "dsSbd": [
+   {
+    "LGDN_ADR": "강원특별자치도 원주시 치악로 2050(태장동,원주태장LH 천년나무 5단지)",
+    "LGDN_DTL_ADR": "",
+    "HSH_CNT": "148",
+    "HTN_FMLA_DESC": "개별가스난방",
+    "LCC_NT_NM": "원주태장 LH천년나무 5단지",
+    "DDO_AR": "23.48~23.48",
+    "SPL_INF_GUD_FCTS": "",
+    "MVIN_XPC_YM": "2017.10"
+   },
+   {
+    "LGDN_ADR": "강원특별자치도 원주시 소일마을2길 60(태장동)",
+    "LGDN_DTL_ADR": "",
+    "HSH_CNT": "160",
+    "HTN_FMLA_DESC": "개별가스난방",
+    "LCC_NT_NM": "원주태장8 영구임대",
+    "DDO_AR": "26.37~26.38",
+    "SPL_INF_GUD_FCTS": "",
+    "MVIN_XPC_YM": "2023.07"
+   },
+   {
+    "LGDN_ADR": "강원특별자치도 원주시 흥업면 남원로 52(원주 흥업 LH천년나무2)",
+    "LGDN_DTL_ADR": "",
+    "HSH_CNT": "196",
+    "HTN_FMLA_DESC": "개별가스난방",
+    "LCC_NT_NM": "원주흥업 LH천년나무 2단지",
+    "DDO_AR": "21.93~26.73",
+    "SPL_INF_GUD_FCTS": "",
+    "MVIN_XPC_YM": "2016.10"
+   }
+  ],
+  "dsSbdAhfl": [
+   {
+    "LCC_NT_NM": "원주태장8 영구임대",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=45912670",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "단지조감도",
+    "CMN_AHFL_NM": "원주태장2_단지조감도(웹용).jpg"
+   },
+   {
+    "LCC_NT_NM": "원주태장8 영구임대",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=45912672",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "단지배치도",
+    "CMN_AHFL_NM": "원주태장2-단지배치도.jpg"
+   },
+   {
+    "LCC_NT_NM": "원주태장8 영구임대",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=45912673",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "동호배치도",
+    "CMN_AHFL_NM": "원주태장2-동호배치도.jpg"
+   },
+   {
+    "LCC_NT_NM": "원주태장8 영구임대",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=45912675",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "호실사진",
+    "CMN_AHFL_NM": "26B_주거약자_태장_평면도복사.jpg"
+   },
+   {
+    "LCC_NT_NM": "원주태장8 영구임대",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=45912674",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "호실사진",
+    "CMN_AHFL_NM": "26A_태장_평면도복사.jpg"
+   },
+   {
+    "LCC_NT_NM": "원주흥업 LH천년나무 2단지",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=24548470",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "단지조감도",
+    "CMN_AHFL_NM": "원주 조감도1.jpg"
+   },
+   {
+    "LCC_NT_NM": "원주흥업 LH천년나무 2단지",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=24548468",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "단지배치도",
+    "CMN_AHFL_NM": "단지배치도(1).png"
+   },
+   {
+    "LCC_NT_NM": "원주흥업 LH천년나무 2단지",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=24548471",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "동호배치도",
+    "CMN_AHFL_NM": "원주 동호배치도1.jpg"
+   },
+   {
+    "LCC_NT_NM": "원주흥업 LH천년나무 2단지",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=24548472",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "평면도",
+    "CMN_AHFL_NM": "29top(1).jpg"
+   },
+   {
+    "LCC_NT_NM": "원주흥업 LH천년나무 2단지",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=24548473",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "평면도",
+    "CMN_AHFL_NM": "36top(1).jpg"
+   },
+   {
+    "LCC_NT_NM": "원주흥업 LH천년나무 2단지",
+    "AHFL_URL": "https://apply.lh.or.kr/lhapply/lhImageView2.do?fileid=24548474",
+    "LS_SPL_INF_UPL_FL_DS_CD_NM": "평면도",
+    "CMN_AHFL_NM": "46top(1).jpg"
+   }
+  ],
+  "dsCtrtPlcNm": [
+   {
+    "CTRT_PLC_DTL_ADR": "접수처소재지상세주소",
+    "SIL_OFC_GUD_FCTS": "접수처안내사항",
+    "CTRT_PLC_ADR": "접수처소재지주소",
+    "TSK_ST_DTTM": "운영기간시작일시",
+    "TSK_ED_DTTM": "운영기간종료일시",
+    "SIL_OFC_TLNO": "전화번호"
+   }
+  ],
+  "dsEtcInfoNm": [
+   {
+    "ETC_CTS": "기타사항",
+    "CRC_RSN": "정정/취소사유"
+   }
+  ],
+  "dsAhflInfoNm": [
+   {
+    "AHFL_URL": "다운로드",
+    "SL_PAN_AHFL_DS_CD_NM": "파일구분명",
+    "CMN_AHFL_NM": "첨부파일명"
+   }
+  ],
+  "dsCtrtPlc": [
+   {
+    "CTRT_PLC_DTL_ADR": "",
+    "SIL_OFC_GUD_FCTS": "",
+    "CTRT_PLC_ADR": "",
+    "TSK_ST_DTTM": "2026.11.04",
+    "TSK_ED_DTTM": "2026.11.04",
+    "SIL_OFC_TLNO": "1600-1004"
+   }
+  ],
+  "dsSplScdlNm": [
+   {
+    "PPR_SBM_OPE_ANC_DT": "서류제출대상자발표일",
+    "PPR_ACP_CLSG_DT": "서류접수기간종료일",
+    "PZWR_ANC_DT": "당첨자발표일",
+    "CTRT_ED_DT": "계약기간종료일",
+    "SBD_LGO_NM": "단지명",
+    "SBSC_ACP_ST_DT": "접수기간시작일",
+    "ACP_DTTM": "신청일시",
+    "SBSC_ACP_CLSG_DT": "접수기간종료일",
+    "CTRT_ST_DT": "계약기간시작일",
+    "PPR_ACP_ST_DT": "서류접수기간시작일"
+   }
+  ],
+  "resHeader": [
+   {
+    "RS_DTTM": "20261110015754",
+    "SS_CODE": "Y"
+   }
+  ]
+ }
+]

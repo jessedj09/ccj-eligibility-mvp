@@ -46,6 +46,13 @@ class Fake(S.NullStore):
     def usage(self, days=14):
         return [{"day": date(2026, 11, 1), "uploads": 3, "judged": 2, "unjudged": 3}]
 
+    def live_notices(self, open_only=True, limit=500):
+        row = dict(source="lh", external_id="2015122300021011", title="원주시지역 영구임대주택 예비입주자 모집", issuer="LH",
+                   kind="영구임대", region="강원특별자치도", announced=date(2026, 11, 9), window_start=date(2026, 11, 25),
+                   window_end=date(2026, 11, 27), status="공고중", url="https://apply.lh.or.kr/", program="영구임대주택",
+                   template="lh.permanent_rental", registered_id=None, route="template", first_seen=NOW, last_seen=NOW)
+        return [row, dict(row, external_id="Y", title="일반 매입임대", template=None, route="unsupported")]
+
 
 def test_locked_without_operator_mode():
     at = AppTest.from_file(PAGE, default_timeout=30).run()
@@ -58,7 +65,8 @@ def test_operator_sees_queue_health_and_usage(monkeypatch):
     at = AppTest.from_file(PAGE, default_timeout=30)
     at.session_state["operator_on"] = True
     at.run()
-    assert [h.value for h in at.subheader] == ["사업별 자동 판정", "작업 대기열", "이용 집계(최근 14일)"]
+    assert [h.value for h in at.subheader] == ["사업별 자동 판정", "작업 대기열", "지금 모집 중인 공고", "이용 집계(최근 14일)"]
+    assert any("마감 안 된 공고 2건 중 1건" in c.value for c in at.caption)      # 기본은 판정 틀 있음·등록 공고만
     assert any("행복주택" in e.label for e in at.expander)
     assert any("미분류 문장 p.16" in c.value for c in at.caption)
     at.button(key="resume_sh.jeonse").click().run()

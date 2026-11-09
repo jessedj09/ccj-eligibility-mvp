@@ -1,0 +1,36 @@
+# 지금 모집 중인 LH·SH 공고 모으기(실시간 공고 연결 1단계, docs/12) — 3시간마다(KST 0·3·6·…시 15분).
+# 인증키는 저장소 비밀값 DATA_GO_KR_KEY(공공데이터포털). 운영 DB 주소 PROD_DATABASE_URL이 없으면 모으기만 하고 저장하지 않는다
+# (요약만 작업 기록에 남음). API가 실패하면 작업이 실패로 표시돼 저장소 주인에게 알림이 간다.
+name: collect-live-notices
+on:
+  schedule:
+    - cron: "15 */3 * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: collect-live-notices
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      TZ: Asia/Seoul
+    steps:
+      - name: 비밀값 확인
+        id: cfg
+        run: if [ -n "$DATA_GO_KR_KEY" ]; then echo "on=1" >> "$GITHUB_OUTPUT"; else echo "DATA_GO_KR_KEY 비밀값이 없어 건너뜁니다."; fi
+      - uses: actions/checkout@v5
+        if: steps.cfg.outputs.on == '1'
+      - uses: actions/setup-python@v6
+        if: steps.cfg.outputs.on == '1'
+        with:
+          python-version: "3.12"
+          cache: pip
+      - if: steps.cfg.outputs.on == '1'
+        run: pip install -r requirements.txt
+      - if: steps.cfg.outputs.on == '1'
+        run: python tools/collect_live_notices.py      # 공고 정보만 출력(인증키·DB 주소는 출력하지 않음)

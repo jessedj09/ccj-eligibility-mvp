@@ -1,0 +1,137 @@
+[
+ {
+  "dsSch": [
+   {
+    "PAN_ED_DT": "20261110",
+    "PG_SZ": "6",
+    "PAN_ST_DT": "20260910",
+    "PAGE": "1",
+    "UPP_AIS_TP_CD": "06"
+   }
+  ]
+ },
+ {
+  "dsList": [
+   {
+    "PAN_NT_ST_DT": "2026.11.09",
+    "PAN_ID": "2015122300021011",
+    "AIS_TP_CD_NM": "영구임대",
+    "CNP_CD_NM": "강원특별자치도",
+    "ALL_CNT": "169",
+    "SPL_INF_TP_CD": "062",
+    "AIS_TP_CD": "09",
+    "PAN_DT": "20261112",
+    "RNUM": "1",
+    "CCR_CNNT_SYS_DS_CD": "03",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021011&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=09&mi=1026",
+    "CLSG_DT": "2026.11.27",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "원주시지역 영구임대주택 예비입주자 모집",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021011&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=09&mi=1026"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.09",
+    "PAN_ID": "2015122300020975",
+    "AIS_TP_CD_NM": "공공임대",
+    "CNP_CD_NM": "충청북도",
+    "ALL_CNT": "169",
+    "SPL_INF_TP_CD": "061",
+    "AIS_TP_CD": "08",
+    "PAN_DT": "20261109",
+    "RNUM": "2",
+    "CCR_CNNT_SYS_DS_CD": "03",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020975&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=08&mi=1026",
+    "CLSG_DT": "2026.11.24",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "제천장락1 50년공공임대주택 예비입주자 모집 공고[2026.11.09]",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300020975&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=08&mi=1026"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.09",
+    "PAN_ID": "2015122300021031",
+    "AIS_TP_CD_NM": "국민임대",
+    "CNP_CD_NM": "인천광역시",
+    "ALL_CNT": "169",
+    "SPL_INF_TP_CD": "062",
+    "AIS_TP_CD": "07",
+    "PAN_DT": "20261105",
+    "RNUM": "3",
+    "CCR_CNNT_SYS_DS_CD": "03",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021031&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+    "CLSG_DT": "2026.11.17",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "[정정공고]'26년 11월 인천시 남동구 국민임대주택 예비입주자 모집 공고(2026.11.05.)",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021031&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.06",
+    "PAN_ID": "0000061206",
+    "AIS_TP_CD_NM": "공공임대",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "169",
+    "SPL_INF_TP_CD": "060",
+    "AIS_TP_CD": "08",
+    "PAN_DT": "20261105",
+    "RNUM": "4",
+    "CCR_CNNT_SYS_DS_CD": "02",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061206&ccrCnntSysDsCd=02&uppAisTpCd=06&aisTpCd=08&mi=1026",
+    "CLSG_DT": "2026.11.16",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "[정정공고]평택시.안성시 지역 10년 공공임대주택[리츠] 예비입주자 모집공고(2026.11.05)",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061206&ccrCnntSysDsCd=02&uppAisTpCd=06&aisTpCd=08&mi=1026"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.06",
+    "PAN_ID": "2015122300021022",
+    "AIS_TP_CD_NM": "공공임대",
+    "CNP_CD_NM": "전북특별자치도",
+    "ALL_CNT": "169",
+    "SPL_INF_TP_CD": "061",
+    "AIS_TP_CD": "08",
+    "PAN_DT": "20261106",
+    "RNUM": "5",
+    "CCR_CNNT_SYS_DS_CD": "03",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021022&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=08&mi=1026",
+    "CLSG_DT": "2026.11.25",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "남원노암 공공임대 50년 예비입주자모집",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021022&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=08&mi=1026"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.05",
+    "PAN_ID": "2015122300021026",
+    "AIS_TP_CD_NM": "국민임대",
+    "CNP_CD_NM": "인천광역시",
+    "ALL_CNT": "169",
+    "SPL_INF_TP_CD": "062",
+    "AIS_TP_CD": "07",
+    "PAN_DT": "20261105",
+    "RNUM": "6",
+    "CCR_CNNT_SYS_DS_CD": "03",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021026&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026",
+    "CLSG_DT": "2026.11.20",
+    "UPP_AIS_TP_CD": "06",
+    "PAN_NM": "[정정공고]인천논현2단지 국임임대주택 예비입주자 모집 공고",
+    "UPP_AIS_TP_NM": "임대주택",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=2015122300021026&ccrCnntSysDsCd=03&uppAisTpCd=06&aisTpCd=07&mi=1026"
+   }
+  ],
+  "resHeader": [
+   {
+    "RS_DTTM": "20261110015752",
+    "SS_CODE": "Y"
+   }
+  ]
+ }
+]

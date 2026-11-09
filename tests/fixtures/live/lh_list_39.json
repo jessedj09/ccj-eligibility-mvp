@@ -1,0 +1,99 @@
+[
+ {
+  "dsSch": [
+   {
+    "PAN_ED_DT": "20261110",
+    "PG_SZ": "4",
+    "PAN_ST_DT": "20260910",
+    "PAGE": "1",
+    "UPP_AIS_TP_CD": "39"
+   }
+  ]
+ },
+ {
+  "dsList": [
+   {
+    "PAN_NT_ST_DT": "2026.11.06",
+    "PAN_ID": "0000061204",
+    "AIS_TP_CD_NM": "공공분양(신혼희망)",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "14",
+    "SPL_INF_TP_CD": "390",
+    "AIS_TP_CD": "39",
+    "PAN_DT": "20261106",
+    "RNUM": "1",
+    "CCR_CNNT_SYS_DS_CD": "02",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061204&ccrCnntSysDsCd=02&uppAisTpCd=39&aisTpCd=39&mi=1027",
+    "CLSG_DT": "2026.11.27",
+    "UPP_AIS_TP_CD": "39",
+    "PAN_NM": "시흥 거모 아테라(시흥거모 A-6BL) 신혼희망타운(공공분양) 입주자모집공고",
+    "UPP_AIS_TP_NM": "공공분양(신혼희망)",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061204&ccrCnntSysDsCd=02&uppAisTpCd=39&aisTpCd=39&mi=1027"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.03",
+    "PAN_ID": "0000061192",
+    "AIS_TP_CD_NM": "공공분양(신혼희망)",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "14",
+    "SPL_INF_TP_CD": "390",
+    "AIS_TP_CD": "39",
+    "PAN_DT": "20261103",
+    "RNUM": "2",
+    "CCR_CNNT_SYS_DS_CD": "02",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061192&ccrCnntSysDsCd=02&uppAisTpCd=39&aisTpCd=39&mi=1027",
+    "CLSG_DT": "2026.11.12",
+    "UPP_AIS_TP_CD": "39",
+    "PAN_NM": "남양주왕숙 A-2블록 신혼희망타운[공공분양] 잔여세대 추가입주자모집공고",
+    "UPP_AIS_TP_NM": "공공분양(신혼희망)",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061192&ccrCnntSysDsCd=02&uppAisTpCd=39&aisTpCd=39&mi=1027"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.11.03",
+    "PAN_ID": "0000061199",
+    "AIS_TP_CD_NM": "공공분양(신혼희망)",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "14",
+    "SPL_INF_TP_CD": "390",
+    "AIS_TP_CD": "39",
+    "PAN_DT": "20261103",
+    "RNUM": "3",
+    "CCR_CNNT_SYS_DS_CD": "02",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061199&ccrCnntSysDsCd=02&uppAisTpCd=39&aisTpCd=39&mi=1027",
+    "CLSG_DT": "2026.11.13",
+    "UPP_AIS_TP_CD": "39",
+    "PAN_NM": "고양장항 A-2, A-4, A-5블록 신혼희망타운(공공분양) 잔여세대 추가입주자모집공고",
+    "UPP_AIS_TP_NM": "공공분양(신혼희망)",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061199&ccrCnntSysDsCd=02&uppAisTpCd=39&aisTpCd=39&mi=1027"
+   },
+   {
+    "PAN_NT_ST_DT": "2026.10.30",
+    "PAN_ID": "0000061189",
+    "AIS_TP_CD_NM": "공공분양(신혼희망)",
+    "CNP_CD_NM": "경기도",
+    "ALL_CNT": "14",
+    "SPL_INF_TP_CD": "390",
+    "AIS_TP_CD": "39",
+    "PAN_DT": "20261030",
+    "RNUM": "4",
+    "CCR_CNNT_SYS_DS_CD": "02",
+    "DTL_URL": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061189&ccrCnntSysDsCd=02&uppAisTpCd=39&aisTpCd=39&mi=1027",
+    "CLSG_DT": "2026.11.24",
+    "UPP_AIS_TP_CD": "39",
+    "PAN_NM": "안산신길2 A-6블록 신혼희망타운(공공분양) 입주자모집공고",
+    "UPP_AIS_TP_NM": "공공분양(신혼희망)",
+    "PAN_SS": "공고중",
+    "DTL_URL_MOB": "https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061189&ccrCnntSysDsCd=02&uppAisTpCd=39&aisTpCd=39&mi=1027"
+   }
+  ],
+  "resHeader": [
+   {
+    "RS_DTTM": "20261110015752",
+    "SS_CODE": "Y"
+   }
+  ]
+ }
+]
