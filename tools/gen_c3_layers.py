@@ -118,17 +118,19 @@ def cond(cid, field, quotes, note, check, **extra):
     return d
 
 
-def elderly(nid, home_quote):
+def elderly(nid, home_quote, income_quote="해당 세대의 월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하",
+            asset_quote="해당 세대가 보유하고 있는 총 자산가액이 34,500만원 이하", car_quote="총 자산 중 자동차가액이 4,542만원 이하"):
+    # 인용문 기본값은 LH 행복주택 문구 — SH 행복주택(tools/gen_c6_public.py sh_happy_housing)은 SH 문구를 넘긴다
     p = f"{nid}-E"
     return [
         cond(f"{p}-home", "home_ownership", [home_quote], "무주택세대구성원인지(세대 전원 무주택)", HOME),
         cond(f"{p}-age", "age", [home_quote], "공고일 현재 65세 이상인지", {"gte": [{"var": "age"}, 65]}),
-        cond(f"{p}-income", "monthly_income", ["해당 세대의 월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하"],
+        cond(f"{p}-income", "monthly_income", [income_quote],
              "해당 세대 월평균소득이 출생자녀 가산을 반영한 기준(1인 120%·2인 110%·3인 이상 100%) 이내인지", INCOME,
              table="elderly_terms"),
-        cond(f"{p}-assets", "total_assets", ["해당 세대가 보유하고 있는 총 자산가액이 34,500만원 이하"],
+        cond(f"{p}-assets", "total_assets", [asset_quote],
              "해당 세대 총자산이 출생자녀 가산을 반영한 자산기준 이내인지", ASSETS, table="elderly_terms"),
-        cond(f"{p}-car", "car_value", ["총 자산 중 자동차가액이 4,542만원 이하"],
+        cond(f"{p}-car", "car_value", [car_quote],
              "자동차가액이 출생자녀 가산을 반영한 기준 이내인지", CAR, table="elderly_terms"),
     ]
 
@@ -167,12 +169,12 @@ def industrial(nid):
     ]
 
 
-def housing_benefit(nid, home_quote):
+def housing_benefit(nid, home_quote,
+                    benefit_quote="'주거급여수급자'란 「주거급여법」 제2조 제2호 및 제3호에 따른 수급권자 또는 수급자를 말함"):
     p = f"{nid}-H"
     return [
         cond(f"{p}-home", "home_ownership", [home_quote], "무주택세대구성원인지(세대 전원 무주택)", HOME),
-        cond(f"{p}-benefit", "housing_benefit_status",
-             ["'주거급여수급자'란 「주거급여법」 제2조 제2호 및 제3호에 따른 수급권자 또는 수급자를 말함"],
+        cond(f"{p}-benefit", "housing_benefit_status", [benefit_quote],
              "「주거급여법」에 따른 주거급여 수급권자 또는 수급자인지(공고에 별도 소득·자산 기준 조항 없음)",
              {"in": [{"var": "housing_benefit_status"}, ["수급자", "수급권자"]]}),
     ]

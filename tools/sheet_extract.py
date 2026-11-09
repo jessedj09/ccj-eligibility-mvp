@@ -375,6 +375,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None if issuer == "SH" else "lh.select_rental"
     if program == "공공분양(나눔형)":     # G6: LH 나눔형(2024.1. 사전청약 기준 — 같은 금액·비율 문구의 공고만)
         return None if issuer == "SH" else "lh.share_sale"
+    if program == "행복주택" and issuer == "SH":   # SH 행복주택(2026년 1차 기준) — LH 행복주택 틀과 자격은 같고 문구·소득표가 다르다
+        return "sh.happy_housing"
     if program == "다자녀 매입임대":      # SH 다자녀 매입임대(2026.5.29.) — LH 다자녀 매입임대는 아직 검증 전
         return "sh.multichild_rental" if issuer == "SH" else None
     if program == "고령자복지주택":       # G5: LH 고령자복지주택(영구임대형만 — 국민임대형 등은 gate가 막는다)
@@ -521,8 +523,8 @@ def _jeonse_income(pages) -> Field:
     return Field(FILLED, data, None, m.group(0), "등록 기준표 × 비율로 계산한 금액이 원문에 모두 있음, 자산·자동차는 원문 표")
 
 
-LAYER_HEAD = re.compile(r"\d-\d\.(?:\([가-힣]{2,4}\))?(대학생|청년|신혼부부·한부모가족|고령자|산업단지근로자|주거급여수급자|"
-                        r"지역전략산업종사자|주거약자)(?=계층|가족|입주자모집|■|–|-|\(|일반공급)")
+LAYER_HEAD = re.compile(r"\d-\d\.?(?:\([가-힣]{2,4}\))?(대학생|청년|신혼부부·한부모가족|고령자|산업단지근로자|주거급여수급자|"
+                        r"지역전략산업종사자|주거약자)(?=계층|가족|입주자모집|■|–|-|\(|일반공급|○일반공급)")
 EXTRA = {"고령자": ("elderly", "고령자"), "산업단지근로자": ("industrial", "산업단지 근로자"),
          "주거급여수급자": ("housing_benefit", "주거급여수급자"), "지역전략산업종사자": ("regional", "지역전략산업종사자")}
 EXTRA_ARGS = {"elderly": lambda: {"home_quote": T.C3.ELDER_HOME},
@@ -661,6 +663,26 @@ def _happy_housing(pages, ann, sib, program, title_text, llm=None):
     f["overrides"] = Field(ABSENT, {}, how="템플릿과 표현이 다른 문장은 규칙을 만든 뒤 '찾지 못한 인용문'으로 드러난다")
     f["weak"] = _happy_weak(pages, layers, heads)
     return f
+
+
+SH_HAPPY_EXTRA = ("고령자", "주거급여수급자")
+
+
+def _sh_happy(pages, ann):
+    """SH 행복주택: 계층 소제목·한부모 6세 기준일은 LH 행복주택 추출기와 같은 방식으로 읽는다. 1순위 지역만 모집·주거약자 갈래·
+    산업단지근로자 등 그 밖의 계층이 있는 공고는 판정 틀(2026년 1차 기준)과 달라 보류한다."""
+    f = _happy_housing(pages, ann, [], "행복주택", "", None)
+    out = {"ann": Field(FILLED, ann.isoformat(), how="공고일(혼인 7년·2,555일 경계 계산)")}
+    out["layers"] = f["layers"]
+    extra = list(f["extra_layers"].value)
+    other = [x for x in extra if x not in SH_HAPPY_EXTRA]
+    out["extra_layers"] = Field(HELD, extra, how=f"판정 틀에 없는 계층 {other}") if other else \
+        Field(FILLED, extra, how="추가 계층 소제목(고령자·주거급여수급자)")
+    out["child"] = f["child"] if f["child"].status == FILLED else Field(HELD, None, how="한부모 6세 이하 자녀 출생 기준일 리터럴 없음")
+    variant = [k for k in ("region", "weak") if f[k].status != ABSENT] + (["marriage"] if f["marriage"].status == FILLED else [])
+    if variant:
+        out["layers"] = Field(HELD, f["layers"].value, how=f"판정 틀과 다른 갈래 {variant}(1순위 지역만 모집·주거약자·혼인 기준일 리터럴)")
+    return out
 
 
 def _near_convention(hit, ann, years):
@@ -1129,7 +1151,8 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),
           "sh.jeonse2": lambda: _jeonse2(pages, ann, sib, program, llm),
           "sh.jeonse": lambda: _jeonse(pages, ann, sib, program, llm),
-          "lh.happy_housing": lambda: _happy_housing(pages, ann, sib, program, pages[0][:200], llm)}[template]
+          "lh.happy_housing": lambda: _happy_housing(pages, ann, sib, program, pages[0][:200], llm),
+          "sh.happy_housing": lambda: _sh_happy(pages, ann)}[template]
     out["fields"] = fn()
     return out
 

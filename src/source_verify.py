@@ -314,6 +314,7 @@ def verify_income_reference(ref_id: str = "income_standard") -> Report:
     numbers = [v for row in ref["table"].values() for v in row.values()]
     if ref.get("per_person_adder_7plus"):
         numbers.append(ref["per_person_adder_7plus"])
+    numbers += list(ref.get("per_person_adder_by_ratio", {}).values())
     for n in numbers:
         report.checked += 1
         text = f"{n:,}"

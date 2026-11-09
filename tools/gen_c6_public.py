@@ -23,15 +23,18 @@
   (다른 사업 표와 섞지 않는다 — C4a의 행복주택·매입임대 표 누수 교훈).
 - 인용문 쪽은 대상 PDF에서 자동 탐색한다. 생성 후 tools/verify_sources.py, pytest(tests/test_g2_public.py)로 확인.
 """
+import copy
 import hashlib
 import importlib.util
 import json
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 import source_verify as sv  # noqa: E402
+from rule_engine import years_before  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location("gen_c3_layers", ROOT / "tools" / "gen_c3_layers.py")
 C3 = importlib.util.module_from_spec(_spec)
@@ -1663,6 +1666,135 @@ SELECT_2026_NOTES = [
     "입주 후 분양 전환 때까지 무주택세대구성원을 유지해야 하고, 분양전환 공공임대라 재당첨 제한 5년이 적용된다(p.2).",
 ]
 
+# ------------------------------------------------------------------------------------------------
+# SH 행복주택(2026년 1차 2026.5.28. 기준) — 계층 자격·결정표는 LH 행복주택 템플릿(N3)·C3 고령자/주거급여수급자와 같고
+# (금액도 2025년도 기준으로 같다), 인용문만 SH 문구다. 서울·연접지역 1·2·3순위와 우선공급(자치구)은 선정 순서라 자격이 아니다.
+# 소득표는 SH 표(income_standard_sh_happy — 5인까지, 6인 이상은 비율별 1인당 가산)로 조회한다. 금액 문구는 리터럴이라
+# 기준 연도가 다른 공고에서는 인용문을 찾지 못해 초안이 보류된다.
+# ------------------------------------------------------------------------------------------------
+SH_HAPPY_QUOTES = {
+    "R4": ["혼인 중이 아닐 것"],
+    "R5": ["무주택자로서 아래의 요건", "세대 내 다른 구성원이 주택을 소유해도 신청 가능"],
+    "R5c": ["대학에 재학중이거나 다음 학기에 입학 또는 복학 예정일 것", "대학 또는 고등학교를 졸업 또는 중퇴한 지 2년 이내일 것"],
+    "R6": ["신청자 본인 및 부모의 월평균소득 합계가 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하일 것"],
+    "R7": ["신청자 본인의 총 자산가액 합산기준이 10,800만원 이하"],
+    "R8": ["자동차가액 산출대상 자동차를 소유하고 있지 않을 것"],
+    "R5b": ["만 19세 이상 만 39세 이하인 자"],
+    "R7/R7b": ["해당 세대의 월평균소득(신청자가 세대원인 경우 신청자의 월평균소득)이 전년도 도시근로자 가구원수별 가구당 월평균소득의"],
+    "R8y": ["해당 세대가 보유하고 있는 총 자산가액 합산기준 25,100만 원 이하"],
+    "R9": ["25,100만 원 이하이고 자동차가액이 4,542만 원 이하일 것"],
+    "R10": ["본인 입주 전까지 주택청약종합저축(청약저축 포함) 가입사실을 증명할 수 있을 것"],
+    "M-marital": ["(신혼부부) 혼인 중인 자", "(예비신혼부부) 혼인을 계획 중이며 해당 주택의 입주 전까지 혼인사실을 증명할 수 있는 자"],
+    "M-home": ["무주택세대구성원(예비신혼부부의 경우 혼인으로 구성될 세대구성원 모두 무주택자)"],
+    "M-income": ["해당세대(예비신혼부부의 경우 혼인으로 구성될 세대)의 월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 "
+                 "100퍼센트 이하일 것 (맞벌이 신혼부부의 경우 120퍼센트 이하)"],
+    "M-assets": ["혼인으로 구성될 세대)가 보유하고 있는 총 자산가액 합산기준 34,500만원 이하"],
+    "M-car": ["34,500만원 이하이고 자동차가액이 4,542만원 이하일 것"],
+    "M-sub": ["본인 또는 배우자(예비신혼부부의 경우는 혼인 예정인 배우자) 중 1인이 입주 전까지 주택청약종합저축(청약저축 포함) "
+              "가입사실을 증명할 수 있을 것"],
+    "M-duration": ["해당 주택 공급신청자의 전체 혼인 합산 기간이 7년(2,555일) 이내이거나 만 6세 이하의 자녀(태아 포함)를 둔 자"],
+    "S-marital": ["(한부모가족) 태아를 포함해 만 6세 이하의 자녀(태아 포함)를 둔 한부모인 자"],
+    "S-sub": ["입주 전까지 주택청약종합저축(청약저축 포함) 가입사실을 증명할 수 있을 것 (단, 한부모가족의 경우 본인만 해당)"],
+}
+SH_HAPPY_SHARED = {"S-home": "M-home", "S-income": "M-income", "S-assets": "M-assets", "S-car": "M-car", "S-child6": "S-marital"}
+SH_HAPPY_ELDERLY = dict(home_quote="무주택세대구성원으로서 아래의 요건을 모두 갖춘 만 65세 이상인 자",
+                        income_quote="해당 세대의 월평균소득이 전년도 도시근로자 가구원수별 가구당 월평균소득의 100퍼센트 이하일 것",
+                        asset_quote="해당 세대가 보유하고 있는 총 자산가액 합산기준 34,500만원 이하",
+                        car_quote="34,500만원 이하이고 자동차가액이 4,542만원 이하일 것")
+SH_HAPPY_BENEFIT = dict(home_quote="현재 무주택세대구성원인 주거급여수급자",
+                        benefit_quote="「주거급여법」 제2조제2호 및 제3호에 따른 주거급여수급자 자격이 있을 것")
+SPOUSE_MAN = ["34,500만원 이하", "37,900만원 이하", "41,300만원 이하", "4,542만원 이하", "4,996만원 이하", "5,451만원 이하"]
+SH_HAPPY_TABLE_QUOTES = {
+    "student_terms": ["10,800만원 이하", "11,900만원 이하", "13,000만원 이하"],
+    "youth_income_terms": ["(청년계층은 세대원인 경우 본인만 해당)", "1인 가구 (+20%p)", "2인 가구 (+10%p)"],
+    "youth_asset_car_terms": ["25,100만원 이하", "27,600만원 이하", "30,100만원 이하", "4,542만원 이하", "4,996만원 이하",
+                              "5,451만원 이하"],
+    "spouse_terms_married": SPOUSE_MAN, "spouse_terms_singleparent": SPOUSE_MAN, "elderly_terms": SPOUSE_MAN,
+}
+MARRIAGE_EDGE = ("혼인 기간 '7년(2,555일) 이내'의 경계입니다 — 공고일 7년 전 날부터 며칠은 날짜 셈법(첫날 포함 여부·윤년)에 따라 "
+                 "7년 안팎이 갈립니다. 혼인신고일을 SH에 확인해 주세요.")
+SH_INCOME_REF = ('"income_standard"', '"income_standard_sh_happy"')
+
+
+def _sh_happy_duration(ann, child):
+    """혼인 7년(2,555일): 공고일−7년(당일 포함)보다 앞이면 불가, 공고일−2,554일(첫날 포함 셈으로도 2,555일 이내) 이후면 가능,
+    그 사이 며칠은 확인 필요. 6세 이하 자녀는 원문 리터럴 기준일 이후 출생."""
+    a = date.fromisoformat(ann)
+    loose, strict = years_before(a, 7), a - timedelta(days=2554)
+    return {"any": [{"eq": [{"var": "marital_status"}, "예비신혼"]},
+                    {"gte": [{"var": "marriage_date"}, {"date": strict.isoformat()}]},
+                    {"gte": [{"var": "marriage_date"}, {"date": loose.isoformat()}],
+                     "review_if_true": {"code": "AMBIGUOUS_SOURCE", "detail": MARRIAGE_EDGE}},
+                    {"if": [{"is": [{"var": "has_children"}, False]}, False,
+                            {"gte": [{"var": "youngest_child_birth_date"}, {"date": child}]}]}]}
+
+
+def _sh_income(check):
+    return json.loads(json.dumps(check, ensure_ascii=False).replace(*SH_INCOME_REF))
+
+
+def sh_happy_housing(nid, ann, layers, extra_layers, child):
+    """layers: N3 계층 중 이 공고에 있는 것(대학생·청년·신혼부부·한부모), extra_layers: 고령자·주거급여수급자 중 있는 것,
+    child: 한부모·신혼부부 6세 이하 자녀 출생 기준일 리터럴(원문 '2019. 5. 29. 이후 출생')."""
+    tpl = json.loads((ROOT / "rules" / "notices" / "N3.json").read_text(encoding="utf-8"))
+    y, m, d = (int(x) for x in child.split("-"))
+    child_quote = f"{y}. {m}. {d}. 이후 출생"
+    out, tables, used = {}, {}, set()
+    for layer in layers:
+        conds = []
+        for c in copy.deepcopy(tpl["layers"][layer]["conditions"]):
+            suffix = c["id"].split("-", 1)[1]
+            c["id"] = f"{nid}-{suffix}"
+            # N3의 청년 R6(미혼)·R8(자산)은 대학생 R6(소득)·R8(자동차)과 접미사가 같다
+            key = {"R6": "R4", "R8": "R8y"}.get(suffix) if layer == "청년" and suffix in ("R6", "R8") else                 SH_HAPPY_SHARED.get(suffix, suffix)
+            quotes = list(SH_HAPPY_QUOTES[key]) + ([child_quote] if suffix in ("S-marital", "S-child6") else [])
+            c["source"] = {"clause": c["source"]["clause"].split(",")[0].split("(")[0].strip() or c["source"]["clause"],
+                           "quote": quotes}
+            c["check"] = json.loads(json.dumps(_sh_income(c["check"]), ensure_ascii=False)
+                                    .replace('{"fn": "young_child_cutoff"}', json.dumps({"date": child})))
+            if suffix == "M-duration":
+                c["check"] = _sh_happy_duration(ann, child)
+                c["note"] = ("혼인기간 7년(2,555일) 이내이거나 6세 이하 자녀(태아포함)를 두었는지 (예비신혼부부는 이 요건이 적용되지 않음, "
+                             "7년 경계 며칠은 확인 필요)")
+            if suffix == "M-income":
+                c["source"]["derivation"] = ("예비신혼부부의 가구원수는 신청자 본인과 예비배우자, 공고일 기준 동일 세대에 등재된 직계존속·비속을 "
+                                             "포함해 산정한다(정부 지침 — 공고문은 '혼인으로 구성될 세대'만 명시). 따라서 신혼부부·예비신혼부부 "
+                                             "모두 가구원수 1은 모순이다.")
+            if "table" in c:
+                used.add(c["table"])
+            conds.append(c)
+        out[layer] = {"conditions": conds}
+    for name in sorted(used):
+        t = copy.deepcopy(tpl["tables"][name])
+        t["label"] = t["label"].split(" (")[0] if name == "student_terms" else t["label"]
+        t["source"] = {"quote": list(SH_HAPPY_TABLE_QUOTES[name])}
+        tables[name] = t
+    for layer in extra_layers:
+        if layer == "고령자":
+            conds = C3.elderly(nid, **SH_HAPPY_ELDERLY)
+            spec = C3.TABLE_SPECS["elderly_terms"]
+            t = C3.table(spec["label"], spec["columns"], spec["rows"], None, quotes=SH_HAPPY_TABLE_QUOTES["elderly_terms"])
+            t["source"].pop("page")
+            tables["elderly_terms"] = t
+        else:
+            conds = C3.housing_benefit(nid, **SH_HAPPY_BENEFIT)
+        for c in conds:
+            c["check"] = _sh_income(c["check"])
+        out[layer] = {"conditions": conds}
+    return out, tables
+
+
+SH_HAPPY_NOTES = [
+    "일반공급 1·2·3순위(서울·연접지역 → 그 밖의 수도권 → 그 밖)와 우선공급(해당 자치구 → 서울)은 경쟁 시 선정 순서라 자격이 아니다 — "
+    "다른 지역 거주자도 신청할 수 있다(p.24~32). 우선공급은 2세 미만 자녀가 있는 사람부터 순위·배점으로 뽑고, 배점은 판정하지 않는다.",
+    "대학생·청년 계층의 무주택은 본인만 본다(세대 내 다른 구성원이 주택을 소유해도 신청 가능, p.25·27). 신혼부부·한부모·고령자·"
+    "주거급여수급자는 무주택세대구성원이어야 한다.",
+    "청년 계층의 소득·자산은 신청자가 세대주이면 세대 전체, 세대원이거나 단독세대주이면 본인만 본다(p.22·28).",
+    "혼인 기간 '7년(2,555일) 이내'는 공고일 7년 전 날부터 며칠이 날짜 셈법에 따라 갈려 그 며칠은 확인 필요로 둔다(p.28).",
+    "소득기준표는 5인까지 싣고 6인 이상은 비율별 1인당 금액(100% 579,278원 … 140% 810,989원)을 더한다(p.21).",
+    "1세대 1주택만 신청할 수 있고 중복 신청은 모두 무효다. 이번 공고의 예비자가 되면 기존 행복주택 예비자 자격을 잃는다(p.23).",
+]
+
 MULTICHILD_NOTES = [
     "1순위(신생아가구 — '24.5.30. 이후 출생 자녀·태아)와 2순위는 같은 자격(수급자·차상위·지원대상 한부모)의 선정 순서라 한 갈래로 판정하고, "
     "배점(미성년 자녀 수·서울 거주기간·청약 회차 등)은 판정하지 않는다(p.6~7).",
@@ -2000,6 +2132,13 @@ PLAN = [
                                                                "영위 — 근속 기간을 묻지 않아 판정하지 않는다."},
                       {"name": "주거약자용주택", "page": 1, "note": "고령자·장애인 등 주거약자만 신청하는 별도 주택형 — 판정하지 않는다."}],
          notes=JOB_NOTES + ["직업기준은 사업소득 또는 근로소득이 있는 사람이다(p.9)."]),
+    # SH 행복주택 — 판정 틀의 첫 공고(2026년 1차). 같은 사업 2025년 1차·3차 공고는 처음 보는 공고 검증용으로 초안만 얼림
+    # (docs/draft-checks/Z-sh-happy-2026-1·2025-1·2025-3.draft.json — 등록 전 미지원 사업)
+    dict(nid="N68", key="SH68", title="SH 2026년 1차 행복주택 입주자모집", ann="2026-05-28",
+         program="행복주택", template="sh_happy_housing",
+         params={"ann": "2026-05-28", "layers": ["대학생", "청년", "신혼부부", "한부모"],
+                 "extra_layers": ["고령자", "주거급여수급자"], "child": "2019-05-29"},
+         notes=SH_HAPPY_NOTES),
 ]
 
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
@@ -2013,7 +2152,12 @@ TEMPLATE_ANCHOR = {"integrated_rental": ("신혼부부,한부모가족을제외�
                    "sh_multichild_rental": ("2신청자격및신청순위■신청자격", 6),
                    "integrated_job_rental": ("신분기준", 11),
                    "lh_share_sale": ("1.청년특별공급■신청자격", 9),
-                   "lh_select_rental": ("2.청년특별공급■신청자격", 11)}
+                   "lh_select_rental": ("2.청년특별공급■신청자격", 11),
+                   "sh_happy_housing": ("▶자산기준", 22)}
+# 계층마다 자기 절을 가리키는 기준점(같은 문구 — '혼인 중이 아닐 것' 등 — 가 여러 계층 절에 다 있다)
+LAYER_ANCHOR = {"sh_happy_housing": {"대학생": ("대학생계층○일반공급", 24), "청년": ("청년계층○일반공급", 26),
+                                     "신혼부부": ("한부모가족계층○일반공급", 28), "한부모": ("한부모가족계층○일반공급", 28),
+                                     "고령자": ("고령자○일반공급", 31), "주거급여수급자": ("주거급여수급자○일반공급", 32)}}
 
 
 def pdf_for(key):
@@ -2036,10 +2180,10 @@ BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_re
             "elderly_welfare": elderly_welfare, "sh_multichild_rental": sh_multichild_rental,
             "integrated_job_rental": integrated_job_rental,
             "lh_share_sale": lh_share_sale,
-            "lh_select_rental": lh_select_rental}
+            "lh_select_rental": lh_select_rental, "sh_happy_housing": sh_happy_housing}
 ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH", "public_rental": "LH",
           "newlywed_town_sale": "LH", "public_sale": "LH", "sh_land_sale": "SH", "sh_national_rental": "SH", "sh_permanent_rental": "SH", "elderly_welfare": "LH", "lh_share_sale": "LH", "lh_select_rental": "LH",
-          "sh_multichild_rental": "SH", "integrated_job_rental": "LH"}
+          "sh_multichild_rental": "SH", "integrated_job_rental": "LH", "sh_happy_housing": "SH"}
 
 
 def make_doc(plan, pdf, pages):
@@ -2049,7 +2193,7 @@ def make_doc(plan, pdf, pages):
     missing = []
     own = TEMPLATE_ANCHOR.get(plan["template"])
     for layer, ldoc in layers.items():
-        text, hint = own or ANCHORS[layer]
+        text, hint = LAYER_ANCHOR.get(plan["template"], {}).get(layer) or own or ANCHORS[layer]
         anchor = locate(pages, text, hint) or hint
         for c in walk(ldoc["conditions"]):
             place_quotes(c["source"], pages, anchor, f"{layer}/{c['id']}", missing)

@@ -48,11 +48,20 @@ class ReferenceTable:
                        for size, row in doc["table"].items()}
         self._adder = doc.get("per_person_adder_7plus", 0)
         self._adder_ratios = set(doc.get("adder_ratios", []))
+        # 비율마다 1인당 가산액이 다른 표(SH 행복주택: 5인까지 싣고 6인 이상은 100% 579,278원·110% 637,205원 … 가산)
+        self._adder_by_ratio = {int(r): v for r, v in doc.get("per_person_adder_by_ratio", {}).items()}
 
     def lookup(self, household_size: int, ratio_pct: int) -> Optional[int]:
         """rule_engine.income_threshold와 같은 규칙: 7인 이상은 6인 기준 + 1인당 가산액.
         단, 가산 규칙을 원문이 적은 비율(adder_ratios = 행복주택 100~140%)에만 적용한다. 그 밖의 비율(매입임대 70% 등)의
         7인 이상은 원문에 금액이 없으므로 None(표에 없음). 표에 7인 이상 행이 있으면(국민임대) 그 행을 그대로 쓴다."""
+        if self._adder_by_ratio:
+            top = max(self._table)
+            base = self._table.get(min(household_size, top), {}).get(ratio_pct)
+            if base is None or household_size <= top:
+                return base
+            adder = self._adder_by_ratio.get(ratio_pct)
+            return None if adder is None else base + adder * (household_size - top)
         if household_size > 6 and household_size in self._table:   # 원문이 7인 이상 금액을 직접 적은 표(국민임대 1~8인)
             return self._table[household_size].get(ratio_pct)
         base = self._table.get(min(household_size, 6), {}).get(ratio_pct)
