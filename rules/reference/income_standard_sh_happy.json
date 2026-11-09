@@ -121,5 +121,6 @@
       140
     ]
   ],
-  "required_note": "이 표를 쓰는 공고는 1~5인 칸 전부와 비율별 1인당 가산액을 cited_pages 쪽에 싣고 있어야 한다."
+  "required_note": "이 표를 쓰는 공고는 1~5인 칸 전부와 비율별 1인당 가산액을 cited_pages 쪽에 싣고 있어야 한다.",
+  "note": "2026년 공고(N68)가 쓴다(판정 틀 sh_happy_housing의 money.income='2025'). 한 해 앞선 표는 income_standard_sh_happy_2024."
 }

@@ -71,8 +71,9 @@ def test_partial_tables_combine_across_notices(refs, last_year):
 def test_previous_year_notice_is_flagged_not_completed(refs):
     """장기전세 49차(이전 연도 표) — 후보는 만들되 등록 표 칸을 다 채우지 못해 완성되지 않는다(자동 등록 없음).
     같은 연도 금액의 SH 영구임대 표(N54, G5)·SH 국민임대 2024년도 표(N60, 2026-11-08)는 빼고 본다 — 그 표가 있으면 N25 표는
-    '이미 등록된 연도'다."""
-    others = {k: v for k, v in refs.items() if k not in ("income_standard_sh_permanent", "income_standard_sh_public_2024")}
+    '이미 등록된 연도'다. SH 행복주택 2024년도 표(N69·N70, 2026-11-10)도 같은 해라 뺀다."""
+    others = {k: v for k, v in refs.items() if k not in ("income_standard_sh_permanent", "income_standard_sh_public_2024",
+                                                         "income_standard_sh_happy_2024")}
     cands = R.candidates(sv.pdf_path("N25"), refs=others)
     assert cands and not any(c.ok for c in cands)
     assert all(-0.07 < v < 0 for c in cands for v in c.change.values())

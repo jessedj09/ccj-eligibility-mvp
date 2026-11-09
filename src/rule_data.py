@@ -251,6 +251,12 @@ def _fn_years_before(env: _Env, d, n):
 
 
 # 허용 목록(whitelist) 함수: 이름 → (구현, 인자 개수). 데이터는 이 목록 밖의 함수를 부를 수 없다.
+def _fn_days_before(env: _Env, d, n):
+    """d로부터 n일 전 날짜(예: 혼인 '7년(2,555일)'을 첫날 포함으로 센 경계 — 공고일 − 2,554일)."""
+    from datetime import timedelta
+    return None if d is None else d - timedelta(days=n)
+
+
 def _fn_marriage_cutoff(env: _Env):
     return marriage_cutoff(env.ctx["announcement_date"])
 
@@ -298,6 +304,7 @@ FUNCTIONS = {
     "max": (_fn_max, 2),
     "child_bonus_count": (_fn_child_bonus_count, 0),
     "years_before": (_fn_years_before, 2),
+    "days_before": (_fn_days_before, 2),
     "marriage_cutoff": (_fn_marriage_cutoff, 0),          # 공고일 7년 전(혼인기간 7년 이내)
     "young_child_cutoff": (_fn_young_child_cutoff, 0),    # 공고일 7년 전의 다음 날(6세 이하 자녀)
     "minor_cutoff": (_fn_minor_cutoff, 0),                # 공고일 19년 전의 다음 날(19세 미만 자녀)

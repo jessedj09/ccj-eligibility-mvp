@@ -161,6 +161,8 @@ def compare(gold: dict, ext: dict, doc=None):
                 rows.append((name, CORRECT if gv and want == got else WRONG, True))
             else:
                 rows.append((name, HELD, True))
+        elif name == "extra_layers" and isinstance(gv, list):      # SH 행복주택: 계층 이름 목록
+            rows.append((name, CORRECT if f and f.value == gv else WRONG, True))
         elif name == "extra_layers":
             want = {k: (v["builder"], v["args"]) for k, v in (gv or {}).items()}
             got = {k: (v["builder"], v["args"]) for k, v in (f.value or {}).items()} if f else {}

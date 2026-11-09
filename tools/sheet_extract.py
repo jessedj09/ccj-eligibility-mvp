@@ -666,19 +666,48 @@ def _happy_housing(pages, ann, sib, program, title_text, llm=None):
 
 
 SH_HAPPY_EXTRA = ("고령자", "주거급여수급자")
+# 자산·자동차 한도(만원): '…총자산 기준 X만원 이하 · 출생자녀 1명: Y [단, 그 전 미성년 자녀 추가: Z] · 2명 이상: Z' (N68 p.22~23)
+SH_MONEY_TAIL = r".{0,80}?1명인경우:([\d,]+)만원이하.{0,80}?추가로있는경우:([\d,]+)만원이하.{0,80}?2명이상인경우:([\d,]+)만원이하"
+SH_MONEY_RX = {"student": r"대학생계층은총자산기준([\d,]+)만원이하", "youth": r"청년계층\(세대주가아닌경우본인만\)은총자산기준([\d,]+)만원이하",
+               "base": r"신혼부부계층·고령자는총자산기준([\d,]+)만원이하", "car": r"현재가치기준자동차가액은([\d,]+)만원이하"}
+# 소득표 연도: 1인 칸(1인 +20%p) 금액으로 알아본다 — 등록된 SH 행복주택 소득표만
+SH_HAPPY_INCOME_MARK = {"2025": "4,576,036", "2024": "4,317,797"}
+
+
+def _sh_happy_money(pages, layers):
+    text = "".join(pages)
+    money, lost = {}, []
+    year = [y for y, mark in SH_HAPPY_INCOME_MARK.items() if mark in text]
+    money["income"] = year[0] if len(year) == 1 else None
+    if money["income"] is None:
+        lost.append("소득기준표 연도(등록된 SH 행복주택 소득표와 1인 금액이 다름)")
+    need = {"student": "대학생" in layers, "youth": "청년" in layers, "car": True,
+            "base": bool({"신혼부부", "한부모"} & set(layers)) or "고령자" in layers}
+    for key, rx in SH_MONEY_RX.items():
+        m = re.search(rx + SH_MONEY_TAIL, text)
+        vals = [int(x.replace(",", "")) for x in m.groups()] if m else None
+        if vals and vals[2] == vals[3] and vals[0] < vals[1] < vals[2]:
+            money[key] = vals[:3]
+        else:
+            money[key] = None
+            if need[key]:
+                lost.append(f"{key} 한도 문구(기준·출생자녀 1명·2명 이상)")
+    return money, lost
 
 
 def _sh_happy(pages, ann):
     """SH 행복주택: 계층 소제목·한부모 6세 기준일은 LH 행복주택 추출기와 같은 방식으로 읽는다. 1순위 지역만 모집·주거약자 갈래·
     산업단지근로자 등 그 밖의 계층이 있는 공고는 판정 틀(2026년 1차 기준)과 달라 보류한다."""
     f = _happy_housing(pages, ann, [], "행복주택", "", None)
-    out = {"ann": Field(FILLED, ann.isoformat(), how="공고일(혼인 7년·2,555일 경계 계산)")}
-    out["layers"] = f["layers"]
+    out = {"layers": f["layers"]}
     extra = list(f["extra_layers"].value)
     other = [x for x in extra if x not in SH_HAPPY_EXTRA]
     out["extra_layers"] = Field(HELD, extra, how=f"판정 틀에 없는 계층 {other}") if other else \
         Field(FILLED, extra, how="추가 계층 소제목(고령자·주거급여수급자)")
     out["child"] = f["child"] if f["child"].status == FILLED else Field(HELD, None, how="한부모 6세 이하 자녀 출생 기준일 리터럴 없음")
+    money, lost = _sh_happy_money(pages, list(f["layers"].value or []) + extra)
+    out["money"] = Field(HELD, money, how=f"읽지 못한 금액: {lost}") if lost else \
+        Field(FILLED, money, how="소득표 연도(1인 금액)·자산·자동차 한도(출생자녀 가산 포함) 문구")
     variant = [k for k in ("region", "weak") if f[k].status != ABSENT] + (["marriage"] if f["marriage"].status == FILLED else [])
     if variant:
         out["layers"] = Field(HELD, f["layers"].value, how=f"판정 틀과 다른 갈래 {variant}(1순위 지역만 모집·주거약자·혼인 기준일 리터럴)")

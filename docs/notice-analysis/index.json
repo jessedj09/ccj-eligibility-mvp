@@ -474,5 +474,19 @@
     "file": "sample_sh/2026년 1차 행복주택 입주자 모집공고(2026_05_28_공고).pdf",
     "pages": 68,
     "sha256": "fa6064078f282a19c251ac9b4c1c6fffc0a31c69b7bff700ad1ba6386f45e424"
+  },
+  {
+    "key": "SH69",
+    "org": "SH",
+    "file": "sample_sh/2025년 1차 행복주택 입주자모집공고문(2025_04_25_공고)_최종.pdf",
+    "pages": 56,
+    "sha256": "2d75faaed2858c6e80b07c9b73937ea800547d8220ba6841c76ebfebd0032fc5"
+  },
+  {
+    "key": "SH70",
+    "org": "SH",
+    "file": "sample_sh/25년 3차 행복주택 모집공고문(최종).pdf",
+    "pages": 80,
+    "sha256": "84933c8dd203388c5aea84c68c5725a6a8474d9f9ae79d780689ca9143c6a31f"
   }
 ]
