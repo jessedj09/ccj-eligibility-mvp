@@ -1,6 +1,6 @@
 # 지금 모집 중인 LH·SH 공고 모으기(실시간 공고 연결 1단계, docs/12) — 3시간마다(KST 0·3·6·…시 15분).
-# 인증키는 저장소 비밀값 DATA_GO_KR_KEY(공공데이터포털). 운영 DB 주소 PROD_DATABASE_URL이 없으면 모으기만 하고 저장하지 않는다
-# (요약만 작업 기록에 남음). API가 실패하면 작업이 실패로 표시돼 저장소 주인에게 알림이 간다.
+# 인증키는 저장소 비밀값 DATA_GO_KR_KEY(공공데이터포털). 운영 DB 주소는 비밀값 LIVE_DATABASE_URL — 회원 계정 파기 작업의
+# PROD_DATABASE_URL과 이름을 나눴다(2026-11-10 사용자 결정: 그 작업을 켜는 결정과 따로). 없으면 모으기만 하고 저장하지 않는다. API가 실패하면 작업이 실패로 표시돼 저장소 주인에게 알림이 간다.
 name: collect-live-notices
 on:
   schedule:
@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 20
     env:
       DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
-      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.LIVE_DATABASE_URL }}
       TZ: Asia/Seoul
     steps:
       - name: 비밀값 확인

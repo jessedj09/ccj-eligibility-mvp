@@ -43,8 +43,8 @@
   입주자격 완화·선계약 후 검증·기관공급 공고는 판정 틀이 있어도 '판정 안 함'(업로드 때도 완화 공고는 차단).
 - `tools/collect_live_notices.py`: LH 목록(유형별 쪽 넘김) + 상세(새 공고·하루 지난 것만) + 청약홈 → 공유 저장소 `live_notices` 표.
   API 실패 시 종료코드 1, 인증키·DB 주소는 출력하지 않음.
-- 예약 작업 `.github/workflows/collect-live-notices.yml`(3시간마다) — 비밀값 `DATA_GO_KR_KEY`. **운영 DB 주소 `PROD_DATABASE_URL`이 없으면
-  모으기만 하고 저장하지 않는다**(사용자가 넣을지 결정).
+- 예약 작업 `.github/workflows/collect-live-notices.yml`(3시간마다) — 비밀값 `DATA_GO_KR_KEY`. 운영 DB 주소는 비밀값 **`LIVE_DATABASE_URL`**
+  (2026-11-10 사용자가 넣음 — 회원 계정 파기 작업의 `PROD_DATABASE_URL`과 이름을 나눠 그 작업이 함께 켜지지 않게). 없으면 모으기만 하고 저장하지 않는다.
 - 운영자 검토 화면에 '지금 모집 중인 공고'(갈래 거르기·공식 링크). 시험 `tests/test_live_notices.py`(응답 표본 `tests/fixtures/live/`).
 - 첫 실행(2026-11-10): LH 280건·청약홈(LH·SH) 11건, 마감 안 된 80건 — 판정 틀 있음 50 · 판정 안 하는 사업 30 · 등록 공고 0.
 - 남은 것(2단계): 같은 공고 묶기(정정공고·청약홈과 LH의 같은 공고), 흥신소 '지금 모집 중' 영역, SH(서울시 주택포털) 목록.
