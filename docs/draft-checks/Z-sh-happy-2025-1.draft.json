@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "2d75faaed2858c6e80b07c9b73937ea800547d8220ba6841c76ebfebd0032fc5",
+  "file": "2025년 1차 행복주택 입주자모집공고문(2025_04_25_공고)_최종.pdf",
+  "created": "2026-11-09",
+  "status": "unsupported",
+  "reason": "이 사업(SH 행복주택)은 아직 자동 판정을 지원하지 않습니다(정확도를 검증하며 차례로 추가합니다).",
+  "template": null,
+  "program": "행복주택",
+  "announcement_date": "2025-04-25",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}
