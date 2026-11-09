@@ -361,6 +361,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return "sh.national_rental" if issuer == "SH" else "lh.national_rental"
     if "영구임대" in program:          # G2: LH 영구임대 표준 공고, G5: SH 영구임대(서울 거주·1순위 가~자)
         return "sh.permanent_rental" if issuer == "SH" else "lh.permanent_rental"
+    if program == "통합공공임대(일자리연계형)":   # 2026-11-09: 일자리연계형 지원주택(직업기준 + 일반형 신분)
+        return None if issuer == "SH" else "lh.integrated_job"
     if "통합공공임대" in program:      # G2: LH 통합공공임대 일반형 — 일자리연계형 등 변형은 gate에서 막는다
         return None if issuer == "SH" else "lh.integrated_rental"
     if program == "토지임대부 분양주택":  # G3-3: SH 토지임대부 분양(LH 토지임대부는 아직 검증 전)
@@ -373,6 +375,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return None if issuer == "SH" else "lh.select_rental"
     if program == "공공분양(나눔형)":     # G6: LH 나눔형(2024.1. 사전청약 기준 — 같은 금액·비율 문구의 공고만)
         return None if issuer == "SH" else "lh.share_sale"
+    if program == "다자녀 매입임대":      # SH 다자녀 매입임대(2026.5.29.) — LH 다자녀 매입임대는 아직 검증 전
+        return "sh.multichild_rental" if issuer == "SH" else None
     if program == "고령자복지주택":       # G5: LH 고령자복지주택(영구임대형만 — 국민임대형 등은 gate가 막는다)
         return None if issuer == "SH" else "lh.elderly_welfare"
     if program == "공공임대주택":       # G4: LH 공공임대(10년·분양전환·50년) 예비입주자 — 최초 입주자 모집은 gate에서 막는다
@@ -845,6 +849,39 @@ ELD_GENERAL = r"50%\(1인70%,2인60%\)이하인자"
 ELD_KIND = r"고령자복지주택\(영구임대\)"
 
 
+# SH 다자녀 매입임대(2026.5.29. p.6·p.9): 공통 자격 문장, 3순위 소득·자산 금액은 이 공고의 리터럴일 때만 채운다(다른 해 금액이면 보류)
+MULTI_ELIGIBILITY = r"두명이상의직계비속\(태아를포함하며,「민법」상미성년자로한정함\)을양육하고,무주택세대구성원으로서"
+MULTI_LITERALS = (("income_quote", "70%이하5,717,9006,161,5416,528,8906,934,3847,339,8797,745,373", "3순위 소득 70% 표(2025년도)"),
+                  ("asset_quote", "총자산가액:34,500만원이하", "총자산 34,500만원"),
+                  ("car_quote", "자동차가액(현재가치기준):4,542만원이하", "자동차 4,542만원"))
+
+
+# 통합공공임대 일자리연계형(전주 p.10 / 담양 p.9): 직업기준 종류와 문장
+JOB_REGIONAL = r"지역전략산업에종사하는사람등[가-힣]{1,10}(?:시장|군수|구청장|도지사)이지역전략산업의육성을위해필요하다고인정한사람"
+JOB_EARNER = r"「소득세법」제19조제1항또는제20조제1항에따른사업소득또는근로소득이있는사람"
+
+
+def _integrated_job(pages):
+    for kind, rx, how in (("regional", JOB_REGIONAL, "직업기준 '지역전략산업 종사자'(지자체·기관 인정)"),
+                          ("earner", JOB_EARNER, "직업기준 '사업·근로소득자'")):
+        hit = find_text(pages, rx)
+        if hit:
+            return {"job_kind": Field(FILLED, kind, hit[0], hit[1], how), "job_quote": Field(FILLED, hit[1], hit[0], hit[1], how)}
+    return {"job_kind": Field(HELD, None, how="직업기준을 읽지 못함(판정 틀에 없는 직업기준일 수 있음)"),
+            "job_quote": Field(HELD, None, how="직업기준 문장을 찾지 못함")}
+
+
+def _sh_multichild(pages):
+    hit = find_text(pages, MULTI_ELIGIBILITY)
+    f = {"eligibility_quote": Field(FILLED, hit[1], hit[0], hit[1], "공통 신청자격 문장(미성년 자녀 2명 이상·무주택세대구성원)")
+         if hit else Field(HELD, None, how="공통 신청자격 문장을 찾지 못함")}
+    for key, lit, how in MULTI_LITERALS:
+        page = on_page(pages, lit)
+        f[key] = Field(FILLED, lit, page, lit, how) if page else \
+            Field(HELD, None, how=f"{how} 문구가 없음(다른 기준 연도일 수 있음)")
+    return f
+
+
 def _elderly_welfare(pages):
     hit = find_text(pages[:3], ELD_KIND)
     f = {"kind": Field(FILLED, "영구임대", hit[0], hit[1], "제목·첫 쪽의 '고령자복지주택(영구임대)'") if hit else
@@ -872,11 +909,26 @@ SHARE_LITERALS = (("youth_income_quote", "청년도시근로자가구원수별�
                   ("dual_quote", "맞벌이도시근로자가구당월평균소득액의140%9,113,233원", "신혼부부 맞벌이 140% 금액"))
 
 
+# 2026 판(개정 뒤 본청약, N63): 이 문구가 모두 있으면 2026 판으로 판정한다(하나라도 없으면 2024 판 문구로 — 그것도 없으면 보류)
+SHARE_2026_LITERALS = (("youth_income_quote", "청년특별공급도시근로자가구원수별가구당월평균소득액의140%5,338,708", "청년 본인 소득 140% 금액(2025년도)"),
+                       ("asset_quote", "362,000천원이하", "세대 총자산 3억6,200만원"),
+                       ("youth_asset_quote", "276,000천원이하", "청년 본인 총자산 2억7,600만원"),
+                       ("parents_quote", "1,035,000천원이하", "청년 부모 총자산 10억3,500만원"),
+                       ("dual_quote", "(본인및배우자가모두소득이있는경우200%)이하인분", "맞벌이 200% 문구"))
+
+
 def _share_sale(pages):
     f = {"residence": Field(FILLED, "수도권", *find_text(pages, r"수도권\[서울특별시,경기도,인천광역시\]"),
                             how="'수도권[서울특별시, 경기도, 인천광역시]' 거주 문구")
          if find_text(pages, r"수도권\[서울특별시,경기도,인천광역시\]") else
          Field(HELD, None, how="수도권 거주 요건 문구를 확인하지 못함")}
+    if all(on_page(pages, lit) for _, lit, _ in SHARE_2026_LITERALS):
+        f["edition"] = Field(FILLED, "2026", how="2026 판(개정 뒤 본청약) 금액 문구가 모두 있음")
+        for key, lit, how in SHARE_2026_LITERALS:
+            page = on_page(pages, lit)
+            f[key] = Field(FILLED, lit, page, lit, how)
+        return f
+    f["edition"] = Field(FILLED, "2024", how="2026 판 금액 문구가 모두 있지 않음 — 2024 판 문구로 확인")
     for key, lit, how in SHARE_LITERALS:
         page = on_page(pages, lit)
         f[key] = Field(FILLED, lit, page, lit, how) if page else \
@@ -893,10 +945,25 @@ SELECT_LITERALS = (("youth_income_quote", "청년특별공급도시근로자가�
                    ("dual_quote", "맞벌이도시근로자가구원수별가구당월평균소득액의140%9,405,477원", "신혼부부 맞벌이 140% 금액(3인)"))
 
 
+# 2026 판(개정 뒤 6년 분양전환 공공임대 최초 모집, N64): 이 문구가 모두 있으면 2026 판
+SELECT_2026_LITERALS = (("youth_income_quote", "청년특별공급도시근로자가구원수별가구당월평균소득액의140%5,338,708", "청년 본인 소득 140% 금액(2025년도)"),
+                        ("asset_quote", "362,000천원이하", "세대 총자산 3억6,200만원"),
+                        ("youth_asset_quote", "276,000천원이하", "청년 본인 총자산 2억7,600만원"),
+                        ("parents_quote", "1,035,000천원이하", "청년 부모 총자산 10억3,500만원"),
+                        ("dual_quote", "가구원수가2명인경우에는140%(본인및배우자가모두소득이있는경우에는200%)", "2인 가구·맞벌이 200% 문구"))
+
+
 def _select_rental(pages):
     hit = find_text(pages, r"수도권\[서울특별시,경기도,인천광역시\]")
     f = {"residence": Field(FILLED, "수도권", hit[0], hit[1], "'수도권[서울특별시, 경기도, 인천광역시]' 거주 문구") if hit else
          Field(HELD, None, how="수도권 거주 요건 문구를 확인하지 못함")}
+    if all(on_page(pages, lit) for _, lit, _ in SELECT_2026_LITERALS):
+        f["edition"] = Field(FILLED, "2026", how="2026 판(개정 뒤 6년 분양전환) 금액 문구가 모두 있음")
+        for key, lit, how in SELECT_2026_LITERALS:
+            page = on_page(pages, lit)
+            f[key] = Field(FILLED, lit, page, lit, how)
+        return f
+    f["edition"] = Field(FILLED, "2024", how="2026 판 금액 문구가 모두 있지 않음 — 2024 판 문구로 확인")
     for key, lit, how in SELECT_LITERALS:
         page = on_page(pages, lit)
         f[key] = Field(FILLED, lit, page, lit, how) if page else \
@@ -1055,7 +1122,8 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
           "sh.land_sale": lambda: _sh_land_sale(pages),
           "sh.national_rental": lambda: _sh_national_rental(pages),
           "sh.permanent_rental": lambda: _sh_permanent_rental(pages),
-          "lh.elderly_welfare": lambda: _elderly_welfare(pages),
+          "lh.elderly_welfare": lambda: _elderly_welfare(pages), "sh.multichild_rental": lambda: _sh_multichild(pages),
+          "lh.integrated_job": lambda: _integrated_job(pages),
           "lh.share_sale": lambda: _share_sale(pages),
           "lh.select_rental": lambda: _select_rental(pages),
           "sh.newlywed": lambda: _sh_newlywed(pages, ann, sib, program, llm),

@@ -432,5 +432,40 @@
     "file": "sample_lh/동해천곡_고령자복지주택(영구임대)_입주자모집공고문(최종)_260824.pdf",
     "pages": 29,
     "sha256": "2041d45fee9f22fd4c160f5c5504f203d228bcba0da1a3f9cec205191e0772e8"
+  },
+  {
+    "key": "LH63",
+    "org": "LH",
+    "file": "sample_lh/(260630)고양창릉S-3블록입주자모집공고문.pdf",
+    "pages": 49,
+    "sha256": "002777e2a5475ca0bf93203c221a0e104b7256c391f837bd5df1f13c140ee31b"
+  },
+  {
+    "key": "LH64",
+    "org": "LH",
+    "file": "sample_lh/군포대야미A-1블록6년분양전환공공임대주택입주자모집공고문.pdf",
+    "pages": 41,
+    "sha256": "59dcf0e838e16bf3cf7dee326df2482869fdc6e9cd68f29a2fafcc37157112af"
+  },
+  {
+    "key": "SH65",
+    "org": "SH",
+    "file": "sample_sh/(게시용) 2026년 다자녀매입임대주택 입주자 모집공고(2026_ 5_ 29_).pdf",
+    "pages": 35,
+    "sha256": "2dcc6289e82ef765146f97633a26df137cde97338016332473c2d93cd1fc2e54"
+  },
+  {
+    "key": "LH66",
+    "org": "LH",
+    "file": "sample_lh/(2026.09.14)전주동서학통합공공임대일자리연계형지원주택입주자모집공고문.pdf",
+    "pages": 43,
+    "sha256": "29af5faa661ea64d23c4b33c38d47d359ac9f35fa6406dbadeac28ee472e3d91"
+  },
+  {
+    "key": "LH67",
+    "org": "LH",
+    "file": "sample_lh/담양삼만통합공공임대일자리연계형지원주택추가모집공고문(20261029).pdf",
+    "pages": 41,
+    "sha256": "67190f888a6339820907634d26537d86f11d65a55f1ca386f985cfabd9efe984"
   }
 ]

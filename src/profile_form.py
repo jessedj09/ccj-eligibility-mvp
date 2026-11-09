@@ -37,6 +37,7 @@ WIDGETS = [
     ("m_special", "past_special_supply", "yes_no"), ("m_everown", "household_ever_owned_home", "yes_no"),
     ("m_tax5", "income_tax_5y", "yes_no"), ("m_eparent3", "supports_elderly_parent_3y", "yes_no"),
     ("m_selfown", "self_ever_owned_home", "yes_no"), ("m_won5", "household_won_5y", "yes_no"),
+    ("m_jobcrit", "job_criterion_met", "yes_no"), ("m_earned", "has_earned_income", "yes_no"),
     ("m_realestate", "real_estate_value", "amount"), ("m_deposit", "subscription_deposit", "amount"),
     ("m_account", "has_subscription_account", "bool"), ("m_submonths", "subscription_months", "int"),
     ("m_subcount", "subscription_payment_count", "int"),

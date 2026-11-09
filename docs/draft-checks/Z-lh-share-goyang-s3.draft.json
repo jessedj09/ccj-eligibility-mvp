@@ -1,0 +1,1241 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "002777e2a5475ca0bf93203c221a0e104b7256c391f837bd5df1f13c140ee31b",
+  "file": "(260630)고양창릉S-3블록입주자모집공고문.pdf",
+  "created": "2026-11-09",
+  "status": "blocked",
+  "reason": "판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다: 청년 본인 소득 140% 금액 문구(판정 틀과 같아야), 세대 총자산 한도 문구(판정 틀과 같아야), 청년 본인 총자산 한도 문구, 청년 부모 총자산 한도 문구, 신혼부부 맞벌이 140% 문구(개정 뒤 공고는 200%라 보류)",
+  "template": "lh.share_sale",
+  "program": "공공분양(나눔형)",
+  "announcement_date": "2026-06-30",
+  "held_fields": [
+    "youth_income_quote",
+    "asset_quote",
+    "youth_asset_quote",
+    "parents_quote",
+    "dual_quote"
+  ],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [
+    "청년/DRAFT-N0-income: '기준표 income_standard_share_sale 금액 10,023,933원 등 19개가 원문에 없음(다른 기준 연도)'",
+    "신혼부부/DRAFT-N1-income: '기준표 income_standard_share_sale 금액 10,023,933원 등 19개가 원문에 없음(다른 기준 연도)'",
+    "생애최초/DRAFT-N2-income: '기준표 income_standard_share_sale 금액 10,023,933원 등 19개가 원문에 없음(다른 기준 연도)'",
+    "일반공급/DRAFT-N3-income: '기준표 income_standard_share_sale 금액 10,023,933원 등 19개가 원문에 없음(다른 기준 연도)'"
+  ],
+  "missing": [
+    "청년/DRAFT-N0-home: '만19세이상~만39세이하로혼인중이아니며,과거주택을소유한사실이없는무주택자'",
+    "청년/DRAFT-N0-age: '만19세이상~만39세이하로혼인중이아니며'",
+    "청년/DRAFT-N0-marital: '만19세이상~만39세이하로혼인중이아니며'",
+    "청년/DRAFT-N0-region: '[서울특별시,경기도,인천광역시](공급규칙제4조제3항에따른지역을말함)에거주'",
+    "청년/DRAFT-N0-account: '에가입하여6개월이경과되고,매월약정납입일에월납입금을6회이상납입한분'",
+    "청년/DRAFT-N0-income: '청년도시근로자가구원수별가구당월평균소득액의140%4,695,438원'",
+    "청년/DRAFT-N0-assets: '289백만원이하'",
+    "청년/DRAFT-N0-parents: '(부모)1,083백만원이하'",
+    "신혼부부/DRAFT-N1-account: '에가입하여6개월이경과되고,매월약정납입일에월납입금을6회이상납입한분'",
+    "신혼부부/DRAFT-N1-income: '외벌이도시근로자가구당월평균소득액의130%8,462,288원'",
+    "신혼부부/DRAFT-N1-income: '맞벌이도시근로자가구당월평균소득액의140%9,113,233원'",
+    "신혼부부/DRAFT-N1-assets: '379,000천원이하'",
+    "생애최초/DRAFT-N2-first: '세대에속한모든분이과거주택소유사실이없어야'",
+    "생애최초/DRAFT-N2-income: '130%이하인분'",
+    "생애최초/DRAFT-N2-assets: '379,000천원이하'",
+    "일반공급/DRAFT-N3-home: '4.일반공급■신청자격'",
+    "일반공급/DRAFT-N3-account: '무주택세대구성원으로입주자저축'",
+    "일반공급/DRAFT-N3-income: '일반공급도시근로자가구당월평균소득액의100%6,509,452원'",
+    "일반공급/DRAFT-N3-assets: '379,000천원이하'",
+    "청년/DRAFT-N0-home: '(근거 문장 없음)'",
+    "청년/DRAFT-N0-age: '(근거 문장 없음)'",
+    "청년/DRAFT-N0-marital: '(근거 문장 없음)'",
+    "청년/DRAFT-N0-region: '(근거 문장 없음)'",
+    "청년/DRAFT-N0-account: '(근거 문장 없음)'",
+    "청년/DRAFT-N0-income: '(근거 문장 없음)'",
+    "청년/DRAFT-N0-assets: '(근거 문장 없음)'",
+    "청년/DRAFT-N0-parents: '(근거 문장 없음)'",
+    "신혼부부/DRAFT-N1-account: '(근거 문장 없음)'",
+    "신혼부부/DRAFT-N1-income: '(근거 문장 없음)'",
+    "신혼부부/DRAFT-N1-assets: '(근거 문장 없음)'",
+    "생애최초/DRAFT-N2-first: '(근거 문장 없음)'",
+    "생애최초/DRAFT-N2-income: '(근거 문장 없음)'",
+    "생애최초/DRAFT-N2-assets: '(근거 문장 없음)'",
+    "일반공급/DRAFT-N3-home: '(근거 문장 없음)'",
+    "일반공급/DRAFT-N3-account: '(근거 문장 없음)'",
+    "일반공급/DRAFT-N3-income: '(근거 문장 없음)'",
+    "일반공급/DRAFT-N3-assets: '(근거 문장 없음)'",
+    "청년/DRAFT-N0-income: '기준표 income_standard_share_sale 금액 10,023,933원 등 19개가 원문에 없음(다른 기준 연도)'",
+    "신혼부부/DRAFT-N1-income: '기준표 income_standard_share_sale 금액 10,023,933원 등 19개가 원문에 없음(다른 기준 연도)'",
+    "생애최초/DRAFT-N2-income: '기준표 income_standard_share_sale 금액 10,023,933원 등 19개가 원문에 없음(다른 기준 연도)'",
+    "일반공급/DRAFT-N3-income: '기준표 income_standard_share_sale 금액 10,023,933원 등 19개가 원문에 없음(다른 기준 연도)'"
+  ],
+  "doc": {
+    "notice_id": "DRAFT",
+    "title": "",
+    "announcement_date": "2026-06-30",
+    "issuer": "LH",
+    "program": "공공분양(나눔형)",
+    "version": 1,
+    "valid_from": "2026-06-30",
+    "supersedes": null,
+    "source": {
+      "document": "upload.pdf",
+      "sha256": "002777e2a5475ca0bf93203c221a0e104b7256c391f837bd5df1f13c140ee31b",
+      "pages": 49
+    },
+    "review": {
+      "status": "DRAFT",
+      "note": "G2 생성(tools/gen_c6_public.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+      "log": []
+    },
+    "notes": [],
+    "unsupported_layers": [],
+    "tables": {},
+    "layers": {
+      "청년": {
+        "conditions": [
+          {
+            "id": "DRAFT-N0-home",
+            "field": "home_ownership/self_ever_owned_home",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "본인이 무주택이고 과거에도 주택을 소유한 적이 없는지",
+            "check": {
+              "all": [
+                {
+                  "eq": [
+                    {
+                      "var": "home_ownership"
+                    },
+                    "무주택"
+                  ]
+                },
+                {
+                  "eq": [
+                    {
+                      "var": "self_ever_owned_home"
+                    },
+                    false
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N0-age",
+            "field": "age",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "만 19세 이상 39세 이하인지",
+            "check": {
+              "between": [
+                {
+                  "var": "age"
+                },
+                19,
+                39
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N0-marital",
+            "field": "marital_status",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "혼인 중이 아닌지",
+            "check": {
+              "in": [
+                {
+                  "var": "marital_status"
+                },
+                [
+                  "미혼",
+                  "예비신혼",
+                  "한부모"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N0-region",
+            "field": "residence_area",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "공고일 현재 서울특별시·인천광역시·경기도에 주민등록이 되어 있는지",
+            "check": {
+              "in": [
+                {
+                  "var": "residence_area"
+                },
+                [
+                  "서울특별시",
+                  "인천광역시",
+                  "수원시",
+                  "성남시",
+                  "고양시",
+                  "용인시",
+                  "부천시",
+                  "안산시",
+                  "안양시",
+                  "남양주시",
+                  "화성시",
+                  "평택시",
+                  "의정부시",
+                  "시흥시",
+                  "파주시",
+                  "김포시",
+                  "광명시",
+                  "광주시",
+                  "군포시",
+                  "하남시",
+                  "오산시",
+                  "이천시",
+                  "안성시",
+                  "의왕시",
+                  "양주시",
+                  "구리시",
+                  "포천시",
+                  "여주시",
+                  "동두천시",
+                  "과천시",
+                  "가평군",
+                  "양평군",
+                  "연천군"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N0-rewin",
+            "field": "rewin_restricted",
+            "required": true,
+            "source": {
+              "quote": [
+                "재당첨제한기간내에있는"
+              ],
+              "page": 30
+            },
+            "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+            "check": {
+              "eq": [
+                {
+                  "var": "rewin_restricted"
+                },
+                false
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N0-special",
+            "field": "past_special_supply",
+            "required": true,
+            "source": {
+              "quote": [
+                "특별공급은1회에한하여공급함"
+              ],
+              "page": 23
+            },
+            "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지",
+            "check": {
+              "eq": [
+                {
+                  "var": "past_special_supply"
+                },
+                false
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N0-account",
+            "field": "has_subscription_account/subscription_months/subscription_payment_count",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+            "check": {
+              "all": [
+                {
+                  "eq": [
+                    {
+                      "var": "has_subscription_account"
+                    },
+                    true
+                  ]
+                },
+                {
+                  "gte": [
+                    {
+                      "var": "subscription_months"
+                    },
+                    6
+                  ]
+                },
+                {
+                  "gte": [
+                    {
+                      "var": "subscription_payment_count"
+                    },
+                    6
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N0-income",
+            "field": "monthly_income",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "본인 월평균소득이 전년도(2023) 도시근로자 1인 가구 월평균소득의 140%(4,695,438원) 이하인지",
+            "check": {
+              "lte": [
+                {
+                  "var": "monthly_income"
+                },
+                {
+                  "lookup": [
+                    "income_standard_share_sale",
+                    1,
+                    140
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N0-assets",
+            "field": "total_assets",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "본인 총자산이 2억8,900만원 이하인지",
+            "check": {
+              "lte": [
+                {
+                  "var": "total_assets"
+                },
+                289000000
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N0-parents",
+            "field": "parents_total_assets",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "부모 총자산이 10억8,300만원 이하인지",
+            "check": {
+              "lte": [
+                {
+                  "var": "parents_total_assets"
+                },
+                1083000000
+              ]
+            }
+          }
+        ]
+      },
+      "신혼부부": {
+        "conditions": [
+          {
+            "id": "DRAFT-N1-home",
+            "field": "home_ownership",
+            "required": true,
+            "source": {
+              "quote": [
+                "2.신혼부부특별공급■신청자격"
+              ],
+              "page": 24
+            },
+            "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+            "check": {
+              "eq": [
+                {
+                  "var": "home_ownership"
+                },
+                "무주택"
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N1-region",
+            "field": "residence_area",
+            "required": true,
+            "source": {
+              "quote": [
+                "에거주하면서아래조건"
+              ],
+              "page": 23
+            },
+            "note": "공고일 현재 서울특별시·인천광역시·경기도에 주민등록이 되어 있는지",
+            "check": {
+              "in": [
+                {
+                  "var": "residence_area"
+                },
+                [
+                  "서울특별시",
+                  "인천광역시",
+                  "수원시",
+                  "성남시",
+                  "고양시",
+                  "용인시",
+                  "부천시",
+                  "안산시",
+                  "안양시",
+                  "남양주시",
+                  "화성시",
+                  "평택시",
+                  "의정부시",
+                  "시흥시",
+                  "파주시",
+                  "김포시",
+                  "광명시",
+                  "광주시",
+                  "군포시",
+                  "하남시",
+                  "오산시",
+                  "이천시",
+                  "안성시",
+                  "의왕시",
+                  "양주시",
+                  "구리시",
+                  "포천시",
+                  "여주시",
+                  "동두천시",
+                  "과천시",
+                  "가평군",
+                  "양평군",
+                  "연천군"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N1-rewin",
+            "field": "rewin_restricted",
+            "required": true,
+            "source": {
+              "quote": [
+                "재당첨제한기간내에있는"
+              ],
+              "page": 30
+            },
+            "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+            "check": {
+              "eq": [
+                {
+                  "var": "rewin_restricted"
+                },
+                false
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N1-special",
+            "field": "past_special_supply",
+            "required": true,
+            "source": {
+              "quote": [
+                "특별공급은1회에한하여공급함"
+              ],
+              "page": 23
+            },
+            "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지",
+            "check": {
+              "eq": [
+                {
+                  "var": "past_special_supply"
+                },
+                false
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N1-account",
+            "field": "has_subscription_account/subscription_months/subscription_payment_count",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "입주자저축에 가입해 6개월이 지났고 월납입금을 6회 이상 냈는지",
+            "check": {
+              "all": [
+                {
+                  "eq": [
+                    {
+                      "var": "has_subscription_account"
+                    },
+                    true
+                  ]
+                },
+                {
+                  "gte": [
+                    {
+                      "var": "subscription_months"
+                    },
+                    6
+                  ]
+                },
+                {
+                  "gte": [
+                    {
+                      "var": "subscription_payment_count"
+                    },
+                    6
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N1-type",
+            "field": "marital_status/marriage_date/children_birth_dates",
+            "required": true,
+            "source": {
+              "quote": [
+                "혼인기간이7년이내"
+              ],
+              "page": 24
+            },
+            "note": "혼인 7년 이내이거나 6세 이하 자녀를 둔 신혼부부, 예비신혼부부, 또는 6세 이하 자녀를 둔 한부모가족인지",
+            "check": {
+              "any": [
+                {
+                  "all": [
+                    {
+                      "in": [
+                        {
+                          "var": "marital_status"
+                        },
+                        [
+                          "혼인중"
+                        ]
+                      ]
+                    },
+                    {
+                      "any": [
+                        {
+                          "gte": [
+                            {
+                              "var": "marriage_date"
+                            },
+                            {
+                              "fn": "marriage_cutoff"
+                            }
+                          ]
+                        },
+                        {
+                          "if": [
+                            {
+                              "is": [
+                                {
+                                  "var": "has_children"
+                                },
+                                false
+                              ]
+                            },
+                            false,
+                            {
+                              "gte": [
+                                {
+                                  "var": "youngest_child_birth_date"
+                                },
+                                {
+                                  "fn": "young_child_cutoff"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "in": [
+                    {
+                      "var": "marital_status"
+                    },
+                    [
+                      "예비신혼"
+                    ]
+                  ]
+                },
+                {
+                  "all": [
+                    {
+                      "in": [
+                        {
+                          "var": "marital_status"
+                        },
+                        [
+                          "한부모"
+                        ]
+                      ]
+                    },
+                    {
+                      "if": [
+                        {
+                          "is": [
+                            {
+                              "var": "has_children"
+                            },
+                            false
+                          ]
+                        },
+                        false,
+                        {
+                          "gte": [
+                            {
+                              "var": "youngest_child_birth_date"
+                            },
+                            {
+                              "fn": "young_child_cutoff"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N1-income",
+            "field": "monthly_income/dual_income",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "세대 월평균소득이 2023년 도시근로자 월평균소득의 130%(맞벌이 140%) 이하인지 — 3인 이하는 3인 기준",
+            "check": {
+              "lte": [
+                {
+                  "var": "monthly_income"
+                },
+                {
+                  "if": [
+                    {
+                      "eq": [
+                        {
+                          "var": "dual_income"
+                        },
+                        true
+                      ]
+                    },
+                    {
+                      "lookup": [
+                        "income_standard_share_sale",
+                        {
+                          "fn": "max",
+                          "args": [
+                            {
+                              "var": "household_size"
+                            },
+                            3
+                          ]
+                        },
+                        140
+                      ]
+                    },
+                    {
+                      "lookup": [
+                        "income_standard_share_sale",
+                        {
+                          "fn": "max",
+                          "args": [
+                            {
+                              "var": "household_size"
+                            },
+                            3
+                          ]
+                        },
+                        130
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N1-assets",
+            "field": "total_assets",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "세대 총자산이 3억7,900만원 이하인지(자동차 포함)",
+            "check": {
+              "lte": [
+                {
+                  "var": "total_assets"
+                },
+                379000000
+              ]
+            }
+          }
+        ]
+      },
+      "생애최초": {
+        "conditions": [
+          {
+            "id": "DRAFT-N2-home",
+            "field": "home_ownership",
+            "required": true,
+            "source": {
+              "quote": [
+                "3.생애최초특별공급■신청자격"
+              ],
+              "page": 26
+            },
+            "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+            "check": {
+              "eq": [
+                {
+                  "var": "home_ownership"
+                },
+                "무주택"
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N2-region",
+            "field": "residence_area",
+            "required": true,
+            "source": {
+              "quote": [
+                "에거주하면서아래조건"
+              ],
+              "page": 23
+            },
+            "note": "공고일 현재 서울특별시·인천광역시·경기도에 주민등록이 되어 있는지",
+            "check": {
+              "in": [
+                {
+                  "var": "residence_area"
+                },
+                [
+                  "서울특별시",
+                  "인천광역시",
+                  "수원시",
+                  "성남시",
+                  "고양시",
+                  "용인시",
+                  "부천시",
+                  "안산시",
+                  "안양시",
+                  "남양주시",
+                  "화성시",
+                  "평택시",
+                  "의정부시",
+                  "시흥시",
+                  "파주시",
+                  "김포시",
+                  "광명시",
+                  "광주시",
+                  "군포시",
+                  "하남시",
+                  "오산시",
+                  "이천시",
+                  "안성시",
+                  "의왕시",
+                  "양주시",
+                  "구리시",
+                  "포천시",
+                  "여주시",
+                  "동두천시",
+                  "과천시",
+                  "가평군",
+                  "양평군",
+                  "연천군"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N2-rewin",
+            "field": "rewin_restricted",
+            "required": true,
+            "source": {
+              "quote": [
+                "재당첨제한기간내에있는"
+              ],
+              "page": 30
+            },
+            "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+            "check": {
+              "eq": [
+                {
+                  "var": "rewin_restricted"
+                },
+                false
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N2-special",
+            "field": "past_special_supply",
+            "required": true,
+            "source": {
+              "quote": [
+                "특별공급은1회에한하여공급함"
+              ],
+              "page": 23
+            },
+            "note": "본인·세대원이 과거에 특별공급을 받은 적이 없는지",
+            "check": {
+              "eq": [
+                {
+                  "var": "past_special_supply"
+                },
+                false
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N2-first",
+            "field": "household_ever_owned_home",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "세대 전원이 과거에 주택을 소유한 적이 없는지",
+            "check": {
+              "eq": [
+                {
+                  "var": "household_ever_owned_home"
+                },
+                false
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N2-account",
+            "field": "has_subscription_account/subscription_months/subscription_payment_count",
+            "required": true,
+            "source": {
+              "quote": [
+                "월납입금을12회이상납입한자)에해당하는무주택세대구성원으로서저축액이선납금을포함하여600만원이상"
+              ],
+              "page": 26
+            },
+            "note": "입주자저축 1순위(가입 1년·월납입금 12회 이상)인지",
+            "check": {
+              "all": [
+                {
+                  "eq": [
+                    {
+                      "var": "has_subscription_account"
+                    },
+                    true
+                  ]
+                },
+                {
+                  "gte": [
+                    {
+                      "var": "subscription_months"
+                    },
+                    12
+                  ]
+                },
+                {
+                  "gte": [
+                    {
+                      "var": "subscription_payment_count"
+                    },
+                    12
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N2-deposit",
+            "field": "subscription_deposit",
+            "required": true,
+            "source": {
+              "quote": [
+                "월납입금을12회이상납입한자)에해당하는무주택세대구성원으로서저축액이선납금을포함하여600만원이상"
+              ],
+              "page": 26
+            },
+            "note": "청약 저축액(선납금 포함)이 600만원 이상인지",
+            "check": {
+              "gte": [
+                {
+                  "var": "subscription_deposit"
+                },
+                6000000
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N2-family",
+            "field": "marital_status/children_birth_dates",
+            "required": true,
+            "source": {
+              "quote": [
+                "혼인(재혼포함)중이거나미혼인자녀"
+              ],
+              "page": 26
+            },
+            "note": "혼인 중이거나 미혼 자녀(같은 등본, 입양 포함)가 있는지",
+            "check": {
+              "any": [
+                {
+                  "in": [
+                    {
+                      "var": "marital_status"
+                    },
+                    [
+                      "혼인중"
+                    ]
+                  ]
+                },
+                {
+                  "gte": [
+                    {
+                      "fn": "children_on_or_after",
+                      "args": [
+                        {
+                          "fn": "minor_cutoff"
+                        }
+                      ]
+                    },
+                    1
+                  ]
+                },
+                {
+                  "in": [
+                    {
+                      "var": "marital_status"
+                    },
+                    [
+                      "미혼",
+                      "예비신혼",
+                      "한부모"
+                    ]
+                  ],
+                  "review_if_true": {
+                    "code": "AMBIGUOUS_SOURCE",
+                    "detail": "성년이어도 미혼 자녀가 같은 등본에 있으면 신청할 수 있습니다. 이 화면은 미성년 자녀만 묻습니다."
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N2-tax",
+            "field": "income_tax_5y",
+            "required": true,
+            "source": {
+              "quote": [
+                "신청자본인이5년이상소득세"
+              ],
+              "page": 26
+            },
+            "note": "신청자 본인이 5년 이상 소득세(근로·사업소득)를 냈고 현재 근로자·자영업자이거나 과거 1년 안에 냈는지",
+            "check": {
+              "eq": [
+                {
+                  "var": "income_tax_5y"
+                },
+                true
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N2-income",
+            "field": "monthly_income",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "세대 월평균소득이 2023년 도시근로자 월평균소득의 130% 이하인지 — 3인 이하는 3인 기준",
+            "check": {
+              "lte": [
+                {
+                  "var": "monthly_income"
+                },
+                {
+                  "lookup": [
+                    "income_standard_share_sale",
+                    {
+                      "fn": "max",
+                      "args": [
+                        {
+                          "var": "household_size"
+                        },
+                        3
+                      ]
+                    },
+                    130
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N2-assets",
+            "field": "total_assets",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "세대 총자산이 3억7,900만원 이하인지(자동차 포함)",
+            "check": {
+              "lte": [
+                {
+                  "var": "total_assets"
+                },
+                379000000
+              ]
+            }
+          }
+        ]
+      },
+      "일반공급": {
+        "conditions": [
+          {
+            "id": "DRAFT-N3-home",
+            "field": "home_ownership",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "무주택세대구성원인지(예비신혼부부는 혼인으로 구성될 세대 전원)",
+            "check": {
+              "eq": [
+                {
+                  "var": "home_ownership"
+                },
+                "무주택"
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N3-region",
+            "field": "residence_area",
+            "required": true,
+            "source": {
+              "quote": [
+                "에거주하면서아래조건"
+              ],
+              "page": 23
+            },
+            "note": "공고일 현재 서울특별시·인천광역시·경기도에 주민등록이 되어 있는지",
+            "check": {
+              "in": [
+                {
+                  "var": "residence_area"
+                },
+                [
+                  "서울특별시",
+                  "인천광역시",
+                  "수원시",
+                  "성남시",
+                  "고양시",
+                  "용인시",
+                  "부천시",
+                  "안산시",
+                  "안양시",
+                  "남양주시",
+                  "화성시",
+                  "평택시",
+                  "의정부시",
+                  "시흥시",
+                  "파주시",
+                  "김포시",
+                  "광명시",
+                  "광주시",
+                  "군포시",
+                  "하남시",
+                  "오산시",
+                  "이천시",
+                  "안성시",
+                  "의왕시",
+                  "양주시",
+                  "구리시",
+                  "포천시",
+                  "여주시",
+                  "동두천시",
+                  "과천시",
+                  "가평군",
+                  "양평군",
+                  "연천군"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N3-rewin",
+            "field": "rewin_restricted",
+            "required": true,
+            "source": {
+              "quote": [
+                "재당첨제한기간내에있는"
+              ],
+              "page": 30
+            },
+            "note": "본인·세대원이 재당첨 제한 기간 중이 아닌지(부적격 당첨 후 1년 이내도 신청 불가)",
+            "check": {
+              "eq": [
+                {
+                  "var": "rewin_restricted"
+                },
+                false
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N3-account",
+            "field": "has_subscription_account",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "입주자저축(청약통장)에 가입했는지",
+            "check": {
+              "eq": [
+                {
+                  "var": "has_subscription_account"
+                },
+                true
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N3-income",
+            "field": "monthly_income",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "세대 월평균소득이 2023년 도시근로자 월평균소득의 100% 이하인지 — 3인 이하는 3인 기준",
+            "check": {
+              "lte": [
+                {
+                  "var": "monthly_income"
+                },
+                {
+                  "lookup": [
+                    "income_standard_share_sale",
+                    {
+                      "fn": "max",
+                      "args": [
+                        {
+                          "var": "household_size"
+                        },
+                        3
+                      ]
+                    },
+                    100
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-N3-assets",
+            "field": "total_assets",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 23
+            },
+            "note": "세대 총자산이 3억7,900만원 이하인지(자동차 포함)",
+            "check": {
+              "lte": [
+                {
+                  "var": "total_assets"
+                },
+                379000000
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "unclassified": [
+    [
+      2,
+      "■금회공급되는주택은「주택공급에관한규칙」제4조,제25조에의거고양시1년이상(2025.06.30.이전)거주하는신청자가고양시1년미만(2025.07.01.이후)거주자및수도권(경기도,서울특별시,인천광역시)거주신청자보다우선하며,고양시1년미만거주자및수도권(경기도,서울특별시,인천광역시)거주자로신청하신분은입주자선정대상에서제외될수있습니다."
+    ],
+    [
+      3,
+      "-혼인특례또는출산특례를사용하여청약하려는분은청약신청시특례사용여부를선택하여야하며,청약신청시선택한특례사용여부는변경취소할수없습니다."
+    ],
+    [
+      4,
+      "■종전통장(청약저축청약예금청약부금)을주택청약종합저축으로전환하여해당주택에신청하고자할경우,입주자모집공고일전일(2026.06.29.)까지주택청약종합저축으로전환한경우에만신청가능하며,전환한주택청약종합저축실적이각공급유형별입주자저축요건및배점판단의기준이됩니다.[입주자모집공고일(2026.06.30.)이후종전통장에서주택청약종합저축으로전환한경우,해당주택의순위확인서발급(순위확인)이불가하며추첨대상에서제외]이때,청약저축을주택청약종합저축으로전환한경우청약저축기납입실적을합산하여인정하며,청약예금청약부금을주택청약종합저축으로전환한경우전환한날부터납입실적을인정합니다."
+    ],
+    [
+      8,
+      "※마이너스옵션선택시장애인고령자편의증진시설설치신청이불가하오니착오없으시기바랍니다."
+    ],
+    [
+      18,
+      "가.2024년1월1일부터2024년12월31일까지취득(생애최초로취득한경우로한정한다)한주택(「주택법시행령」제2조각호및제3조제1항제2호제3호에따른주택만해당함.이하이호에서같음)일것"
+    ],
+    [
+      20,
+      "•입주자모집공고일(2026.06.30.)현재청년특별공급신청자격외에아래\"<표4>전년도도시근로자가구원수별가구당월평균소득기준\"을충족하여야합니다.<표4>전년도도시근로자가구원수별가구당월평균소득기준[단위:원]공급유형가구원수별가구당월평균소득비율1인청년특별공급도시근로자가구원수별가구당월평균소득액의140%5,338,708"
+    ],
+    [
+      23,
+      "※사전청약시사용한입주자저축으로다른분양주택(분양전환공공임대주택포함)의당첨자로선정된경우에는해당주택에신청이불가하며,신청시에는무효또는부적격당첨자[계약체결불가,부적격당첨자명단관리(향후청약하려는지역에따라최대1년간입주자선정제한및입주자저축사용제한등)등]로관리됩니다."
+    ],
+    [
+      26,
+      "※1인가구는생애최초특별공급청약신청이불가합니다."
+    ],
+    [
+      31,
+      "제58조에의한부적격당첨후입주자로선정될수없는기간(입주자모집공고일현재부적격당첨된주택의당첨일로부터1년]내에있는분은금회공급하는주택의특별공급으로신청할수없습니다."
+    ],
+    [
+      31,
+      "•신청접수는당첨자발표일이동일한주택전체(청약홈등타기관을통해청약하는경우도포함)에대하여1인1건만신청가능하며,금회공급하는주택과당첨자발표일이동일한다른주택(민간사전청약포함)에1인2건이상청약신청할경우모두무효또는부적격처리합니다."
+    ],
+    [
+      33,
+      "※입주자모집공고일(2026.06.30.)로부터기산하여과거1년이상연속하여고양시에계속거주한경우\"해당주택건설지역(고양시)\",과거6개월이상연속하여경기도에계속거주한경우\"경기도\",그외경기도6개월미만거주자및수도권거주자는\"기타지역\"으로입력하여야합니다."
+    ],
+    [
+      43,
+      "-단위세대의드레스룸,팬트리,욕실(욕조및샤워부스바닥제외)에바닥난방이적용되며,별도의난방조절기는설치되지않고,난방배관에연결된각실조절기에서연동됨"
+    ]
+  ]
+}

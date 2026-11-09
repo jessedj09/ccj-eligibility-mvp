@@ -1,0 +1,309 @@
+{
+  "notice_id": "N65",
+  "title": "SH 2026년 다자녀 매입임대주택 입주자모집",
+  "announcement_date": "2026-05-29",
+  "issuer": "SH",
+  "program": "다자녀 매입임대",
+  "version": 1,
+  "valid_from": "2026-05-29",
+  "supersedes": null,
+  "source": {
+    "document": "(게시용) 2026년 다자녀매입임대주택 입주자 모집공고(2026_ 5_ 29_).pdf",
+    "sha256": "2dcc6289e82ef765146f97633a26df137cde97338016332473c2d93cd1fc2e54",
+    "pages": 35
+  },
+  "review": {
+    "status": "DRAFT",
+    "note": "G2 생성(tools/gen_c6_public.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+    "log": []
+  },
+  "notes": [
+    "1순위(신생아가구 — '24.5.30. 이후 출생 자녀·태아)와 2순위는 같은 자격(수급자·차상위·지원대상 한부모)의 선정 순서라 한 갈래로 판정하고, 배점(미성년 자녀 수·서울 거주기간·청약 회차 등)은 판정하지 않는다(p.6~7).",
+    "서울 거주 요건은 없다 — 타지역 거주자도 신청할 수 있다(p.3).",
+    "조손가정은 미성년 손자녀 2명 이상이 신청자와 같은 등본에 있어야 한다(p.3) — 이 화면의 '자녀'로 입력한다.",
+    "과거 공공임대 불법 양도·전대로 적발된 뒤 4년이 지나지 않은 세대구성원이 있으면 선정될 수 없고, 외국인은 신청할 수 없다(p.9) — 묻지 않는다.",
+    "1세대 1주택 신청 원칙 — 중복 신청은 모두 무효(p.9)."
+  ],
+  "unsupported_layers": [],
+  "tables": {
+    "multichild_terms": {
+      "label": "SH 다자녀 매입임대 3순위 총자산·자동차 한도: 출생자녀수('23.3.28. 이후 출생 자녀 — 1명 / 1명+이전 자녀·2명 이상)",
+      "columns": [
+        "child"
+      ],
+      "inputs": {
+        "child": {
+          "fn": "child_bonus_count"
+        }
+      },
+      "outputs": [
+        "asset_limit",
+        "car_limit"
+      ],
+      "rows": [
+        {
+          "when": {
+            "child": 0
+          },
+          "out": [
+            345000000,
+            45420000
+          ]
+        },
+        {
+          "when": {
+            "child": 1
+          },
+          "out": [
+            379000000,
+            49960000
+          ]
+        },
+        {
+          "when": {
+            "child": "2+"
+          },
+          "out": [
+            413000000,
+            54510000
+          ]
+        }
+      ],
+      "source": {
+        "quote": [
+          "총자산가액379,000,000원이하413,000,000원이하413,000,000원이하",
+          "자동차가액49,960,000원이하54,510,000원이하54,510,000원이하"
+        ],
+        "page": 10
+      }
+    }
+  },
+  "layers": {
+    "다자녀가구": {
+      "conditions": [
+        {
+          "id": "N65-M-home",
+          "field": "home_ownership",
+          "required": true,
+          "source": {
+            "quote": [
+              "두명이상의직계비속(태아를포함하며,「민법」상미성년자로한정함)을양육하고,무주택세대구성원으로서"
+            ],
+            "page": 6
+          },
+          "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+          "check": {
+            "eq": [
+              {
+                "var": "home_ownership"
+              },
+              "무주택"
+            ]
+          }
+        },
+        {
+          "id": "N65-M-kids",
+          "field": "children_birth_dates",
+          "required": true,
+          "source": {
+            "quote": [
+              "두명이상의직계비속(태아를포함하며,「민법」상미성년자로한정함)을양육하고,무주택세대구성원으로서"
+            ],
+            "page": 6
+          },
+          "note": "미성년 자녀(태아 포함, 조손가정은 같은 등본의 미성년 손자녀)가 2명 이상인지",
+          "check": {
+            "gte": [
+              {
+                "fn": "children_on_or_after",
+                "args": [
+                  {
+                    "fn": "minor_cutoff"
+                  }
+                ]
+              },
+              2
+            ]
+          }
+        },
+        {
+          "id": "N65-M-adult",
+          "field": "age",
+          "required": true,
+          "source": {
+            "quote": [
+              "민법상미성년자(19세미만)는공급신청이불가하나"
+            ],
+            "page": 9
+          },
+          "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+          "check": {
+            "any": [
+              {
+                "gte": [
+                  {
+                    "var": "age"
+                  },
+                  19
+                ]
+              },
+              {
+                "lte": [
+                  {
+                    "var": "age"
+                  },
+                  18
+                ],
+                "review_if_true": {
+                  "code": "AMBIGUOUS_SOURCE",
+                  "detail": "미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청할 수 있습니다. 예외 해당 여부는 이 화면이 묻지 않습니다."
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "N65-M-rank",
+          "field": "입주자격",
+          "required": true,
+          "source": {
+            "quote": [
+              "1·2순위(수급자,차상위계층,보호대상한부모가족)는소득및자산검증대상에서제외"
+            ],
+            "page": 9
+          },
+          "note": "신청 순위(1·2순위 수급자·차상위·지원대상 한부모 / 3순위 소득 70%·자산) 중 하나인지",
+          "tracks": [
+            {
+              "id": "수급자등",
+              "label": "1·2순위 — 수급자(생계·주거·의료·교육급여)·차상위계층·지원대상 한부모가족(소득·자산 검증 없음)",
+              "conditions": [
+                {
+                  "id": "N65-M-Twelfare",
+                  "field": "welfare_status/is_supported_single_parent",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "생계·주거·의료·교육급여중어느하나에해당하는급여를받는수급자가구",
+                      "제2조제10호에해당하는차상위계층가구",
+                      "제3조에따라여성가족부장관이정하는기준에해당하는한부모가족"
+                    ],
+                    "page": 6
+                  },
+                  "note": "수급자(생계·주거·의료·교육급여)·차상위계층 가구이거나 지원대상 한부모가족(증명서 발급 가능)인지",
+                  "check": {
+                    "any": [
+                      {
+                        "in": [
+                          {
+                            "var": "welfare_status"
+                          },
+                          [
+                            "생계·의료·주거급여 수급자",
+                            "교육급여만 수급",
+                            "차상위계층"
+                          ]
+                        ]
+                      },
+                      {
+                        "eq": [
+                          {
+                            "var": "is_supported_single_parent"
+                          },
+                          true
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "일반",
+              "label": "3순위 — 그 밖의 다자녀가구(월평균소득 70% 이하 + 국민임대 자산 기준)",
+              "conditions": [
+                {
+                  "id": "N65-M-income",
+                  "field": "monthly_income",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "70%이하5,717,9006,161,5416,528,8906,934,3847,339,8797,745,373"
+                    ],
+                    "page": 9
+                  },
+                  "note": "세대 월평균소득이 전년도(2025) 도시근로자 가구원수별 월평균소득의 70% 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "monthly_income"
+                      },
+                      {
+                        "lookup": [
+                          "income_standard_public",
+                          {
+                            "var": "household_size"
+                          },
+                          70
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "N65-M-assets",
+                  "field": "total_assets",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "총자산가액:34,500만원이하"
+                    ],
+                    "page": 9
+                  },
+                  "note": "세대 총자산이 3억4,500만원(출생자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "total_assets"
+                      },
+                      {
+                        "term": "asset_limit"
+                      }
+                    ]
+                  },
+                  "table": "multichild_terms"
+                },
+                {
+                  "id": "N65-M-car",
+                  "field": "car_value",
+                  "required": true,
+                  "source": {
+                    "quote": [
+                      "자동차가액(현재가치기준):4,542만원이하"
+                    ],
+                    "page": 10
+                  },
+                  "note": "자동차가액이 4,542만원(출생자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+                  "check": {
+                    "lte": [
+                      {
+                        "var": "car_value",
+                        "unknown_values": [
+                          "확인불가"
+                        ]
+                      },
+                      {
+                        "term": "car_limit"
+                      }
+                    ]
+                  },
+                  "table": "multichild_terms"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "29af5faa661ea64d23c4b33c38d47d359ac9f35fa6406dbadeac28ee472e3d91",
+  "file": "(2026.09.14)전주동서학통합공공임대일자리연계형지원주택입주자모집공고문.pdf",
+  "created": "2026-11-09",
+  "status": "blocked",
+  "reason": "통합공공임대 '일자리연계형' 공고(p.1) — 직업·근무지 요건이 일반형과 달라 자동 판정하지 않습니다",
+  "template": "lh.integrated_rental",
+  "program": "통합공공임대주택",
+  "announcement_date": "2026-09-14",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

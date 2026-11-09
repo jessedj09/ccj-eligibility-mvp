@@ -85,6 +85,20 @@ DATES = {
                 grad=date(2024, 6, 8), adult=date(2007, 6, 8)),
     "N62": dict(ann=date(2026, 8, 24), marriage=date(2019, 8, 24), child=date(2019, 8, 25),
                 grad=date(2024, 8, 24), adult=date(2007, 8, 24)),
+    # 2026 판 LH 나눔형(N63 고양창릉 S-3 2026.06.30.) — p.24 혼인 '2019.06.30.~2026.06.30.', 2세 미만 = 공고일−2년(당일 포함)
+    "N63": dict(ann=date(2026, 6, 30), marriage=date(2019, 6, 30), child=date(2019, 7, 1),
+                grad=date(2024, 6, 30), adult=date(2007, 7, 1), newborn=date(2024, 6, 30)),
+    # 2026 판 선택형(N64 군포대야미 A-1 2026.06.30.) — 혼인 7년·6세 이하·19세 미만·2세 미만은 공고일에서(N63과 같은 날)
+    "N64": dict(ann=date(2026, 6, 30), marriage=date(2019, 6, 30), child=date(2019, 7, 1),
+                grad=date(2024, 6, 30), adult=date(2007, 7, 1), newborn=date(2024, 6, 30)),
+    # SH 다자녀 매입임대(N65 2026.05.29.) — 미성년(19세 미만) = 공고일−19년 다음 날 출생부터, 출생자녀 가산 기준일 2023.3.28. 고정
+    "N65": dict(ann=date(2026, 5, 29), marriage=date(2019, 5, 29), child=date(2019, 5, 30),
+                grad=date(2024, 5, 29), adult=date(2007, 5, 30)),
+    # 통합공공임대 일자리연계형(N66 전주 2026.09.14., N67 담양 2026.10.29.) — 6세 이하 = 공고일−7년+1일, 혼인 7년은 공고일−7년(N35·N36과 같음)
+    "N66": dict(ann=date(2026, 9, 14), marriage=date(2019, 9, 14), child=date(2019, 9, 15),
+                grad=date(2024, 9, 14), adult=date(2007, 9, 14)),
+    "N67": dict(ann=date(2026, 10, 29), marriage=date(2019, 10, 29), child=date(2019, 10, 30),
+                grad=date(2024, 10, 29), adult=date(2007, 10, 29)),
     # G5 SH 국민임대(N53 2026.08.20) — 공고일만 쓴다(출생자녀 가산 기준일 2023.3.28. 고정, 미성년 = 공고일−19년).
     "N53": dict(ann=date(2026, 8, 20), marriage=date(2019, 8, 20), child=date(2019, 8, 21),
                 grad=date(2024, 8, 20), adult=date(2007, 8, 20)),
@@ -182,7 +196,8 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               "N53": "sh_national_rental", "N54": "sh_permanent_rental",
               "N55": "elderly_welfare", "N56": "share_sale",
               "N57": "select_rental", "N58": "national_rental", "N59": "integrated_rental", "N60": "sh_national_rental",
-              "N61": "elderly_welfare", "N62": "elderly_welfare"}
+              "N61": "elderly_welfare", "N62": "elderly_welfare", "N63": "share_sale_2026", "N64": "select_rental_2026",
+              "N65": "sh_multichild", "N66": "integrated_job", "N67": "integrated_job"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -208,6 +223,12 @@ NAT_INCOME = [None, 0, 1] + [v + d for v in (3_432_027, 4_693_016, 5_279_643, 5_
                                             6_161_541, 7_921_982, 7_339_879, 9_436_987, 7_745_373, 9_958_337)
                              for d in (-1, 0, 1)] + [30_000_000]
 NAT_ASSETS = [None, 0, 1] + [v + d for v in (345_000_000, 379_000_000, 413_000_000) for d in (0, 1)]
+# 2026 판 선택형(N64): 가구원수별 2025년도 표(원문 p.10~11)의 1~4인 칸 경계 ±1원 — 유형별 비율(100~160%)·맞벌이 200%·출산 가산 210%
+SELECT26_INCOME = [None, 0, 1] + [v + d for v in (
+    4_576_036, 5_338_708, 4_957_372, 5_720_045,                                   # 1인 120·140, 출산 가산 130·150
+    6_452_897, 7_626_151, 8_212_778, 8_799_405, 11_732_540, 12_319_167,           # 2인 110·130·140·150·200·210
+    8_168_429, 9_802_115, 10_618_958, 11_435_801, 16_336_858, 17_153_701,         # 3인 100·120·130·140·200·210
+    8_802_202, 10_562_642, 11_442_863, 12_323_083, 17_604_404) for d in (-1, 0, 1)] + [30_000_000]
 # SH 국민임대 2025년 공고(N60): 2024년도 소득표 70·80·90% 열(1~6인) 경계 ±1원, 2025년 자산·자동차 3단계 한도 경계(p.24)
 SHN25_NIDS = ("N60",)
 SHN25_INCOME = [None, 0, 1] + [v + d for v in (3_238_348, 4_381_602, 4_929_303, 5_338_881, 6_101_578, 6_864_276,
@@ -445,6 +466,10 @@ GROUPS: List[Tuple[str, str]] = [
     ("N58", "일반"),
     ("N59", "청년"), ("N59", "신혼부부"), ("N59", "한부모"), ("N59", "고령자"), ("N59", "일반"),
     ("N60", "일반"), ("N60", "일반(주거약자용)"), ("N61", "고령자"), ("N62", "고령자"),
+    *[("N63", layer) for layer in ("청년", "신혼부부", "생애최초", "신생아", "일반공급")],
+    *[("N64", layer) for layer in ("청년", "다자녀가구", "노부모부양", "생애최초", "신혼부부", "신생아", "일반공급")],
+    ("N65", "다자녀가구"),
+    *[(nid, layer) for nid in ("N66", "N67") for layer in ("청년", "신혼부부", "한부모")],
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -524,7 +549,27 @@ def _pools(nid: str) -> Dict[str, list]:
 
 def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, object]]:
     """계층별 (값 풀, 기준 프로필의 기본값). 기본값은 '모든 조건이 통과'하는 쪽."""
-    if PROGRAM_OF.get(nid) == "sh_land_sale":
+    if PROGRAM_OF.get(nid) == "integrated_job":             # 일자리연계형: 통합공공임대 풀 + 직업기준(두 종류 입력 모두) + 청년 19세 경계
+        attrs = _program_attributes("integrated_rental", layer, pools)
+        tri = ([None, False, True], True)
+        attrs.update(jobcrit=tri, earned=tri)
+        if layer == "청년":
+            attrs["age"] = ([17, 18, 19, 39, 40], 30)
+        return attrs
+    if PROGRAM_OF.get(nid) == "sh_multichild":              # SH 다자녀 매입임대: 국민임대 풀(70% 경계·자산·자동차) + 자녀 수·복지 자격
+        attrs = _program_attributes("national_rental", layer, pools)
+        attrs.update(kids=(pools["kids"], [date(2010, 1, 1), date(2012, 1, 1)]), size=([2, 3, 4, 5, 8, 9], 4),
+                     welfare=(WELFARE, "해당없음"), supported=([None, False, True], False))
+        return attrs
+    if PROGRAM_OF.get(nid) == "select_rental_2026":         # 2026 판 선택형: SH 토지임대부 풀(총자산·청년·부모) + 가구원수별 소득 경계
+        attrs = _program_attributes("sh_land_sale", layer, pools)
+        attrs.update(income=(SELECT26_INCOME, 1), size=([1, 2, 3, 4, 8, 9], 3))
+        if layer == "다자녀가구":
+            attrs.update(kids=(pools["kids"], [date(2010, 1, 1), date(2012, 1, 1), date(2015, 1, 1)]), size=([2, 3, 5, 8], 5))
+        if layer == "청년":
+            attrs.update(size=([1, 2, 3], 1))
+        return attrs
+    if PROGRAM_OF.get(nid) in ("sh_land_sale", "share_sale_2026"):   # 2026 판 나눔형은 SH 토지임대부와 같은 기준·금액
         return _program_attributes("sh_land_sale", layer, pools)
     if PROGRAM_OF.get(nid) == "public_sale":                # G3: 일반공급(전용 60㎡ 이하/초과)도 사업 전용 풀
         return _program_attributes("public_sale", layer, pools)
@@ -666,6 +711,7 @@ def _profile(layer: str, v: Dict[str, object], tag: str) -> HouseholdProfile:
                                             ("everown", "household_ever_owned_home"), ("deposit", "subscription_deposit"),
                                             ("tax5", "income_tax_5y"), ("eparent3", "supports_elderly_parent_3y"),
                                             ("selfown", "self_ever_owned_home"), ("won5", "household_won_5y"),
+                                            ("jobcrit", "job_criterion_met"), ("earned", "has_earned_income"),
                                             ("account", "has_subscription_account"),
                                             ("submonths", "subscription_months"),
                                             ("subcount", "subscription_payment_count")) if key in v})

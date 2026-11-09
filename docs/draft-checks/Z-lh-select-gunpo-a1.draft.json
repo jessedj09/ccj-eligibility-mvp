@@ -1,0 +1,20 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "59dcf0e838e16bf3cf7dee326df2482869fdc6e9cd68f29a2fafcc37157112af",
+  "file": "군포대야미A-1블록6년분양전환공공임대주택입주자모집공고문.pdf",
+  "created": "2026-11-09",
+  "status": "blocked",
+  "reason": "공공임대 최초 입주자 모집 공고(p.1에 '예비입주자' 없음) — 특별·일반공급과 소득·자산 기준이 있어 예비입주자 모집 틀로 판정하지 않습니다",
+  "template": "lh.public_rental",
+  "program": "공공임대주택",
+  "announcement_date": "2026-06-30",
+  "held_fields": [
+    "account"
+  ],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}
