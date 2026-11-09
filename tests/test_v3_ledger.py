@@ -120,3 +120,23 @@ def test_sale_notes_are_unrelated_but_eligibility_words_are_not_hidden():
 def test_page_number_line_does_not_open_a_unit():
     units = CL._units_from_raw(["• 신청자격은 아래와 같습니다 첫째 줄입니다", "- 7 -\n 양권등을 매수한 자는 제외한다)\n• 다음 항목입니다 열 글자 넘게"])
     assert [u for _, u in units] == ["•신청자격은아래와같습니다첫째줄입니다", "양권등을매수한자는제외한다)", "•다음항목입니다열글자넘게"]
+
+
+def test_sale_selection_common_and_table_refs_are_not_new_conditions():
+    """2026-11-10 보류 줄이기 3차(분양 8건): 지역 거주자 우선·공통 청약 제한·절차·소유 예외는 무관, 규칙에 있는 기준표·생애최초 가족
+    요건을 다시 적은 문장은 근거. 규칙에 그 조건이 없거나 새 제한이면 그대로 미분류."""
+    fam = {"id": "X-family", "field": "marital_status/children_birth_dates", "check": True}
+    doc = {"layers": {"생애최초": {"conditions": [fam, {"id": "X-assets", "field": "total_assets", "check": True}]}}, "tables": {}}
+    units = [(2, "■금회공급되는주택은「주택공급에관한규칙」제4조에의거양주시1년이상(2025.8.27이전)거주하는신청자가양주시1년미만"
+                 "거주자보다우선하며,…거주자로신청하신분은입주자선정대상에서제외될수있습니다."),
+             (26, "※사전청약시사용한입주자저축으로다른분양주택의당첨자로선정된경우에는해당주택에신청이불가하며"),
+             (46, "■대행접수시구비서류(신청서류중1건이라도미비시에는신청불가)●아래표의구비서류외에"),
+             (14, "•주택공급신청자가속한세대가20m2이하의주택(분양권등포함)을1호또는1세대만소유하고있는경우(노부모부양특별공급의경우는적용제외)"),
+             (11, '4해당세대의총자산합계액이"<표3>총자산보유기준"이하인자'),
+             (22, "•본아파트는공공분양주택으로1인가구의경우생애최초특별공급청약신청이불가합니다."),
+             (12, '5해당세대의월평균소득이"<표5>소득기준"이하인자'),
+             (30, "•서울특별시에2년이상거주한자만신청할수있습니다")]
+    rows = {p: label for p, _, label in CL.classify(units, doc, CL.Known([]))}
+    assert all(rows[p].startswith("무관") for p in (2, 26, 46, 14))
+    assert rows[11].startswith("근거") and rows[22].startswith("근거")
+    assert rows[12] == CL.UNCLASSIFIED and rows[30] == CL.UNCLASSIFIED      # 소득 조건이 없는 규칙 / 새 거주 제한
