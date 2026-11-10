@@ -250,3 +250,25 @@ def form_for(notice, layer: str) -> Dict:
             "section_titles": {LAYER_EXTRA: f"{layer} 요건"}, "region_options": region_options(),
             "region_groups": {g: list(names) for g, names in region_groups().items()}, "unknown": UNKNOWN,
             "fields": fields}
+
+
+# 흥신소 첫 화면의 기본 자격조건(2026-11-10 결정, PRD v3.7 8절) — 이름은 찾기 양식(master_form)과 같아 저장 파일·회원 '내 조건'과 호환
+BASIC_FIND = ("master.birth_date", "marital_status", "marriage_date", "household_size", "house_head_status", "children_birth_dates",
+              "master.home_self", "master.home_household", "master.income_household", "master.income_self",
+              "master.assets_household", "master.car_household", "residence_area",
+              "has_subscription_account", "subscription_months", "subscription_payment_count")
+FIND_KINDS = ["둘 다", "임대", "분양"]
+
+
+def basic_form() -> Dict:
+    """'지금 지원 가능한 공고' 첫 화면 양식(GET /find/form). 나머지 항목은 목록의 추가 질문으로 묻는다."""
+    full = master_form()
+    fields = [f for f in full["fields"] if f["name"] in BASIC_FIND]
+    for f in fields:
+        if f["name"] == "residence_area":
+            f.update(label="거주지(주민등록상, 시·군)", section=BASIC, help="지역 거르기 기본값과 해당 지역 조건에 씁니다.")
+        if f["name"] == "master.income_self":
+            f["help"] = "1인 가구면 비워 두세요(세대 소득과 같습니다)."
+    sections = [s for s in full["sections"] if any(f["section"] == s for f in fields)]
+    return {**full, "fields": fields, "sections": sections, "collapsed": [],
+            "filters": {"kind": {"label": "관심 공고", "options": FIND_KINDS, "default": "둘 다"}}}

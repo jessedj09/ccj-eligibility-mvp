@@ -13,6 +13,9 @@
 - GET  /match/form                 '내 조건으로 공고 찾기' 입력 양식(src/form_spec.py master_form — 항목 이름 'master.x'는 저장 파일의 master)
 - POST /match                      전 공고 판정 — {"profile": 저장 파일 형식(ccj-profile/1), "at"?, "only_open"?}
                                    (+ 화면 3상태·접수 일정·조건 하나만 부족한 공고와 금액 한도)
+- GET  /find/form                  흥신소 첫 화면 기본 자격조건 양식
+- POST /find                       기본 조건 → 지금 모집 중인 LH·SH 공고 목록(확정·예비 판정 — src/find.py)
+- POST /find/request-analysis      분석 전 공고의 분석 요청(익명 건수)
 - POST /whatif                     시나리오(혼인신고·예비신혼·거주지 이전·세대 분리) 전후 비교 — src/whatif.py
 
 판정 로직은 갖지 않는다(src/의 엔진·매처·자동 분석을 그대로 호출). 서버는 받은 프로필을 저장하지 않는다.
@@ -29,7 +32,7 @@ from collections import OrderedDict
 from functools import lru_cache
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
@@ -495,6 +498,86 @@ def match(req: MatchRequest):
             "missing_inputs": missing_inputs(matches), "missing_fields": missing_fields(matches), "common_note": COMMON_NOTE, "whatif_caveat": whatif.CAVEAT,
             "matches": [_match_json(x, stat, sched) for x in matches],
             "near_misses": [_near_json(nm) for nm in whatif.near_misses(master, matches)]}
+
+
+# ---------------------------------------------------------------- 흥신소 주 흐름(2026-11-10, docs/12 '2단계 재설계' ②-2)
+class FindRequest(BaseModel):
+    profile: Dict[str, Any]                   # 저장 파일 형식(ccj-profile/1) — 기본 자격조건만 있어도 된다
+    at: Optional[datetime] = None
+    regions: Optional[List[str]] = None       # 시·도(예: 서울특별시·경기도) — 없으면 전국
+    kind: Optional[str] = None                # 임대 / 분양 / None(둘 다)
+
+
+class AnalysisRequest(BaseModel):
+    source: str
+    external_id: str
+
+
+LIVE_TTL = 300                                # 수집 공고는 3시간마다 바뀌므로 프로세스 안에서 5분 둔다
+_live = {"t": 0.0, "rows": [], "analyzed": [], "ok": False}
+_live_lock = threading.Lock()
+_requested: Dict[str, float] = {}             # 분석 요청 반복 막기(접속자 해시·공고 → 시각, 메모리에만)
+
+
+def _live_rows():
+    """→ (수집 공고 행, 올려서 분석된 공고, 저장소에 닿았나). 저장소가 없거나 비었으면 ok=False(등록 공고만으로 목록)."""
+    import time
+    now = time.time()
+    with _live_lock:
+        if now - _live["t"] < LIVE_TTL:
+            return _live["rows"], _live["analyzed"], _live["ok"]
+    store = get_store()
+    ok = type(store).__name__ != "NullStore" and getattr(store, "available", False)
+    import find
+    rows = find.relink(store.live_notices(open_only=True, limit=1000)) if ok else []
+    analyzed = store.analyzed_notices() if ok else []
+    with _live_lock:
+        _live.update(t=now, rows=rows, analyzed=analyzed, ok=ok and bool(rows))
+        return rows, analyzed, _live["ok"]
+
+
+@app.get("/find/form")
+def find_form():
+    """흥신소 첫 화면 — 기본 자격조건 양식(src/form_spec.py basic_form, 이름은 /match/form과 같다)."""
+    import form_spec
+    return form_spec.basic_form()
+
+
+@app.post("/find")
+def find_open_notices(req: FindRequest):
+    """기본 조건 → 지금 모집 중인 LH·SH 공고 카드 목록(src/find.py). 확정(이 공고문) / 예비(같은 사업 최근 공고 기준 —
+    '지원 가능 (단, 공고문 내 지원자격 상세 확인 필요)') / 판정하지 않는 사업. 받은 조건은 저장하지 않는다."""
+    import find
+    master = _master(req.profile)
+    rows, analyzed, ok = _live_rows()
+    store = get_store()
+
+    def from_upload(row):
+        sha = find.match_analyzed(row, analyzed)
+        if sha is None:
+            return None
+        d = _draft_for(sha)
+        return None if d is None or _paused(d, store) else d
+    try:
+        return find.find_open(master, rows, _at(req.at), from_upload, req.regions,
+                              req.kind if req.kind in (find.RENT, find.SALE) else None, ok)
+    except (TypeError, ValueError) as e:
+        raise HTTPException(422, f"프로필 값 오류: {e}")
+
+
+@app.post("/find/request-analysis")
+def request_analysis(req: AnalysisRequest, request: Request):
+    """분석 전 공고의 '분석 요청' — 공고별 익명 건수 +1(운영자 분석 대기 순서). 같은 접속자의 같은 공고는 하루 한 번."""
+    import time
+    key, now = f"{_client(request)}:{req.source}:{req.external_id}", time.time()
+    with _live_lock:
+        if now - _requested.get(key, 0) < 86400:
+            return {"ok": True, "counted": False}
+        _requested[key] = now
+        if len(_requested) > 50_000:
+            for k in [k for k, t in _requested.items() if now - t >= 86400]:
+                del _requested[k]
+    return {"ok": True, "counted": bool(get_store().request_analysis(req.source, req.external_id))}
 
 
 @app.post("/whatif")

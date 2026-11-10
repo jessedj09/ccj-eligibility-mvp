@@ -27,7 +27,8 @@ ISSUER_NAMES = (("한국토지주택공사", "LH"), ("서울주택도시공사",
 KIND_PROGRAM = {"영구임대": "영구임대주택", "국민임대": "국민임대주택", "공공임대": "공공임대주택", "행복주택": "행복주택"}
 # 판정 틀이 있어도 자동 판정하지 않는 공고 — 입주자격 완화(공고 업로드 때도 차단: sheet_extract.RELAXED),
 # 기업·기관에 주는 물량(기관공급 — 개인 모집이 아님)
-NOT_JUDGED = re.compile(r"자격완화|선계약\s*후\s*검증|기관공급|대상기업")
+NOT_JUDGED = re.compile(r"자격완화|선계약\s*후\s*검증|기관공급|대상기업|고령자복지형")
+# '고령자복지형' 통합공공임대(2026-11-11): 일반형과 자격이 다른 하위 유형 — 일반형 틀로 판정하지 않는다(등록 공고면 그 규칙으로)
 TITLE_TAG = re.compile(r"^\s*(?:\[[^\]]{1,12}\]\s*)+")      # '[정정공고]', '[중단공고][수의계약]' 같은 머리표
 
 # 판정 갈래(흥신소 '지금 모집 중' — docs/12 설계 3)
@@ -164,13 +165,31 @@ def _norm(s: str) -> str:
     return re.sub(r"[\s\[\]()·.,'\"‘’“”\-_]", "", clean_title(s))
 
 
+# 제목 비교에서 뺄 말 — 공고 종류 꼬리말과 괄호 속 날짜('26.10.27)
+SHORT_DROP = re.compile(r"\(['\d.\s]+\)|최초|추가|입주자|예비|모집|공고문?")
+
+
+def _parens(s: str) -> frozenset:
+    """제목 괄호 속 하위 유형(날짜·회차 제외) — '(일반형)'·'(고령자복지형)'이 다르면 다른 공고."""
+    out = set()
+    for x in re.findall(r"\(([^()]*)\)", clean_title(s)):
+        x = re.sub(r"\s", "", x)
+        if x and not re.fullmatch(r"['\d.\-~,]+|본청약|사전청약", x):
+            out.add(x)
+    return frozenset(out)
+
+
+def _norm_short(s: str) -> str:
+    return _norm(SHORT_DROP.sub("", clean_title(s)))
+
+
 def _registered_index():
     from rule_data import load_notice, notice_ids
     out = []
     for nid in notice_ids():
         n = load_notice(nid)
         out.append((nid, n.meta.get("issuer"), n.announcement_date.isoformat(), _norm(n.title or ""),
-                    _program_key(n.meta.get("program"))))
+                    _program_key(n.meta.get("program")), _parens(n.title or "")))
     return out
 
 
@@ -191,12 +210,17 @@ def registered_match(n: LiveNotice, index=None, program: Optional[str] = None) -
             _INDEX = _registered_index()
         index = _INDEX
     title = _norm(n.title)
+    short = _norm_short(n.title)
     best, best_r = None, 0.0
     want = _program_key(program)
-    for nid, issuer, ann, t, prog in index:
+    mine = _parens(n.title)
+    for nid, issuer, ann, t, prog, *rest in index:
         if issuer != n.issuer or ann != n.announced or not t or (want and prog and want != prog):
             continue
-        r = SequenceMatcher(None, title, t).ratio()
+        theirs = rest[0] if rest else frozenset()
+        if mine and theirs and mine != theirs:          # 하위 유형이 다름(평창장평 일반형·고령자복지형)
+            continue
+        r = max(SequenceMatcher(None, title, t).ratio(), SequenceMatcher(None, short, _norm_short(t)).ratio())
         if r > best_r:
             best, best_r = nid, r
     return best if best_r >= 0.7 else None
@@ -216,6 +240,9 @@ def link(n: LiveNotice, index=None) -> LiveNotice:
     _, program = nc.classify([clean_title(n.title) + " " + n.kind, marker])
     if program is None and n.source == LH_SOURCE:
         program = KIND_PROGRAM.get(n.kind)
+    if n.source == LH_SOURCE and n.kind.startswith("행복주택"):
+        # LH 유형이 행복주택이면 행복주택 — 제목의 '신혼희망타운'으로 분양이 되지 않게(2026-11-11 구리갈매 A-1BL)
+        program = "행복주택(신혼희망타운)" if "신혼희망" in n.kind else "행복주택"
     template = X.choose_template(n.issuer, program)
     if template not in draft.PASSING:
         template = None

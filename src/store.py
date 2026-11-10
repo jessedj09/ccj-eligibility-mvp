@@ -100,6 +100,8 @@ CREATE TABLE IF NOT EXISTS live_notices (                -- 공공데이터포�
     PRIMARY KEY (source, external_id)
 );
 CREATE INDEX IF NOT EXISTS live_notices_open ON live_notices (window_end, last_seen);
+ALTER TABLE live_notices ADD COLUMN IF NOT EXISTS request_count integer NOT NULL DEFAULT 0;   -- 흥신소 '분석 요청'(익명 건수)
+ALTER TABLE live_notices ADD COLUMN IF NOT EXISTS last_requested_at timestamptz;
 """
 
 
@@ -166,6 +168,8 @@ class NullStore:
     def upsert_live(self, rows, detail_fetched=()): return 0
     def live_notices(self, open_only=True, limit=500): return []
     def live_detail_needed(self, keys): return set(keys)
+    def request_analysis(self, source, external_id): return False
+    def analyzed_notices(self, days=120): return []
 
 
 def _safe(default):
@@ -468,6 +472,23 @@ class Store(NullStore):
                 WHERE NOT %s OR window_end IS NULL OR window_end >= (now() AT TIME ZONE 'Asia/Seoul')::date
                 ORDER BY announced DESC NULLS LAST, first_seen DESC LIMIT %s""", (open_only, limit)).fetchall())
         return [dict(zip(self.LIVE_COLS + ("first_seen", "last_seen"), r)) for r in rows]
+
+    @_safe(False)
+    def request_analysis(self, source, external_id) -> bool:
+        """흥신소 '분석 요청' — 공고별 건수와 마지막 시각만(누가 요청했는지 남기지 않는다)."""
+        row = self._run(lambda c: c.execute(
+            """UPDATE live_notices SET request_count = request_count + 1, last_requested_at = now()
+               WHERE source = %s AND external_id = %s RETURNING request_count""", (source, external_id)).fetchone())
+        return row is not None
+
+    @_safe([])
+    def analyzed_notices(self, days=120) -> list:
+        """올려서 판정할 수 있게 분석된 공고(최근 공고일) — 수집 공고와 잇는 데 쓴다(find.match_analyzed)."""
+        rows = self._run(lambda c: c.execute(
+            """SELECT n.sha256, n.issuer, n.program, n.title, n.announcement_date FROM notices n
+               WHERE n.origin = 'upload' AND n.announcement_date >= (now() - make_interval(days => %s))::date
+                 AND EXISTS (SELECT 1 FROM analyses a WHERE a.sha256 = n.sha256 AND a.status = 'ok')""", (days,)).fetchall())
+        return [dict(zip(("sha256", "issuer", "program", "title", "announcement_date"), r)) for r in rows]
 
     @_safe(None)
     def live_detail_needed(self, keys) -> set:

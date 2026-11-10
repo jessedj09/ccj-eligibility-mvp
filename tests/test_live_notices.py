@@ -204,3 +204,25 @@ def test_db_live_round_trip_keeps_window_and_detail_time(db):
     db.upsert_live([rows[0].as_dict()])                                  # 상세 없이 다시 — 접수 시작일은 남는다
     got = {r["external_id"]: r for r in db.live_notices(open_only=False)}
     assert str(got[first.external_id]["window_start"]) == "2026-11-25" and len(got) == 6
+
+
+@needs_db
+def test_db_request_analysis_counts_and_analyzed_notices(db):
+    n = L.link(L.parse_lh_list(fx("lh_list_06"))[0])
+    db.upsert_live([n.as_dict()])
+    assert db.request_analysis(n.source, n.external_id) and db.request_analysis(n.source, n.external_id)
+    assert not db.request_analysis("lh", "없는공고")
+    cnt = db._run(lambda c: c.execute("SELECT request_count FROM live_notices WHERE external_id = %s",
+                                      (n.external_id,)).fetchone())[0]
+    assert cnt == 2
+    db.upsert_live([n.as_dict()])                                        # 다시 수집해도 요청 건수는 남는다
+    assert db._run(lambda c: c.execute("SELECT request_count FROM live_notices").fetchone())[0] == 2
+    assert db.analyzed_notices() == []
+    from datetime import date as _date, timedelta as _td
+    ann = _date.today() - _td(days=3)
+    db.save_notice("a" * 64, issuer="LH", program="국민임대주택", title="인천논현2단지 국민임대주택", announcement_date=ann)
+    db.save_notice("b" * 64, issuer="LH", program="국민임대주택", title="분석 실패 공고", announcement_date=ann)
+    db.save_analysis("a" * 64, "v", {"status": "ok"})
+    db.save_analysis("b" * 64, "v", {"status": "unsupported"})
+    got = db.analyzed_notices()
+    assert [g["sha256"] for g in got] == ["a" * 64] and got[0]["announcement_date"] == ann

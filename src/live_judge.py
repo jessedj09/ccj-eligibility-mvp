@@ -3,7 +3,7 @@
 
 같은 기관·같은 판정 틀의 앞선 등록 공고(대표 공고) 규칙으로 판정하고, 결과를 예비 판정으로 바꾼다.
 
-    LIKELY    가능성 있음 — 대표 공고 기준 지원 가능. 화면은 '지원 가능'이라고 말하지 않는다.
+    LIKELY    가능성 있음 — 대표 공고 기준 지원 가능. 화면 표시 '지원 가능 (단, 공고문 내 지원자격 상세 확인 필요)'(2026-11-11 사용자 결정, src/find.py).
     CHECK     확인 필요 — 대표 공고 기준 보류, 또는 공고마다 다를 수 있는 조건으로 걸림
     UNLIKELY  어려움 — 같은 사업 등록 공고 모두에 같은 식으로 있는 조건으로만 걸림(숨기지 않고 접어서 보인다)
     NONE      판정하지 않음 — 대표 공고에 그 계층이 없음
@@ -63,6 +63,7 @@ class LayerPreview:
     verdict: Optional[str] = None            # 대표 공고 기준 엔진 판정
     reasons: List[str] = field(default_factory=list)   # 걸린 조건 note(어려움·확인 필요의 이유)
     fields: List[str] = field(default_factory=list)
+    result: Optional[EvaluationResult] = None          # 대표 공고 기준 엔진 결과(추가 질문 집계용)
 
 
 def base_layer(layer: str) -> str:
@@ -184,9 +185,9 @@ def preview_layer(profile: HouseholdProfile, layer: str, rep: NoticeRuleSet, rep
     r = evaluate(profile, rep, rl)
     v = r.verdict
     if v == "ELIGIBLE":
-        return LayerPreview(layer, LIKELY, v)
+        return LayerPreview(layer, LIKELY, v, result=r)
     if v != "INELIGIBLE":
-        return LayerPreview(layer, CHECK if v in ("NEEDS_INFO", "MANUAL_REVIEW") else NONE, v)
+        return LayerPreview(layer, CHECK if v in ("NEEDS_INFO", "MANUAL_REVIEW") else NONE, v, result=r)
     conds, common = index.conditions(rep.notice_id, rl), index.common(rep_template, rl)
     fields, solid, money = _judge_failed(r, conds, common)
     if solid and money:
@@ -194,7 +195,7 @@ def preview_layer(profile: HouseholdProfile, layer: str, rep: NoticeRuleSet, rep
         r2 = evaluate(_scaled(profile), rep, rl)
         solid = r2.verdict == "INELIGIBLE" and _judge_failed(r2, conds, common)[1]
     reasons = [conds_note for conds_note in _notes(rep, rl, _failed(r))]
-    return LayerPreview(layer, UNLIKELY if solid and not stale else CHECK, v, reasons, fields)
+    return LayerPreview(layer, UNLIKELY if solid and not stale else CHECK, v, reasons, fields, r)
 
 
 def _notes(notice: NoticeRuleSet, layer: str, ids: List[str]) -> List[str]:
