@@ -230,3 +230,76 @@ def is_open(n: LiveNotice, today: Optional[date] = None) -> bool:
     """아직 마감하지 않은 공고(마감일이 오늘 이후이거나 모름)."""
     t = (today or date.today()).isoformat()
     return n.status not in ("접수마감", "모집완료", "중단공고") and (n.window_end is None or n.window_end >= t)
+
+
+# ------------------------------------------------------------------ 같은 공고 묶기(2단계 ①, 2026-11-10)
+# 보여 줄 때만 묶는다 — 저장된 행(출처별 원본)은 그대로 둔다.
+# ① LH 정정공고: 원 공고는 '정정공고중'으로 남고 '[정정공고]'가 붙은 새 공고가 따로 온다 — 머리표를 뗀 제목이 글자까지 같으면 한 공고.
+#    괄호 안이 다르면 다른 공고다(평창장평 '(일반형)'·'(고령자복지형)', 경기남부권 '(무순위, 유주택자 가능)'·'(…무주택세대구성원)').
+# ② LH와 청약홈에 같이 올라온 분양 공고: 기관·공고일·마감일이 같고 제목의 단지 부분이 거의 같으면(0.85) 한 공고 — LH 쪽이 대표.
+ROUTE_RANK = {REGISTERED: 0, TEMPLATE: 1, UNSUPPORTED: 2}
+CORE_DROP = re.compile(r"\((?:본청약|사전청약)\)|잔여세대|추가|입주자|모집|공고문?|[\s\[\]()]")
+
+
+def _exact(title: str) -> str:
+    return re.sub(r"\s", "", clean_title(title))
+
+
+def _core(title: str) -> str:
+    return CORE_DROP.sub("", clean_title(title).replace("[", "(").replace("]", ")"))
+
+
+def _primary_first_pick(rows: List[Dict]) -> Dict:
+    return min(rows, key=lambda r: (r["source"] != LH_SOURCE, r.get("status") == "정정공고중",
+                                    "" if r.get("announced") is None else _neg(str(r["announced"]))))
+
+
+def _neg(s: str) -> str:
+    """나중 날짜가 앞에 오게(문자열 날짜 뒤집기)."""
+    return "".join(chr(0x10FFFF - ord(c)) for c in s)
+
+
+def _merge(rows: List[Dict]) -> Dict:
+    lead = _primary_first_pick(rows)
+    out = dict(lead)
+    others = [r for r in rows if r is not lead]
+    for k in ("window_start", "window_end", "registered_id", "program", "template"):
+        if out.get(k) is None:
+            out[k] = next((r[k] for r in others if r.get(k) is not None), None)
+    best = min(rows, key=lambda r: ROUTE_RANK.get(r.get("route"), 3))
+    out["route"] = best.get("route")
+    if best.get("registered_id"):
+        out["registered_id"] = best["registered_id"]
+    out["related"] = [{"source": r["source"], "external_id": r["external_id"], "title": r["title"], "status": r.get("status"),
+                       "url": r.get("url")} for r in others]
+    return out
+
+
+def merge_duplicates(rows: List[Dict]) -> List[Dict]:
+    """저장된 공고 행(dict) → 같은 공고를 하나로 묶은 목록. 각 행에 'related'(묶인 다른 행)를 붙인다. 순서는 처음 나온 순서."""
+    groups: List[List[Dict]] = []
+    exact: Dict[tuple, List[Dict]] = {}
+    for r in rows:
+        k = (r["source"], r.get("issuer"), _exact(r["title"]))
+        if k in exact:
+            exact[k].append(r)
+        else:
+            exact[k] = [r]
+            groups.append(exact[k])
+    lh_groups = [g for g in groups if g[0]["source"] == LH_SOURCE]
+    merged: List[List[Dict]] = []
+    for g in groups:
+        if g[0]["source"] != APPLYHOME_SOURCE:
+            merged.append(g)
+            continue
+        a = g[0]
+        host = next((h for h in lh_groups
+                     if any(h_r.get("issuer") == a.get("issuer") and str(h_r.get("announced")) == str(a.get("announced"))
+                            and str(h_r.get("window_end")) == str(a.get("window_end"))
+                            and SequenceMatcher(None, _core(h_r["title"]), _core(a["title"])).ratio() >= 0.85
+                            for h_r in h)), None)
+        if host is not None:
+            host.extend(g)
+        else:
+            merged.append(g)
+    return [_merge(g) if len(g) > 1 else dict(g[0], related=[]) for g in merged]

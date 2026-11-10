@@ -138,9 +138,10 @@ def main(argv=None) -> int:
     if store and type(store).__name__ != "NullStore":
         saved = store.upsert_live([n.as_dict() for n in rows], fetched)
     open_rows = [n for n in rows if L.is_open(n, today)]
-    routes = Counter(n.route for n in open_rows)
+    grouped = L.merge_duplicates([n.as_dict() for n in open_rows])        # 정정공고·LH와 청약홈의 같은 공고는 하나로
+    routes = Counter(r["route"] for r in grouped)
     print(f"상세 조회 {len(fetched)}건 · 저장 {saved}건" + ("" if store and saved else " (저장소 없음 — 저장 안 함)"))
-    print(f"마감 안 된 공고 {len(open_rows)}건: 등록 공고 {routes[L.REGISTERED]} · 판정 틀 있음 {routes[L.TEMPLATE]} · "
+    print(f"마감 안 된 공고 {len(grouped)}건(같은 공고 묶기 전 {len(open_rows)}건): 등록 공고 {routes[L.REGISTERED]} · 판정 틀 있음 {routes[L.TEMPLATE]} · "
           f"판정 안 하는 사업 {routes[L.UNSUPPORTED]}")
     for n in sorted(open_rows, key=lambda x: (x.route != L.REGISTERED, x.route != L.TEMPLATE, x.window_end or "")):
         if n.route != L.UNSUPPORTED:

@@ -148,6 +148,36 @@ def test_get_retries_once_on_timeout_then_reports(monkeypatch):
     assert "secret-key" not in str(e.value)                              # 인증키는 오류 문장에도 남기지 않는다
 
 
+def row(source, title, status="공고중", announced="2026-11-05", end="2026-11-17", start=None, route="template", reg=None,
+        issuer="LH", ext=None):
+    return dict(source=source, external_id=ext or title, title=title, issuer=issuer, status=status, announced=announced,
+                window_start=start, window_end=end, route=route, registered_id=reg, program=None, template=None, url="u")
+
+
+def test_corrections_and_cross_source_duplicates_are_grouped():
+    """2026-11-10 운영 DB에서 본 형태: LH 정정공고 짝(원 공고는 '정정공고중'), LH와 청약홈의 같은 신혼희망타운."""
+    rows = [row("lh", "인천논현2단지 국임임대주택 예비입주자 모집 공고", status="정정공고중", start="2026-11-18", end="2026-11-20"),
+            row("lh", "[정정공고]인천논현2단지 국임임대주택 예비입주자 모집 공고", announced="2026-11-05", end="2026-11-20"),
+            row("lh", "안산신길2 A-6블록 신혼희망타운(공공분양) 입주자모집공고", announced="2026-10-30", end="2026-11-24", reg="N48",
+                route="registered"),
+            row("applyhome", "안산신길2 A-6블록 신혼희망타운(공공분양)(본청약)", announced="2026-10-30", start="2026-11-16",
+                end="2026-11-24", status="접수예정"),
+            # 묶으면 안 되는 것: 괄호 안이 다른 공고, 마감일이 다른 청약홈 공고
+            row("lh", "평창장평 통합공공임대주택(일반형) 입주자 모집"),
+            row("lh", "평창장평 통합공공임대주택(고령자복지형) 입주자 모집"),
+            row("applyhome", "안산신길2 A-6블록 신혼희망타운(공공분양)(사전청약)", announced="2026-10-30", end="2026-12-01",
+                ext="other")]
+    g = L.merge_duplicates(rows)
+    assert len(g) == 5
+    inc = g[0]
+    assert inc["title"].startswith("[정정공고]") and inc["window_start"] == "2026-11-18"        # 정정공고가 대표, 접수 시작은 채움
+    assert [x["status"] for x in inc["related"]] == ["정정공고중"]
+    ansan = g[1]
+    assert ansan["source"] == "lh" and ansan["window_start"] == "2026-11-16" and ansan["registered_id"] == "N48"
+    assert [x["source"] for x in ansan["related"]] == ["applyhome"]
+    assert [r["related"] for r in g[2:]] == [[], [], []]
+
+
 def test_null_store_live_methods():
     s = S.NullStore()
     assert s.upsert_live([]) == 0 and s.live_notices() == [] and s.live_detail_needed({("lh", "1")}) == {("lh", "1")}

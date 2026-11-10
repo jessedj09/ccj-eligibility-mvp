@@ -129,14 +129,17 @@ st.subheader("지금 모집 중인 공고")
 st.caption("`python tools/collect_live_notices.py`(예약 작업 collect-live-notices, 3시간마다)가 LH·청약홈에서 모은 마감 안 된 공고. "
            "'판정 틀 있음'인데 등록되지 않은 공고는 공식 링크에서 공고문을 내려받아 올리면 모두 판정받는다(PDF 자동 내려받기 안 함).")
 ROUTE_LABEL = {"registered": "등록 공고", "template": "판정 틀 있음(분석 전)", "unsupported": "판정 안 하는 사업"}
-live = store.live_notices(open_only=True)
+import live_notices as LN  # noqa: E402
+live = LN.merge_duplicates(store.live_notices(open_only=True))     # 정정공고·LH와 청약홈의 같은 공고는 한 줄로
 if live:
     pick = st.multiselect("갈래", list(ROUTE_LABEL), default=["template", "registered"], format_func=ROUTE_LABEL.get, key="live_route")
     shown = [r for r in live if r["route"] in pick]
     st.caption(f"마감 안 된 공고 {len(live)}건 중 {len(shown)}건")
     st.dataframe([{"갈래": ROUTE_LABEL.get(r["route"], r["route"]), "기관": r["issuer"], "사업": r["program"] or r["kind"],
                    "공고명": r["title"], "지역": r["region"], "접수": f"{r['window_start'] or '?'} ~ {r['window_end'] or '?'}",
-                   "상태": r["status"], "등록": r["registered_id"] or "", "링크": r["url"]} for r in shown],
+                   "상태": r["status"], "등록": r["registered_id"] or "",
+                   "묶인 공고": ", ".join(f"{x['source']} {x['status'] or ''}".strip() for x in r["related"]),
+                   "링크": r["url"]} for r in shown],
                  column_config={"링크": st.column_config.LinkColumn("링크", display_text="공식 공고")},
                  hide_index=True, use_container_width=True)
 else:
