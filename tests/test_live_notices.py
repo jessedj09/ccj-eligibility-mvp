@@ -117,6 +117,37 @@ def test_collector_reports_failure_and_missing_key(monkeypatch, capsys):
     assert "실패" in capsys.readouterr().out
 
 
+def test_get_retries_once_on_timeout_then_reports(monkeypatch):
+    calls = []
+
+    class Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return b'[{"dsList": []}]'
+
+    def flaky(req, timeout):
+        calls.append(timeout)
+        if len(calls) == 1:
+            raise TimeoutError("handshake timed out")
+        return Resp()
+    monkeypatch.setattr(C.urllib.request, "urlopen", flaky)
+    monkeypatch.setattr(C, "RETRY_WAIT", 0)
+    monkeypatch.setattr(C, "PAUSE", 0)
+    assert C._get(C.LH_LIST, "secret-key", {}) == [{"dsList": []}] and len(calls) == 2
+
+    def down(req, timeout):
+        raise C.urllib.error.URLError("secret-key 접속 실패")
+    monkeypatch.setattr(C.urllib.request, "urlopen", down)
+    with pytest.raises(C.SourceError) as e:
+        C._get(C.LH_LIST, "secret-key", {})
+    assert "secret-key" not in str(e.value)                              # 인증키는 오류 문장에도 남기지 않는다
+
+
 def test_null_store_live_methods():
     s = S.NullStore()
     assert s.upsert_live([]) == 0 and s.live_notices() == [] and s.live_detail_needed({("lh", "1")}) == {("lh", "1")}

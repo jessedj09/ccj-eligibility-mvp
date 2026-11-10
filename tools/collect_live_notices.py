@@ -36,6 +36,9 @@ APPLYHOME = "https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/getAPTLttotPbl
 PAGE = 100
 MAX_PAGES = 10                 # 유형마다 1,000건까지(실제 2개월 공고는 유형당 200건 안팎)
 PAUSE = 0.2                    # 호출 사이 쉼 — 개발 계정 하루 호출 한도 안에서 천천히
+TIMEOUT = 20                   # 호출 하나의 시간 한도(초)
+RETRIES = 1                    # 접속 실패·시간 초과면 이만큼 더 시도(2026-11-10 첫 예약 실행: GitHub 서버에서 상세 8건이 TLS 연결 시간 초과)
+RETRY_WAIT = 3                 # 다시 시도하기 전 쉼(초)
 USER_AGENT = "ccj-collector/0.1"
 
 
@@ -46,11 +49,15 @@ class SourceError(Exception):
 def _get(url: str, key: str, params: dict):
     q = urllib.parse.urlencode({"serviceKey": key, **params})
     req = urllib.request.Request(f"{url}?{q}", headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            text = r.read().decode("utf-8", "replace")
-    except (urllib.error.URLError, TimeoutError) as e:
-        raise SourceError(str(e).replace(key, "***")) from None
+    for attempt in range(RETRIES + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                text = r.read().decode("utf-8", "replace")
+            break
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            if attempt == RETRIES:
+                raise SourceError(str(e).replace(key, "***")) from None
+            time.sleep(RETRY_WAIT)
     time.sleep(PAUSE)
     try:
         return json.loads(text)
