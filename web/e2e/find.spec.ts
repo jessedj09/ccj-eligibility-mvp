@@ -1,4 +1,4 @@
-// 내 조건으로 공고 찾기 — 서버 양식(/match/form)대로 입력 → 전 공고 판정 → What-if. 화면 결과는 판정 API를 직접 부른 결과와 같아야 한다.
+// 자세히(/find/all, 지금의 전체 판정) — 서버 양식(/match/form)대로 입력 → 전 공고 판정 → What-if. 화면 결과는 판정 API를 직접 부른 결과와 같아야 한다.
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
@@ -9,7 +9,7 @@ const AT = `${DAY}T12:00:00+09:00`;
 const field = (page: Page, name: string) => page.locator(`[data-field="${name}"]`);
 
 async function fillSingle(page: Page) {
-  await page.goto("/find");
+  await page.goto("/find/all");
   await field(page, "master.birth_date").locator("input").fill("1996-01-01");
   await field(page, "master.home_self").locator("select").selectOption("무주택");
   await field(page, "master.home_household").locator("select").selectOption("무주택");
@@ -92,7 +92,7 @@ test("What-if: 조건 하나만 부족한 공고와 시나리오 비교가 API /
 });
 
 test("추가 정보는 접혀 있고, 생년월일 없이 판정하면 안내한다", async ({ page }) => {
-  await page.goto("/find");
+  await page.goto("/find/all");
   await expect(field(page, "student_status")).toBeHidden();
   await page.locator('[data-section="추가 자격 정보"] summary').click();
   await expect(field(page, "student_status")).toBeVisible();

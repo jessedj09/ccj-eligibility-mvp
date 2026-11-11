@@ -277,3 +277,33 @@ export function whatIf(profile: ProfileFile, scenario: Scenario, params: WhatIfP
 export function wake(): void {
   call("/health").catch(() => {});
 }
+
+// ---------------------------------------------------------------- 청약 흥신소 주 흐름(2026-11-11 — 판정 API /find, src/find.py)
+export type FindGroup = "eligible" | "likely" | "needs_info" | "verify" | "unlikely" | "unjudged";
+export type FindLayer = { layer: string; result: FindGroup; verdict: string | null; reasons?: string[] };
+export type FindCard = {
+  key: string; source: string; external_id: string; title: string; issuer: string | null; program: string | null;
+  kind: "임대" | "분양"; region: string | null; announced: string | null;
+  schedule: { code: "open" | "upcoming" | "unknown"; text: string; days: number | null; start: string | null; end: string | null };
+  url: string | null; basis: "confirmed" | "preview" | "none"; basis_note: string;
+  preview_from: { notice_id: string; title: string; announced: string } | null; registered_id: string | null;
+  result: FindGroup; label: string; layers: FindLayer[]; related: { title: string; url: string | null }[];
+};
+export type FindResult = {
+  at: string; collected_at: string | null; stale: boolean; notice: string | null;
+  labels: Record<FindGroup, string>; groups: FindGroup[]; collapsed: FindGroup[];
+  counts: Record<FindGroup, number>; questions: { field: string; label: string; notices: number }[]; items: FindCard[];
+};
+export type FindForm = Form & { filters: { kind: { label: string; options: string[]; default: string } } };
+
+export function getFindForm(): Promise<FindForm> {
+  return call("/find/form");
+}
+
+export function findOpen(profile: ProfileFile, opts: { at?: string | null; regions?: string[] | null; kind?: string | null }): Promise<FindResult> {
+  return call("/find", post({ profile, at: opts.at ?? null, regions: opts.regions ?? null, kind: opts.kind ?? null }));
+}
+
+export function requestAnalysis(source: string, externalId: string): Promise<{ ok: boolean; counted: boolean }> {
+  return call("/find/request-analysis", post({ source, external_id: externalId }));
+}

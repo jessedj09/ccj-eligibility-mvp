@@ -29,7 +29,7 @@ test("휴대폰: 공고 판정 — 가로 넘침 없이 1단으로 쌓이고, �
 
 test("휴대폰: 공고 찾기 — 판정하면 결과로 스크롤하고, 결과·What-if도 가로로 넘치지 않는다", async ({ page, isMobile }) => {
   test.skip(!isMobile, "휴대폰 화면 전용");
-  await page.goto("/find");
+  await page.goto("/find/all");
   await noSideScroll(page);
   await page.locator('[data-field="master.birth_date"] input').fill("1996-01-01");
   await page.locator('[data-field="master.income_household"] input').fill("4000000");

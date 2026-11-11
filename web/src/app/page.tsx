@@ -102,6 +102,8 @@ export default function Home() {
   const resultRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
 
+  const [fromNotice, setFromNotice] = useState("");     // 흥신소 예비 판정 카드에서 '공고문 올리면 바로 확정'으로 왔을 때
+  useEffect(() => setFromNotice(new URLSearchParams(window.location.search).get("from") ?? ""), []);
   useEffect(() => revealOnNarrow(formRef.current), [form]);
   useEffect(() => reveal(resultRef.current), [result]);
   useEffect(() => reveal(errorRef.current), [error]);
@@ -227,6 +229,12 @@ export default function Home() {
   return (
     <div className="space-y-5">
     <h1 className="text-xl font-bold sm:text-2xl">재판소 <span className="text-base font-medium text-slate-500">공고문 올리고 지원 자격 판정</span></h1>
+    {fromNotice && (
+      <p className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900" data-testid="from-notice">
+        &lsquo;{fromNotice}&rsquo; 공고문 PDF를 공식 공고 페이지에서 내려받아 올리면 바로 확정 판정합니다. 한 번 올라온 공고는 분석이 저장돼
+        청약 흥신소 목록에서도 모두 &lsquo;이 공고문 기준&rsquo;으로 바뀝니다.
+      </p>
+    )}
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[22rem_1fr] lg:gap-8">
       <aside className="space-y-4">
         <div className={card}>

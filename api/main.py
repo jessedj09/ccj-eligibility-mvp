@@ -530,6 +530,13 @@ def _live_rows():
     ok = type(store).__name__ != "NullStore" and getattr(store, "available", False)
     import find
     rows = find.relink(store.live_notices(open_only=True, limit=1000)) if ok else []
+    fixture = os.environ.get("CCJ_LIVE_FIXTURE")          # 화면 점검 전용(저장소 없이 수집 공고 표본) — 운영에는 두지 않는다
+    if not ok and fixture:
+        import json
+        rows = json.loads(Path(fixture).read_text(encoding="utf-8"))
+        for r in rows:
+            r["last_seen"] = datetime.fromisoformat(r["last_seen"]) if r.get("last_seen") else None
+        rows, ok = find.relink(rows), True
     analyzed = store.analyzed_notices() if ok else []
     with _live_lock:
         _live.update(t=now, rows=rows, analyzed=analyzed, ok=ok and bool(rows))

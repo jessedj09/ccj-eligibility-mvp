@@ -172,3 +172,18 @@ def test_api_find_reads_only_and_request_analysis_once(monkeypatch):
     again = c.post("/find/request-analysis", json={"source": "lh", "external_id": "A1"}).json()
     assert first["ok"] and again == {"ok": True, "counted": False}
     assert spy.calls == ["request_analysis"]
+
+
+def test_check_split_into_needs_info_and_verify():
+    """'확인 필요'는 둘로(2026-11-11 사용자 결정) — 정보 부족은 추가정보 요청(펼침), 그 밖은 실제 공고문 확인필요(접힘)."""
+    import live_judge as J
+    assert F.LABELS[F.NEEDS_INFO] == "지원가능 판단을 위한 추가정보 요청"
+    assert F.LABELS[F.VERIFY] == "실제 공고문 확인필요"
+    assert F.VERIFY in F.COLLAPSED and F.NEEDS_INFO not in F.COLLAPSED
+    lp = lambda outcome, verdict: J.LayerPreview("청년", outcome, verdict)  # noqa: E731
+    assert F.preview_group(lp(J.CHECK, "NEEDS_INFO")) == F.NEEDS_INFO
+    assert F.preview_group(lp(J.CHECK, "INELIGIBLE")) == F.VERIFY       # 공고마다 다를 수 있는 조건으로 걸림
+    assert F.preview_group(lp(J.CHECK, "MANUAL_REVIEW")) == F.VERIFY
+    assert F.VERDICT_GROUP["NEEDS_INFO"] == F.NEEDS_INFO and F.VERDICT_GROUP["MANUAL_REVIEW"] == F.VERIFY
+    out = run()
+    assert out["groups"] == list(F.GROUPS) and set(out["counts"]) == set(F.GROUPS)

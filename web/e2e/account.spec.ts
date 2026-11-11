@@ -54,8 +54,7 @@ test("회원가입부터 탈퇴까지 — 내 조건 저장·대표·흥신소�
   await list.getByRole("link", { name: "이 조건으로 공고 찾기" }).click();
   await expect(page).toHaveURL(/\/find\?profile=/);
   await expect(page.getByTestId("profile-loaded")).toContainText("'나' 조건으로 입력란을 채웠습니다");
-  await page.getByRole("button", { name: "전체 공고 판정" }).click();
-  await expect(page.getByTestId("schedule-counts")).toBeVisible();
+  await expect(page.getByTestId("find-list")).toBeVisible();            // 저장한 조건이면 바로 목록(2026-11-11 흥신소 주 흐름)
 
   // 로그아웃 → 내 조건 등록하기는 로그인 화면으로 → 다시 로그인하면 돌아온다
   await page.getByTestId("account-nav").getByRole("button", { name: "로그아웃" }).click();

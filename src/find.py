@@ -11,9 +11,11 @@
 결과(카드 묶음 — 화면 순서):
     eligible    지원 가능(이 공고문 기준)
     likely      지원 가능 (단, 공고문 내 지원자격 상세 확인 필요) — 예비. 2026-11-10 사용자 결정 표시
-    check       확인 필요(정보 부족·수동 확인·공고마다 다른 조건)
+    needs_info  지원가능 판단을 위한 추가정보 요청 — 정보 부족(추가 질문과 연결)
+    verify      실제 공고문 확인필요(접힘) — 수동 확인, 대표 공고 기준 지원 불가지만 공고마다 다를 수 있는 조건
     unlikely    지원 어려움(접힘) — 확정 지원 불가와 예비 '어려움'
     unjudged    판정하지 않는 사업(접힘)
+    ('확인 필요'를 둘로 나눔 — 2026-11-11 사용자 결정: 목록 위쪽에는 실제로 넣어 볼 만한 공고만)
 
 판정 로직은 엔진·매처·예비 판정을 그대로 부른다. 입력한 조건은 저장하지 않는다.
 """
@@ -28,13 +30,16 @@ from matcher import FIELD_LABELS, Match, MasterProfile, evaluate_layer, missing_
 from notices_data import ALL_NOTICES
 from rule_data import region_groups
 
-ELIGIBLE, LIKELY, CHECK, UNLIKELY, UNJUDGED = "eligible", "likely", "check", "unlikely", "unjudged"
-GROUPS = (ELIGIBLE, LIKELY, CHECK, UNLIKELY, UNJUDGED)
+ELIGIBLE, LIKELY, NEEDS_INFO, VERIFY, UNLIKELY, UNJUDGED = (
+    "eligible", "likely", "needs_info", "verify", "unlikely", "unjudged")
+GROUPS = (ELIGIBLE, LIKELY, NEEDS_INFO, VERIFY, UNLIKELY, UNJUDGED)
+COLLAPSED = (VERIFY, UNLIKELY, UNJUDGED)
 CONFIRMED, PREVIEW, NONE = "confirmed", "preview", "none"
 LABELS = {
     ELIGIBLE: "지원 가능",
     LIKELY: "지원 가능 (단, 공고문 내 지원자격 상세 확인 필요)",
-    CHECK: "확인 필요",
+    NEEDS_INFO: "지원가능 판단을 위한 추가정보 요청",
+    VERIFY: "실제 공고문 확인필요",
     UNLIKELY: "지원 어려움",
     UNJUDGED: "판정하지 않는 사업",
 }
@@ -47,8 +52,16 @@ SALE_TEMPLATES = frozenset({"lh.newlywed_town_sale", "lh.public_sale", "sh.land_
 RENT, SALE = "임대", "분양"
 STALE_HOURS = 24
 MAX_QUESTIONS = 2
-VERDICT_GROUP = {"ELIGIBLE": ELIGIBLE, "NEEDS_INFO": CHECK, "MANUAL_REVIEW": CHECK, "INELIGIBLE": UNLIKELY}
-PREVIEW_GROUP = {J.LIKELY: LIKELY, J.CHECK: CHECK, J.UNLIKELY: UNLIKELY}
+VERDICT_GROUP = {"ELIGIBLE": ELIGIBLE, "NEEDS_INFO": NEEDS_INFO, "MANUAL_REVIEW": VERIFY, "INELIGIBLE": UNLIKELY}
+
+
+def preview_group(lp) -> str:
+    """예비 판정 → 묶음. 확인 필요는 정보 부족이면 추가정보 요청, 그 밖(수동 확인·공고마다 다른 조건으로 지원 불가)은 공고문 확인."""
+    if lp.outcome == J.LIKELY:
+        return LIKELY
+    if lp.outcome == J.UNLIKELY:
+        return UNLIKELY
+    return NEEDS_INFO if lp.verdict == "NEEDS_INFO" else VERIFY
 
 
 # ------------------------------------------------------------------ 대표 공고 후보(등록 공고)
@@ -133,7 +146,7 @@ def _confirmed_layers(m: MasterProfile, notice, judge: Optional[Callable] = None
             r = judge(scoped_profile(m, notice, layer), layer)
         if r.verdict == "NOT_OFFERED":
             continue
-        layers.append({"layer": layer, "result": VERDICT_GROUP.get(r.verdict, CHECK), "verdict": r.verdict})
+        layers.append({"layer": layer, "result": VERDICT_GROUP.get(r.verdict, VERIFY), "verdict": r.verdict})
         matches.append(Match(notice, layer, r))
     return layers, matches
 
@@ -148,7 +161,7 @@ def _preview_layers(m: MasterProfile, rep: J.Registered, announced: Optional[dat
         lp = J.preview_layer(p, layer, notice, rep.template, index, announced)
         if lp.outcome == J.NONE:
             continue
-        layers.append({"layer": layer, "result": PREVIEW_GROUP[lp.outcome], "verdict": lp.verdict,
+        layers.append({"layer": layer, "result": preview_group(lp), "verdict": lp.verdict,
                        "reasons": lp.reasons[:3]})
         if lp.result is not None:
             matches.append(Match(dated, layer, lp.result))
@@ -182,7 +195,7 @@ def judge_row(m: MasterProfile, row: Dict, today: date, analyzed: Optional[Calla
                 layers, matches = _preview_layers(m, rep, announced)
     result = _best(layers) if basis != NONE else UNJUDGED
     if basis != NONE and not layers:
-        result = UNJUDGED if basis == PREVIEW else CHECK
+        result = UNJUDGED if basis == PREVIEW else VERIFY
     note = BASIS_NOTE[basis]
     if basis == PREVIEW:
         note = note.format(title=ALL_NOTICES[rep.notice_id].title, date=rep.announcement_date.isoformat())
@@ -297,7 +310,7 @@ def find_open(m: MasterProfile, live_rows: List[Dict], at: datetime, analyzed: O
     elif stale:
         notice = f"공고 목록이 {collected:%m월 %d일 %H시} 이후 갱신되지 않았습니다. 공식 공고에서 최신 상태를 확인하세요."
     return {"at": at.isoformat(), "collected_at": collected.isoformat() if isinstance(collected, datetime) else None,
-            "stale": stale, "notice": notice, "labels": LABELS,
+            "stale": stale, "notice": notice, "labels": LABELS, "groups": list(GROUPS), "collapsed": list(COLLAPSED),
             "counts": {g: sum(1 for c in cards if c["result"] == g) for g in GROUPS},
             "questions": questions(matches, m), "items": cards}
 
