@@ -83,26 +83,6 @@ def test_locked_screen_shows_password_box_without_query():
     assert any("운영자 전용" in m.value for m in at.info)
 
 
-def test_signed_in_operator_email_unlocks_without_password(monkeypatch):
-    """Streamlit Cloud 비공개 앱: 로그인 이메일이 operator_emails에 있으면 비밀번호 없이 운영자 모드(2026-11-12)."""
-    import operator_mode as O
-    fake = Fake()
-    monkeypatch.setattr(S, "get_store", lambda: fake)
-    monkeypatch.setenv(O.EMAILS_ENV, "Ops@Example.org, other@example.org")
-    monkeypatch.setattr(O, "signed_in_email", lambda: "ops@example.org")
-    at = AppTest.from_file(PAGE, default_timeout=30).run()
-    assert at.subheader and at.subheader[0].value == "사업별 자동 판정"
-    monkeypatch.setattr(O, "signed_in_email", lambda: "stranger@example.org")
-    at = AppTest.from_file(PAGE, default_timeout=30).run()
-    assert any("운영자 전용" in m.value for m in at.info) and not at.subheader
-
-
-def test_email_rules():
-    import operator_mode as O
-    assert O.email_allowed("A@x.org", frozenset({"a@x.org"})) and not O.email_allowed(None, frozenset({"a@x.org"}))
-    assert not O.email_allowed("b@x.org", frozenset())
-
-
 def test_app_entry_opens_review_first():
     """app.py(Streamlit Cloud 시작 파일)는 메뉴만 — 첫 화면은 운영자 검토, 옛 '내 조건으로 공고 찾기'는 없다."""
     root = Path(__file__).resolve().parent.parent

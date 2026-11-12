@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """운영자 검토(C8) — 운영자 화면 첫 화면(app.py가 메뉴를 정한다, 2026-11-12). 공유 저장소(Neon)의 작업 대기열·사업별 자동 판정 상태·이용 집계를 본다.
 
-- 잠금: 운영자 모드(src/operator_mode.py — Cloud는 로그인 이메일, 운영자 PC는 비밀번호)가 켜져 있어야 보인다.
+- 잠금: 운영자 모드(src/operator_mode.py — 운영자 비밀번호)가 켜져 있어야 보인다.
 - 자동 분석이 넘긴 공고(review·register·enhance)를 보고, PDF를 내려받아 docs/08 절차로 등록하거나, 판정할 수 없는 공고는 사유와 함께
   닫는다. 사업별 자동 판정은 B2 비교에서 위험이 나오면 저절로 멈추고(tools/draft_compare.py --record), 다시 켜는 것은 여기서만.
 - 지금 모집 중인 공고(공공데이터포털 수집, docs/12): 판정 틀이 있는데 분석 전인 공고를 찾아 공고문을 올린다.
@@ -23,8 +23,7 @@ st.set_page_config(page_title="운영자 검토", page_icon="🔧", layout="wide
 st.title("🔧 운영자 검토")
 
 if not sidebar_gate(always=True):
-    st.info("운영자 전용 화면입니다. Streamlit Cloud에서는 운영자 이메일(secrets `operator_emails`)로 로그인하면 바로 열리고, "
-            "운영자 PC에서는 왼쪽에 운영자 비밀번호를 넣으세요.")
+    st.info("운영자 전용 화면입니다. 왼쪽에 운영자 비밀번호를 넣으세요.")
     st.stop()
 
 store = get_store()
