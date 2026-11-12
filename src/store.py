@@ -457,7 +457,8 @@ class Store(NullStore):
                           window_start = COALESCE(EXCLUDED.window_start, live_notices.window_start),
                           window_end = COALESCE(EXCLUDED.window_end, live_notices.window_end),
                           program = EXCLUDED.program, template = EXCLUDED.template,
-                          registered_id = EXCLUDED.registered_id, route = EXCLUDED.route, detail_key = EXCLUDED.detail_key,
+                          registered_id = EXCLUDED.registered_id, route = EXCLUDED.route,
+                          detail_key = COALESCE(live_notices.detail_key, '{{}}'::jsonb) || EXCLUDED.detail_key,   -- 주택관리번호 등은 남긴다
                           detail_fetched_at = COALESCE(EXCLUDED.detail_fetched_at, live_notices.detail_fetched_at),
                           last_seen = now()""",
                     tuple(r.get(k) for k in cols) + (json.dumps(r.get("detail_key") or {}, ensure_ascii=False), key in fetched))
@@ -468,10 +469,10 @@ class Store(NullStore):
     def live_notices(self, open_only=True, limit=500) -> list:
         """모은 공고(마감 안 된 것 — 마감일이 오늘 이후이거나 모름, 최근 공고부터)."""
         rows = self._run(lambda c: c.execute(
-            f"""SELECT {", ".join(self.LIVE_COLS)}, first_seen, last_seen FROM live_notices
+            f"""SELECT {", ".join(self.LIVE_COLS)}, detail_key, first_seen, last_seen FROM live_notices
                 WHERE NOT %s OR window_end IS NULL OR window_end >= (now() AT TIME ZONE 'Asia/Seoul')::date
                 ORDER BY announced DESC NULLS LAST, first_seen DESC LIMIT %s""", (open_only, limit)).fetchall())
-        return [dict(zip(self.LIVE_COLS + ("first_seen", "last_seen"), r)) for r in rows]
+        return [dict(zip(self.LIVE_COLS + ("detail_key", "first_seen", "last_seen"), r)) for r in rows]
 
     @_safe(False)
     def request_analysis(self, source, external_id) -> bool:

@@ -18,7 +18,8 @@ from datetime import date
 from difflib import SequenceMatcher
 from typing import Dict, List, Optional
 
-LH_SOURCE, APPLYHOME_SOURCE = "lh", "applyhome"
+LH_SOURCE, APPLYHOME_SOURCE, SEOUL_SOURCE = "lh", "applyhome", "seoul_housing"
+CLOSED_STATUS = ("접수마감", "모집완료", "중단공고", "모집마감")
 # LH 상위 유형 코드 — 주택 공고만(01 토지·22 상가 등은 거른다). 05 분양주택은 잔여세대 매각 등
 LH_TYPES = {"05": "분양주택", "06": "임대주택", "13": "매입임대", "39": "신혼희망타운"}
 # 청약홈 사업주체 — LH·SH 공고만(민간 아파트는 판정 대상이 아니다)
@@ -240,6 +241,8 @@ def link(n: LiveNotice, index=None) -> LiveNotice:
     _, program = nc.classify([clean_title(n.title) + " " + n.kind, marker])
     if program is None and n.source == LH_SOURCE:
         program = KIND_PROGRAM.get(n.kind)
+    if n.issuer == "SH" and (program is None or program in SH_GENERIC):
+        program = sh_title_program(n.title, n.kind) or program
     if n.source == LH_SOURCE and n.kind.startswith("행복주택"):
         # LH 유형이 행복주택이면 행복주택 — 제목의 '신혼희망타운'으로 분양이 되지 않게(2026-11-11 구리갈매 A-1BL)
         program = "행복주택(신혼희망타운)" if "신혼희망" in n.kind else "행복주택"
@@ -256,7 +259,7 @@ def link(n: LiveNotice, index=None) -> LiveNotice:
 def is_open(n: LiveNotice, today: Optional[date] = None) -> bool:
     """아직 마감하지 않은 공고(마감일이 오늘 이후이거나 모름)."""
     t = (today or date.today()).isoformat()
-    return n.status not in ("접수마감", "모집완료", "중단공고") and (n.window_end is None or n.window_end >= t)
+    return n.status not in CLOSED_STATUS and (n.window_end is None or n.window_end >= t)
 
 
 # ------------------------------------------------------------------ 같은 공고 묶기(2단계 ①, 2026-11-10)
@@ -276,8 +279,11 @@ def _core(title: str) -> str:
     return CORE_DROP.sub("", clean_title(title).replace("[", "(").replace("]", ")"))
 
 
+SOURCE_RANK = {LH_SOURCE: 0, SEOUL_SOURCE: 1, APPLYHOME_SOURCE: 2}
+
+
 def _primary_first_pick(rows: List[Dict]) -> Dict:
-    return min(rows, key=lambda r: (r["source"] != LH_SOURCE, r.get("status") == "정정공고중",
+    return min(rows, key=lambda r: (SOURCE_RANK.get(r["source"], 3), r.get("status") == "정정공고중",
                                     "" if r.get("announced") is None else _neg(str(r["announced"]))))
 
 
@@ -297,6 +303,10 @@ def _merge(rows: List[Dict]) -> Dict:
     out["route"] = best.get("route")
     if best.get("registered_id"):
         out["registered_id"] = best["registered_id"]
+    # 주택포털이 대표면 접수기간은 청약홈 값(특별·순위별 접수일이 구조화돼 있다)
+    ah = next((r for r in rows if r["source"] == APPLYHOME_SOURCE and r.get("window_start")), None)
+    if ah is not None and lead["source"] == SEOUL_SOURCE:
+        out["window_start"], out["window_end"] = ah["window_start"], ah["window_end"]
     out["related"] = [{"source": r["source"], "external_id": r["external_id"], "title": r["title"], "status": r.get("status"),
                        "url": r.get("url")} for r in others]
     return out
@@ -314,12 +324,18 @@ def merge_duplicates(rows: List[Dict]) -> List[Dict]:
             exact[k] = [r]
             groups.append(exact[k])
     lh_groups = [g for g in groups if g[0]["source"] == LH_SOURCE]
+    # 주택포털과 청약홈의 같은 SH 분양 공고 — 주택관리번호로 묶는다
+    by_house = {str((r.get("detail_key") or {}).get("house_no")): g for g in groups for r in g
+                if r["source"] == SEOUL_SOURCE and (r.get("detail_key") or {}).get("house_no")}
     merged: List[List[Dict]] = []
     for g in groups:
         if g[0]["source"] != APPLYHOME_SOURCE:
             merged.append(g)
             continue
         a = g[0]
+        if str(a["external_id"]) in by_house:
+            by_house[str(a["external_id"])].extend(g)
+            continue
         host = next((h for h in lh_groups
                      if any(h_r.get("issuer") == a.get("issuer") and str(h_r.get("announced")) == str(a.get("announced"))
                             and str(h_r.get("window_end")) == str(a.get("window_end"))
@@ -330,3 +346,170 @@ def merge_duplicates(rows: List[Dict]) -> List[Dict]:
         else:
             merged.append(g)
     return [_merge(g) if len(g) > 1 else dict(g[0], related=[]) for g in merged]
+
+
+# ------------------------------------------------------------------ SH — 서울시 주택포털(2단계 ②-5, 2026-11-12)
+# SH는 공식 API가 없고 i-sh.co.kr robots가 게시판·첨부를 막는다. 서울시 주택포털(housing.seoul.go.kr, robots Allow: /, 서울시 저작권 정책 —
+# 공공누리)의 SH 공공임대·공공분양 목록과 상세 요약을 읽는다(공고명·날짜·상태 같은 사실 정보만, 원문 링크로 보냄). 해외 IP(GitHub 서버)에서
+# 접속되는 것을 확인했다(2026-11-12). 마이홈포털 웹은 해외 IP를 막아 쓰지 않는다.
+SEOUL_BASE = "https://housing.seoul.go.kr"
+SEOUL_LISTS = (("임대", "/site/main/sh/publicLease/list?cp={}"), ("분양", "/site/main/sh/publicSale/01/list?cp={}"))
+SEOUL_HEAD = ("번호", "청약유형", "공고명", "공고게시일", "발표일")
+# 목록에 섞인 모집공고 아닌 글(당첨자·서류심사 발표, 일정 연기, 주택정보 추가, 예비자 순번 안내)
+SEOUL_NOT_NOTICE = re.compile(r"당첨자|발표|결과|연기|취소|주택정보|명단|합격|선정자|경쟁률|예비\s*\d\s*차|안내\s*$")
+# 분류기가 제목만으로는 뭉뚱그려 답하는 사업 이름 — 제목의 사업 이름으로 다시 정한다(판정 틀과 같은 이름)
+SH_GENERIC = {"매입임대주택", "분양주택", "도시형생활주택", "공공임대주택"}
+SH_TITLE_PROGRAM = (
+    (re.compile(r"신혼\s*[·ㆍ]?\s*신생아\s*매입임대\s*주택\s*(Ⅱ|2|II)|미리내집\s*\(\s*신혼"), "SH 신혼·신생아 매입임대Ⅱ"),
+    (re.compile(r"신혼\s*[·ㆍ]?\s*신생아\s*매입임대"), "SH 신혼·신생아 매입임대Ⅰ"),
+    (re.compile(r"다자녀\s*매입임대"), "다자녀 매입임대"),
+    (re.compile(r"토지임대부\s*분양"), "토지임대부 분양주택"),
+    (re.compile(r"국민임대"), "국민임대주택"),
+    (re.compile(r"영구임대"), "영구임대주택"),
+)
+
+
+class SeoulFormatError(ValueError):
+    """주택포털 화면 구조가 바뀜 — 수집기가 실패로 알린다(조용히 0건이 되지 않게)."""
+
+
+def sh_title_program(title: str, kind: str = "") -> Optional[str]:
+    t = clean_title(title)
+    if re.search(r"청년\s*매입임대|기숙사형|공공한옥", t):        # SH 청년 매입임대·공공한옥은 판정 틀 없음
+        return None
+    return next((p for rx, p in SH_TITLE_PROGRAM if rx.search(t)), None)
+
+
+def _html_text(s: str) -> str:
+    import html as _h
+    s = re.sub(r"<script.*?</script>|<style.*?</style>", "", s, flags=re.S)
+    return re.sub(r"\s+", " ", _h.unescape(re.sub(r"<[^>]+>", " ", s))).strip()
+
+
+def parse_seoul_list(page_html: str, kind: str) -> List[Dict]:
+    """주택포털 SH 목록 한 쪽 → 행(청약유형·공고명·게시일·발표일·모집상태·상세 경로). 머리글이 다르면 SeoulFormatError."""
+    import html as _h
+    t = re.sub(r"<script.*?</script>|<style.*?</style>", "", page_html, flags=re.S)
+    trs = re.findall(r"<tr.*?</tr>", t, flags=re.S)
+    if not trs:
+        raise SeoulFormatError("목록 표가 없습니다")
+    head = [_html_text(x) for x in re.findall(r"<th.*?</th>", trs[0], flags=re.S)]
+    if tuple(head[:5]) != SEOUL_HEAD:
+        raise SeoulFormatError(f"목록 머리글이 바뀌었습니다: {head[:7]}")
+    out = []
+    for r in trs[1:]:
+        c = [_html_text(x) for x in re.findall(r"<td.*?</td>", r, flags=re.S)]
+        link = re.findall(r'href="([^"]+)"', r)
+        if len(c) < 6 or not link:
+            continue
+        out.append({"type": c[1], "title": re.sub(r"^-->\s*", "", c[2]).strip(), "posted": _d(c[3]), "winners": _d(c[4]),
+                    "status": c[5] if kind == "임대" else "", "view": _h.unescape(link[0]), "kind": kind})
+    return out
+
+
+def seoul_text(view_html: str) -> str:
+    """상세 화면 → 요약 본문(제목·공고일·유형 … 상세 정보)."""
+    x = _html_text(view_html)
+    i, j = x.find("제목"), x.find("목록 #content_wrap")
+    return x[i if i >= 0 else 0: j if j > 0 else None]
+
+
+_APPLY = re.compile(r"접수|신청|청약\s*일정")
+_NOT_APPLY = re.compile(r"서류|당첨|발표|계약|입주|열람|추첨|결과|제출|공개|동호|소명|선정|자격심사|방법|문의|사전청약|포기")
+_D = r"(?:(20\d{2})\s*[.\-년]\s*)?(\d{1,2})\s*[.\-월]\s*(\d{1,2})\s*\.?\s*일?"
+_RANGE = re.compile(_D + r"\s*(?:\([^)]{1,4}\))?\s*(?:\d{1,2}\s*[:시]\s*\d{0,2}\s*분?)?\s*[~∼～\-]\s*(?:" + _D + r"|(\d{1,2}\s*[:시]))")
+
+
+def _mk(y, m, d, year: int) -> Optional[date]:
+    try:
+        return date(int(y or year), int(m), int(d))
+    except (TypeError, ValueError):
+        return None
+
+
+def seoul_window(body: str, posted: Optional[str], winners: Optional[str] = None) -> Optional[Dict[str, str]]:
+    """요약 본문의 청약 접수기간 — ■·□ 항목과 ○ 줄 중 '접수·신청' 문맥의 날짜 범위만(서류·당첨·계약·사전청약 당첨자 줄은 뺀다).
+    가장 이른 시작 ~ 가장 늦은 마감. 공고일 30일 전보다 이르거나 당첨자 발표보다 늦거나 180일 넘게 걸치면 버린다(None).
+    2026-11-12 주택포털 SH 공고 86건 표본으로 맞췄다(tests/test_live_seoul.py)."""
+    if not posted:
+        return None
+    pd = date.fromisoformat(posted)
+    wd = date.fromisoformat(_d(winners)) if _d(winners) else None      # 발표일 '-'(미정)
+    year = pd.year
+    early = date.fromordinal(pd.toordinal() - 30)
+    starts, ends = [], []
+    in_apply = False
+    for t in re.split(r"(?=[■□○◦▶●])", body):
+        t = t.strip()
+        if not t:
+            continue
+        head = re.split(r"\s-\s", t, maxsplit=1)[0]          # 머리말만(같은 줄의 '- 사전청약 당첨자: …' 하위 줄은 아래에서 따로)
+        lab = re.split(r"[:：]", head, maxsplit=1)[0][:30] if re.search(r"[:：]", head[:32]) else head[:24]
+        lab_ok = bool(_APPLY.search(lab)) and not _NOT_APPLY.search(
+            re.sub(r"(및\s*)?신청\s*방법", "", lab).replace("신청접수", "접수"))
+        if t[0] in "■□":
+            in_apply = lab_ok
+        elif _NOT_APPLY.search(lab) and not lab_ok:
+            continue
+        if not (lab_ok or in_apply):
+            continue
+        for line in re.split(r"(?=\s-\s)", t):          # '- 사전청약 당첨자: …' 같은 하위 줄
+            if re.search(r"사전청약|서류|당첨자\s*발표|포기", line[:30]):
+                continue
+            for m in _RANGE.finditer(line):
+                y1, m1, d1, y2, m2, d2, _hh = m.groups()
+                a = _mk(y1, m1, d1, year)
+                if a and not y1 and a < early:                       # 12월 공고 → 1월 접수(해를 넘김)
+                    a = _mk(year + 1, m1, d1, year)
+                b = _mk(y2 or (a.year if a else year), m2, d2, year) if m2 else a
+                if a and b and b < a and not y2:
+                    b = _mk(a.year + 1, m2, d2, year)
+                if a and b and 0 <= (b - a).days <= 120:
+                    starts.append(a)
+                    ends.append(b)
+    if not starts:
+        return None
+    s, e = min(starts), max(ends)
+    if s < early or (wd and e > wd) or (e - s).days > 180:
+        return None
+    return {"window_start": s.isoformat(), "window_end": e.isoformat()}
+
+
+def seoul_house_no(body: str) -> Optional[str]:
+    """요약 본문의 주택관리번호(청약홈과 같은 번호 — 분양 공고는 청약홈 행과 정확히 묶는다)."""
+    m = re.search(r"주택관리번호\s*[:：]?\s*(\d{4})\s*-?\s*(\d{6})", body)
+    return m.group(1) + m.group(2) if m else None
+
+
+def seoul_announced(body: str) -> Optional[str]:
+    m = re.search(r"모집\s*공고일\s*[:：]?\s*(20\d{2})\s*[.\-]\s*(\d{1,2})\s*[.\-]\s*(\d{1,2})", body)
+    d = _mk(*m.groups(), 0) if m else None
+    return d.isoformat() if d else None
+
+
+def seoul_external_id(row: Dict) -> str:
+    """주택포털 상세 주소의 seq는 목록 순서라 바뀐다 — 공고명·게시일로 고정 ID를 만든다."""
+    import hashlib
+    return hashlib.sha1(f"{row['title']}|{row['posted']}".encode("utf-8")).hexdigest()[:16]
+
+
+def seoul_notice(row: Dict) -> Optional[LiveNotice]:
+    """목록 행 → LiveNotice(접수기간은 상세를 읽은 뒤 with_seoul_detail). 모집공고 아닌 글은 None."""
+    if SEOUL_NOT_NOTICE.search(row["title"]):
+        return None
+    return LiveNotice(source=SEOUL_SOURCE, external_id=seoul_external_id(row), title=row["title"], issuer="SH",
+                      kind=row["type"], region="서울특별시", announced=row["posted"], window_start=None, window_end=None,
+                      status=row["status"], url=SEOUL_BASE + row["view"],
+                      detail_key={"view": row["view"], "winners": row.get("winners") or ""})
+
+
+def with_seoul_detail(n: LiveNotice, view_html: str) -> LiveNotice:
+    """상세 요약 → 모집공고일·접수기간·주택관리번호. 접수기간을 못 읽으면 비워 둔다(화면은 '접수 일정은 공고문 확인')."""
+    body = seoul_text(view_html)
+    ann = seoul_announced(body) or n.announced
+    w = seoul_window(body, ann, n.detail_key.get("winners") or None) or {}
+    key = dict(n.detail_key)
+    hn = seoul_house_no(body)
+    if hn:
+        key["house_no"] = hn
+    return replace(n, announced=ann, detail_key=key, **w)

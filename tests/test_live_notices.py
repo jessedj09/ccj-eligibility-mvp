@@ -226,3 +226,15 @@ def test_db_request_analysis_counts_and_analyzed_notices(db):
     db.save_analysis("b" * 64, "v", {"status": "unsupported"})
     got = db.analyzed_notices()
     assert [g["sha256"] for g in got] == ["a" * 64] and got[0]["announcement_date"] == ann
+
+
+@needs_db
+def test_db_detail_key_merges_and_is_read_back(db):
+    """주택포털 SH 공고의 주택관리번호(상세에서 한 번 읽음)는 상세를 다시 열지 않는 수집에서도 남는다."""
+    row = {"type": "주택분양", "title": "[정정] 고덕강일지구 3단지 토지임대부 분양주택 입주자모집공고", "posted": "2026-10-16",
+           "winners": "2026-11-26", "status": "", "view": "/v?seq=4", "kind": "분양"}
+    n = L.seoul_notice(row)
+    db.upsert_live([dict(n.as_dict(), detail_key=dict(n.detail_key, house_no="2026000373"))])
+    db.upsert_live([n.as_dict()])                                          # 다음 수집 — 상세 없이
+    got = [r for r in db.live_notices(open_only=False) if r["source"] == L.SEOUL_SOURCE][0]
+    assert got["detail_key"]["house_no"] == "2026000373" and got["detail_key"]["view"] == "/v?seq=4"

@@ -7,7 +7,9 @@
 
 - 인증키: 환경변수 `DATA_GO_KR_KEY`(사용자가 직접 넣음 — 출력·저장하지 않는다). 없으면 종료코드 2.
 - 출처: LH 분양임대공고문 조회(주택 유형 05·06·13·39, 최근 2개월) + 상세 정보(단지별 청약 접수기간 — 새 공고·하루 지난 것만)
-  + 청약홈 분양정보 조회(LH·SH 공고만, 최근 60일). 공고문 PDF는 내려받지 않는다.
+  + 청약홈 분양정보 조회(LH·SH 공고만, 최근 60일)
+  + 서울시 주택포털 SH 공공임대·공공분양 목록(최근 2개월)과 모집 중인 공고의 상세 요약(접수기간·주택관리번호 — 2026-11-12 ②-5).
+  공고문 PDF는 내려받지 않는다.
 - 저장소가 없으면(DATABASE_URL 없음·CCJ_STORE=off) 상세 조회는 공고마다 하고 저장은 건너뛴다.
 - API가 실패하면 종료코드 1(예약 작업이 실패로 알린다). 한 출처만 실패해도 다른 출처는 저장한다.
 """
@@ -22,6 +24,7 @@ import urllib.parse
 import urllib.request
 from collections import Counter
 from datetime import date, timedelta
+from typing import Optional
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -40,6 +43,8 @@ TIMEOUT = 20                   # 호출 하나의 시간 한도(초)
 RETRIES = 1                    # 접속 실패·시간 초과면 이만큼 더 시도(2026-11-10 첫 예약 실행: GitHub 서버에서 상세 8건이 TLS 연결 시간 초과)
 RETRY_WAIT = 3                 # 다시 시도하기 전 쉼(초)
 USER_AGENT = "ccj-collector/0.1"
+SEOUL_PAUSE = 1.0              # 주택포털은 화면 — 공공데이터 API보다 천천히
+SEOUL_MAX_PAGES = 5
 
 
 class SourceError(Exception):
@@ -66,6 +71,43 @@ def _get(url: str, key: str, params: dict):
         raise SourceError("JSON이 아닌 응답: " + text.replace(key, "***")[:200]) from None
 
 
+def _get_html(url: str) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    for attempt in range(RETRIES + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                text = r.read().decode("utf-8", "replace")
+            break
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            if attempt == RETRIES:
+                raise SourceError(str(e)) from None
+            time.sleep(RETRY_WAIT)
+    time.sleep(SEOUL_PAUSE)
+    return text
+
+
+def collect_seoul(key: str, today: date):
+    """서울시 주택포털 SH 목록(임대·분양, 최근 2개월) — LiveNotice 목록(접수기간은 add_details가 상세에서). 화면 구조가 바뀌면 SourceError."""
+    out, since = [], (today - timedelta(days=62)).isoformat()
+    for kind, path in L.SEOUL_LISTS:
+        for cp in range(1, SEOUL_MAX_PAGES + 1):
+            try:
+                rows = L.parse_seoul_list(_get_html(L.SEOUL_BASE + path.format(cp)), kind)
+            except L.SeoulFormatError as e:
+                raise SourceError(f"주택포털 {kind} 목록: {e}") from None
+            out += [n for n in (L.seoul_notice(r) for r in rows if (r["posted"] or "") >= since) if n is not None]
+            if len(rows) < 10 or not rows or (rows[-1]["posted"] or "") < since:
+                break
+    return out
+
+
+def _seoul_wants_detail(n, today: date) -> bool:
+    """상세는 모집 중인 공고만(분양은 최근 공고) — 이미 마감한 공고까지 열지 않는다."""
+    if n.status == "모집중":
+        return True
+    return n.status == "" and (n.announced or "") >= (today - timedelta(days=45)).isoformat()
+
+
 def collect_lh(key: str, today: date):
     """LH 주택 공고(최근 2개월, 유형별 쪽 넘김) — LiveNotice 목록."""
     out = []
@@ -87,12 +129,19 @@ def collect_applyhome(key: str, today: date):
     return L.parse_applyhome(resp, today)
 
 
-def add_details(key: str, rows, needed):
-    """상세 조회가 필요한 LH 공고만 접수기간을 채운다. → (새 목록, 조회한 키 집합)."""
+def add_details(key: str, rows, needed, today: Optional[date] = None):
+    """상세 조회가 필요한 LH 공고·모집 중인 주택포털 SH 공고만 접수기간을 채운다. → (새 목록, 조회한 키 집합)."""
+    today = today or date.today()
     out, fetched = [], set()
     for n in rows:
         k = (n.source, n.external_id)
-        if n.source == L.LH_SOURCE and k in needed and n.detail_key.get("PAN_ID"):
+        if n.source == L.SEOUL_SOURCE and k in needed and _seoul_wants_detail(n, today):
+            try:
+                n = L.with_seoul_detail(n, _get_html(L.SEOUL_BASE + n.detail_key["view"]))
+                fetched.add(k)
+            except SourceError as e:
+                log.warning("주택포털 상세 조회 실패 %s: %s", n.title[:30], e)
+        elif n.source == L.LH_SOURCE and k in needed and n.detail_key.get("PAN_ID"):
             try:
                 n = L.with_detail(n, _get(LH_DETAIL, key, n.detail_key))
                 fetched.add(k)
@@ -119,7 +168,7 @@ def main(argv=None) -> int:
         store = None
 
     rows, failed = [], []
-    for name, fn in (("LH", collect_lh), ("청약홈", collect_applyhome)):
+    for name, fn in (("LH", collect_lh), ("청약홈", collect_applyhome), ("서울시 주택포털(SH)", collect_seoul)):
         try:
             got = fn(key, today)
             rows += got
@@ -128,10 +177,10 @@ def main(argv=None) -> int:
             failed.append(name)
             print(f"{name}: 실패 — {e}")
 
-    keys = [(n.source, n.external_id) for n in rows if n.source == L.LH_SOURCE]
+    keys = [(n.source, n.external_id) for n in rows if n.source in (L.LH_SOURCE, L.SEOUL_SOURCE)]
     needed = (store.live_detail_needed(keys) if store and type(store).__name__ != "NullStore" else None)
     needed = set(keys) if needed is None else needed
-    rows, fetched = add_details(key, rows, needed)
+    rows, fetched = add_details(key, rows, needed, today)
     rows = [L.link(n) for n in rows]
 
     saved = 0

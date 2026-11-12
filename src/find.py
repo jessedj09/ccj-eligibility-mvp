@@ -132,7 +132,10 @@ def schedule_of(row: Dict, today: date) -> Dict:
     if e and today <= e:
         return {"code": "open", "text": "접수 중", "days": (e - today).days, "start": s.isoformat() if s else None,
                 "end": e.isoformat()}
-    return {"code": "unknown", "text": row.get("status") or "일정 확인", "days": None,
+    # 접수기간을 못 읽음 — '접수 중'이라고 단정하지 않는다(2026-11-12, 주택포털 SH 요약에 날짜가 없는 공고 등)
+    text = (f"{row['status']} · 접수 일정은 공고문 확인" if row.get("status") in ("모집중", "공고중", "접수중")
+            else "접수 일정은 공고문 확인")
+    return {"code": "unknown", "text": text, "days": None,
             "start": s.isoformat() if s else None, "end": e.isoformat() if e else None}
 
 
@@ -232,7 +235,7 @@ def relink(rows: List[Dict]) -> List[Dict]:
 
 def _is_open(row: Dict, today: date) -> bool:
     e = _d(row.get("window_end"))
-    return row.get("status") not in ("접수마감", "모집완료", "중단공고") and (e is None or e >= today)
+    return row.get("status") not in LN.CLOSED_STATUS and (e is None or e >= today)
 
 
 def registered_open_rows(at: datetime, linked: set) -> List[Dict]:

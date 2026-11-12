@@ -215,7 +215,7 @@ Engine**이다.
   `tools/purge_accounts.py`(GitHub Actions `purge-accounts` 매주 — 비밀값 `PROD_DATABASE_URL`이 있을 때만). 계정 기능은 공유 저장소와 같은
   스위치 — NullStore(시험·`CCJ_STORE=off`)면 503, 화면 점검만 `CCJ_ACCOUNTS_MEMORY=1`(메모리 회원 저장소)·`CCJ_MAIL_BACKEND=file`
   (`CCJ_MAIL_FILE`에 인증 코드)로 켠다(`web/e2e/account.spec.ts`). `tests/test_accounts.py`.
-- pytest: 총 **1601개 전부 통과**(11개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+- pytest: 총 **1625개 전부 통과**(12개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.
