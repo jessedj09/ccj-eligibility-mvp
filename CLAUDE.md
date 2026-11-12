@@ -215,7 +215,7 @@ Engine**이다.
   `tools/purge_accounts.py`(GitHub Actions `purge-accounts` 매주 — 비밀값 `PROD_DATABASE_URL`이 있을 때만). 계정 기능은 공유 저장소와 같은
   스위치 — NullStore(시험·`CCJ_STORE=off`)면 503, 화면 점검만 `CCJ_ACCOUNTS_MEMORY=1`(메모리 회원 저장소)·`CCJ_MAIL_BACKEND=file`
   (`CCJ_MAIL_FILE`에 인증 코드)로 켠다(`web/e2e/account.spec.ts`). `tests/test_accounts.py`.
-- pytest: 총 **1625개 전부 통과**(12개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
+- pytest: 총 **1628개 전부 통과**(12개는 환경에 따라 건너뜀)(캐시가 있으면 약 2분, 처음엔 PDF 추출로 +2분). 화면 점검: `python tools/ui_smoke.py`(4~6분, 18단계).
   **생성 스크립트(tools/gen_*.py)를 고친 뒤에는 반드시 다시 돌려 `git status rules/`가 의도한 변경만 보이는지 확인할 것.**
 - **다음 과제**: 사용자가 넣을 실제 새 공고로 B1 등록·B2 두 번째 시험(**등록 전 먼저** `--draft --save-draft` → 등록 →
   `draft_compare.py`) → C1 초안 판정 공개 여부 결정. (선택) 2단계 T2.2 독립 검증 대조 도구.
@@ -275,8 +275,9 @@ Engine**이다.
 - `src/priority_scoring.py` — 우선공급 배점(verdict와 분리된 별도 점수)
 - `src/profiles_data.py` — 테스트용 프로필 12개 + 수기 정답지
 - `src/explainability.py` — EvaluationResult → 사용자용 근거 문구(Explanation) 변환
-- `app.py` — Streamlit 데모 UI: 공고 하나 판정 (판정 로직 없음, src/ 함수만 호출)
-- `pages/1_내_조건으로_공고_찾기.py` — 전체 공고 판정 화면(src/matcher.py)
+- `app.py` — 운영자(관리자) 화면 시작 파일(Streamlit, 2026-11-12 정리): 메뉴만 — `ops/review.py`(운영자 검토, 첫 화면)·`ops/preview.py`
+  (공고문 초안 미리보기 = 예전 app.py 공고 하나 판정). 운영자 확인은 Cloud 로그인 이메일(`operator_emails`) 또는 운영자 PC 비밀번호.
+  예전 `pages/1_내_조건으로_공고_찾기.py`는 삭제(공개 화면 /find/all이 맡음). 판정 로직 없음
 - (`mvp0/` 초기 스냅샷은 E2에서 삭제 — git 이력에 있음)
 - `tests/` — pytest 스위트, **총 616개**(회귀 36 + 경계값 32 + 자녀가산 9 + 우선공급배점 5 +
   explainability 6 + MVP0.1 28 + MVP0.2 34 + MVP0.3 22 + 규칙 데이터화·골든·가구원수 모순 MVP0.6·원문 대조 P4·C1 공고 추가·C2 지역·C3 새 계층)

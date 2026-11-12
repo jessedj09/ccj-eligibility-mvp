@@ -398,7 +398,7 @@ class Store(NullStore):
             "SELECT program, compared, same, cautious, danger, demoted_at FROM program_health ORDER BY program").fetchall())
         return [dict(zip(("program", "compared", "same", "cautious", "danger", "demoted_at"), r)) for r in rows]
 
-    # ---- 운영자 검토 화면(C8 — pages/9_운영자_검토.py) ----
+    # ---- 운영자 검토 화면(C8 — ops/review.py) ----
     @_safe([])
     def list_jobs(self, kind=None, status=None, limit=100) -> list:
         """작업 목록 + 공고 정보 + PDF 보관 여부(최근 것부터). kind·status로 거른다."""

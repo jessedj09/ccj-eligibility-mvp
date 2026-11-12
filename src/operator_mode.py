@@ -6,6 +6,8 @@
 - 비밀번호는 Streamlit secrets `operator_password`(배포: 앱 설정 → Secrets, 로컬: .streamlit/secrets.toml — 커밋 금지)
   또는 환경변수 `CCJ_OPERATOR_PASSWORD`. 둘 다 없으면 운영자 모드를 켤 수 없다.
 - 켜진 상태는 그 브라우저 세션(session_state)에만 남는다.
+- (2026-11-12) Streamlit Community Cloud 비공개 앱에서는 Streamlit에 로그인한 사람의 이메일(st.user)이 secrets `operator_emails`
+  (또는 환경변수 CCJ_OPERATOR_EMAILS, 쉼표로 여럿)에 있으면 비밀번호 없이 켠다. 운영자 PC에서 직접 띄우면 로그인 정보가 없어 비밀번호로.
 """
 import hmac
 import os
@@ -16,6 +18,8 @@ import streamlit as st
 KEY = "operator_on"
 ENV = "CCJ_OPERATOR_PASSWORD"
 PUBLIC_ENV = "CCJ_AUTO_JUDGE_PUBLIC"
+EMAILS_ENV = "CCJ_OPERATOR_EMAILS"
+LOCAL_DEV_EMAIL = "test@example.com"      # 로컬에서 st.user가 돌려주는 자리표시 — 운영자로 보지 않는다
 
 
 def configured_password() -> Optional[str]:
@@ -38,6 +42,31 @@ def auto_judge_public() -> bool:
     return str(value).strip().lower() in ("1", "true", "yes", "on")
 
 
+def operator_emails() -> frozenset:
+    try:
+        value = st.secrets.get("operator_emails")
+    except Exception:
+        value = None
+    if value is None:
+        value = os.environ.get(EMAILS_ENV, "")
+    items = value.split(",") if isinstance(value, str) else list(value or [])
+    return frozenset(str(x).strip().lower() for x in items if str(x).strip())
+
+
+def signed_in_email() -> Optional[str]:
+    """Streamlit Cloud에 로그인한 사람의 이메일(비공개 앱). 알 수 없으면 None."""
+    try:
+        email = getattr(st.user, "email", None)
+    except Exception:
+        email = None
+    email = (email or "").strip().lower()
+    return email if email and email != LOCAL_DEV_EMAIL else None
+
+
+def email_allowed(email: Optional[str], allowed: frozenset) -> bool:
+    return bool(email) and email.lower() in allowed
+
+
 def check(entered: str, expected: Optional[str]) -> bool:
     return bool(expected) and hmac.compare_digest(entered.encode("utf-8"), expected.encode("utf-8"))
 
@@ -51,16 +80,20 @@ def _lock():
     st.session_state[KEY] = False
 
 
-def sidebar_gate() -> bool:
+def sidebar_gate(always: bool = False) -> bool:
     """사이드바에 잠금 상태를 그리고 운영자 모드인지 돌려준다. 주소에 ?operator가 없으면 아무것도 그리지 않는다.
     잠금·해제는 위젯 콜백으로 한다 — 화면 중간에 st.rerun()을 하면 아직 그리지 않은 아래 위젯(공고 고르는 방법 등)의
-    값이 처음 값으로 돌아간다."""
+    값이 처음 값으로 돌아간다. always=True(운영자 전용 화면)면 주소에 ?operator가 없어도 비밀번호 칸을 그린다."""
     if st.session_state.get(KEY):
         with st.sidebar.expander("🔧 운영자 모드 켜짐", expanded=False):
             st.caption("미등록 공고를 올리면 '검증 전 초안' 판정을 미리 볼 수 있습니다(일반 사용자에게는 보이지 않음).")
             st.button("운영자 모드 끄기", key="operator_off", on_click=_lock)
         return True
-    if "operator" not in st.query_params:
+    if email_allowed(signed_in_email(), operator_emails()):
+        st.session_state[KEY] = True                      # 로그인 이메일로 확인 — 비밀번호 묻지 않음
+        st.sidebar.caption(f"🔧 운영자 모드 — {signed_in_email()}")
+        return True
+    if not always and "operator" not in st.query_params:
         return False
     with st.sidebar.expander("🔧 운영자", expanded=True):
         if not configured_password():

@@ -149,7 +149,7 @@ def test_operator_page_builds_reference_candidates(monkeypatch):
     pytest.importorskip("streamlit")
     from streamlit.testing.v1 import AppTest
     monkeypatch.setattr(S, "get_store", lambda: Fake())
-    at = AppTest.from_file(str(Path(sv.PROJECT) / "pages" / "9_운영자_검토.py"), default_timeout=120)
+    at = AppTest.from_file(str(Path(sv.PROJECT) / "ops" / "review.py"), default_timeout=120)
     at.session_state["operator_on"] = True
     at.run()
     assert any("기준표 후보(연도 전환)" in e.label for e in at.expander)

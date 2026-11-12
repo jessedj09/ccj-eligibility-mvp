@@ -45,10 +45,10 @@ def test_only_layer_inputs_are_added():
 
 
 def test_streamlit_screen_uses_the_same_definitions():
-    src = (api.Path(api.__file__).resolve().parent.parent / "app.py").read_text(encoding="utf-8")
+    src = (api.Path(api.__file__).resolve().parent.parent / "ops" / "preview.py").read_text(encoding="utf-8")
     assert "from form_spec import" in src
     for const in ("REGION_LABELS = {", "CHOICE_FIELDS = {", "C4_BOOLS = {", "C4_AMOUNTS = {", "C4_CHOICES = {"):
-        assert const not in src, f"app.py가 {const}를 따로 정의함 — src/form_spec.py 한 곳에"
+        assert const not in src, f"ops/preview.py가 {const}를 따로 정의함 — src/form_spec.py 한 곳에"
 
 
 def test_form_endpoint_has_scope_notes_and_region_options():

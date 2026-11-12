@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""test_c8_review_page.py — 운영자 검토 화면(pages/9_운영자_검토.py, C8): 잠금·대기열·사업별 상태·이용 집계.
+"""test_c8_review_page.py — 운영자 검토 화면(ops/review.py — 운영자 화면 첫 화면, C8): 잠금·대기열·사업별 상태·이용 집계.
 
 운영 DB를 쓰지 않는다 — 가짜 저장소로 화면만 그려 본다(실제 질의는 tests/test_d4_store.py가 CI의 PostgreSQL로).
 """
@@ -12,7 +12,7 @@ import store as S
 pytest.importorskip("streamlit")
 from streamlit.testing.v1 import AppTest  # noqa: E402
 
-PAGE = str(Path(__file__).resolve().parent.parent / "pages" / "9_운영자_검토.py")
+PAGE = str(Path(__file__).resolve().parent.parent / "ops" / "review.py")
 NOW = datetime(2026, 11, 1, 9, 0, tzinfo=timezone.utc)
 
 
@@ -74,3 +74,39 @@ def test_operator_sees_queue_health_and_usage(monkeypatch):
     at.text_input(key="note_7").input("분양 — 다음 단계").run()
     at.button(key="fail_7").click().run()
     assert fake.closed == [(7, "failed", "분양 — 다음 단계")]
+
+
+def test_locked_screen_shows_password_box_without_query():
+    """운영자 전용 화면이라 주소에 ?operator가 없어도 비밀번호 칸을 바로 보인다(2026-11-12 정리)."""
+    at = AppTest.from_file(PAGE, default_timeout=30)
+    at.run()
+    assert any("운영자 전용" in m.value for m in at.info)
+
+
+def test_signed_in_operator_email_unlocks_without_password(monkeypatch):
+    """Streamlit Cloud 비공개 앱: 로그인 이메일이 operator_emails에 있으면 비밀번호 없이 운영자 모드(2026-11-12)."""
+    import operator_mode as O
+    fake = Fake()
+    monkeypatch.setattr(S, "get_store", lambda: fake)
+    monkeypatch.setenv(O.EMAILS_ENV, "Ops@Example.org, other@example.org")
+    monkeypatch.setattr(O, "signed_in_email", lambda: "ops@example.org")
+    at = AppTest.from_file(PAGE, default_timeout=30).run()
+    assert at.subheader and at.subheader[0].value == "사업별 자동 판정"
+    monkeypatch.setattr(O, "signed_in_email", lambda: "stranger@example.org")
+    at = AppTest.from_file(PAGE, default_timeout=30).run()
+    assert any("운영자 전용" in m.value for m in at.info) and not at.subheader
+
+
+def test_email_rules():
+    import operator_mode as O
+    assert O.email_allowed("A@x.org", frozenset({"a@x.org"})) and not O.email_allowed(None, frozenset({"a@x.org"}))
+    assert not O.email_allowed("b@x.org", frozenset())
+
+
+def test_app_entry_opens_review_first():
+    """app.py(Streamlit Cloud 시작 파일)는 메뉴만 — 첫 화면은 운영자 검토, 옛 '내 조건으로 공고 찾기'는 없다."""
+    root = Path(__file__).resolve().parent.parent
+    at = AppTest.from_file(str(root / "app.py"), default_timeout=30).run()
+    assert not at.exception
+    assert any("운영자 전용" in m.value for m in at.info)          # 잠긴 운영자 검토
+    assert not (root / "pages").exists() or not any((root / "pages").glob("*.py"))

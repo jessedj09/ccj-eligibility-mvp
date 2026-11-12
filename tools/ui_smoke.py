@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""화면(Streamlit) 헤드리스 점검. 사용: python tools/ui_smoke.py   (약 1~3분, 실패 시 종료코드 1)
+"""화면(Streamlit) 헤드리스 점검 — 운영자 화면의 공고 판정(ops/preview.py). 2026-11-12: 옛 '내 조건으로 공고 찾기'(12·13·14·16단계)는
+공개 화면 /find/all로 옮겨 그 점검은 web/e2e(find.spec.ts)가 맡는다. 사용: python tools/ui_smoke.py   (약 1~3분, 실패 시 종료코드 1)
 
 1) 모든 공고 × 구현된 계층: 기본 입력으로 판정 버튼을 눌러 예외 없이 결과가 나오는지
 2) 모든 공고 × 미지원 계층: 판정 버튼 없이 '아직 판정을 지원하지 않습니다' 안내가 나오는지
@@ -12,13 +13,8 @@
 9) SH 장기미임대(C4b): 소득이 자격요건이 아니므로 소득을 몰라도 서울 거주면 충족
 10) 주거약자용 주택형(C5a): 변형 계층에만 주거약자 유형 질문
 11) 장기전세2(C5b): 5년 무소유 질문은 그 사업에만
-12) 전체 공고 찾기 페이지(D): 범위가 갈리는 입력(본인 무주택·세대 주택 보유)으로 청년 계층이 신청 가능, 든든전세는 아님
-13) 접수 상태(D2): 기준일 2026.10.14.이면 접수 중·예정 공고만 보이고, 2026.11.13.이면(전부 마감) 안내가 나온다
-14) 내 조건 불러오기(D2b): 저장 파일 내용을 입력란에 채우면 그 프로필을 직접 판정한 것과 결과 수가 같다
 15) 공고 업로드(P0): 'PDF 올리기'를 고르면 판정 전에 업로드를 기다리고, 식별 결과(미등록·읽을 수 없음·다른 파일·등록)를
     그대로 그린다(AppTest는 파일 업로드를 흉내 낼 수 없어 식별 결과를 직접 넣는다). 판정 결과는 지원 가능/보류(원인)/지원 불가로 보인다
-16) What-if(12단계 화면에서): 조건 하나만 부족한 공고와 금액 한도가 보이고, '세대를 분리하면' 시나리오의 전후 개수와
-    새로 지원 가능·빠지는 목록이 서로 맞는다(이후 개수 − 변화량 = 지금 개수, 새로 가능 − 빠짐 = 지원 가능 변화량)
 17) 운영자 미리보기(A2): 주소에 ?operator가 없으면 운영자 칸이 없고, 잠금 전에는 미등록 공고를 판정하지 않으며 틀린 비밀번호는
     거절한다. 잠금을 풀면 미등록 공고(등록 공고 N12 원문을 미등록으로 취급 — tools/ui_fixture_draft.py)를 '검증 전 초안'으로
     판정하고, 그 판정이 등록 규칙(N12)으로 판정한 것과 같다
@@ -38,7 +34,7 @@ from notices_data import ALL_NOTICES  # noqa: E402
 
 
 def fresh(nid, layer):
-    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
+    at = AppTest.from_file(str(ROOT / "ops" / "preview.py"), default_timeout=60).run()
     at.sidebar.selectbox[0].select(nid).run()
     at.sidebar.selectbox[1].select(layer).run()
     return at
@@ -208,118 +204,8 @@ def main():
     assert five_q(fresh("N23", "신혼부부(전용 60㎡ 이하)")) and not five_q(fresh("N26", "일반(전용 60㎡ 이하)"))
     print("11) 장기전세2(C5b): 5년 무소유 질문은 장기전세2에만")
 
-    # 12) 전체 공고 찾기 페이지(D): 부모와 사는 25세 세대원 — 본인 무주택·저소득, 세대는 주택 보유·고소득
-    at = AppTest.from_file(str(ROOT / "pages" / "1_내_조건으로_공고_찾기.py"), default_timeout=120).run()
-    assert not at.exception, at.exception
-    pick = lambda label: [w for w in at.selectbox if w.label.startswith(label)][0]
-    at.date_input(key="m_birth").set_value(date(2001, 3, 1)).run()
-    [w for w in at.number_input if w.label.startswith("가구원수")][0].set_value(3).run()
-    pick("세대주/세대원").select("세대원").run()
-    pick("본인 주택 소유").select("무주택").run()
-    pick("세대 전원 주택 소유").select("주택보유").run()
-    for label, key, value in (("세대 월평균소득", "m_inc_house", 9_000_000), ("본인 월평균소득", "m_inc_self", 3_000_000),
-                              ("세대 총자산", "m_ast_house", 600_000_000), ("본인 총자산", "m_ast_self", 20_000_000),
-                              ("세대 보유 자동차", "m_car_house", 20_000_000), ("본인 자동차", "m_car_self", 0)):
-        [w for w in at.checkbox if w.label.startswith(label)][0].check().run()
-        at.number_input(key=key).set_value(value).run()
-    pick("본인 거주지").select("서울특별시").run()
-    at.button(key="m_run").click().run()
-    assert not at.exception, at.exception
-    at.radio(key="m_view").set_value("전체 공고(마감 포함)").run()
-    assert not at.exception, at.exception
-    metrics = {m.label: m.value for m in at.metric}
-    youth = [e.label for e in at.expander if e.label.endswith("· 청년")]
-    assert int(metrics["✅ 지원 가능"]) >= 6 and len(youth) >= 6, (metrics, youth)
-    assert not [e for e in at.expander if "든든전세" in e.label and "✅" in e.label]
-    print("12) 전체 공고 찾기(D):", metrics, "| 청년 계층", len(youth), "건 신청 가능")
-
-    # 16) What-if — 12단계 화면(전체 공고 보기) 그대로
-    assert {"조건 하나만 부족한 공고", "시나리오로 비교"} <= {t.label for t in at.tabs}
-    near = [m.value for m in at.markdown if "이 조건만 해결되면" in m.value]
-    limits = [c.value for c in at.caption if c.value.startswith("💡")]
-    assert near, "조건 하나만 부족한 공고가 보여야 한다"   # 금액 한도 정확성은 tests/test_s2_whatif.py
-    at.radio(key="w_scn").set_value("세대를 분리하면").run()
-    at.button(key="w_run").click().run()
-    assert not at.exception, at.exception
-    main, scn = list(at.metric)[:3], list(at.metric)[3:6]
-    assert [m.label for m in scn] == ["✅ 지원 가능", "🟡 보류", "❌ 지원 불가"]
-    num = lambda v: int(str(v).replace("+", "") or 0)  # noqa: E731
-    assert [num(a.value) - num(a.delta) for a in scn] == [num(b.value) for b in main], ([(a.value, a.delta) for a in scn],
-                                                                                      [b.value for b in main])
-    count = lambda prefix: next((int(re.search(r"(\d+)건", m.value).group(1))  # noqa: E731
-                                 for m in at.markdown if m.value.startswith(prefix)), 0)
-    gained, lost = count("**새로 지원 가능"), count("**지원 가능에서 빠지는")
-    assert gained - lost == num(scn[0].delta), (gained, lost, scn[0].delta)
-    print("16) What-if: 한 조건 부족", len(near), "건(한도", len(limits), "개) | 세대 분리 → 새로 가능", gained, "· 빠짐", lost)
-
-    # 13) 접수 상태(D2) — 2026.10.14. 12:00에 접수 중: N4(~10.14)·N8·N18·N19(10.13~15)·N17(10.14~16)·N33(10.12~16, G2),
-    #     N41(10.14~16, G4), 접수 예정: N27·N28(11월 접수 — B단계 등록)·N35(11.16~20, G2)·N43(11.3~4, G4)·
-    #     N48(11.23~24)·N50(11.12~17)·N52(11.2~6, G3)·N59(10.28~30, 2026-11-08)·N67(11.13~17). 2026.11.25.이면 보유 공고 전부 마감
-    at.radio(key="m_view").set_value("접수 중·예정 공고만").run()
-    at.date_input(key="m_at").set_value(date(2026, 10, 14)).run()
-    assert not at.exception, at.exception
-    # 신청 불가는 묶음 안의 한 줄(캡션), 나머지는 펼침 — 어느 쪽이든 접수 상태가 앞에 붙는다
-    labels = [e.label for e in at.expander if " | " in e.label]
-    lines = [c.value for c in at.caption if c.value.split(" ")[0] in ("🟢", "🗓️", "⚫")]
-    total = sum(int(m.value) for m in list(at.metric)[:3])
-    opened, upcoming = ("N4", "N8", "N17", "N18", "N19", "N33", "N41"), ("N27", "N28", "N35", "N43", "N48", "N50", "N52", "N59", "N67")
-    expect = sum(len(ALL_NOTICES[n].layers) for n in opened + upcoming)
-    assert total == expect, (total, expect)
-    assert all(x.startswith(("🟢", "🗓️")) for x in labels + lines) and labels + lines, (labels, lines)
-    assert any(x.startswith("🗓️") for x in labels + lines), "접수 예정 공고(N27·N28·N35·N43·N48·N50·N52)도 보인다"
-    at.date_input(key="m_at").set_value(date(2026, 11, 25)).run()
-    assert any("접수 중이거나 접수 예정인 공고가 없습니다" in i.value for i in at.info)
-    assert sum(int(m.value) for m in list(at.metric)[:3]) == 0
-    print("13) 접수 상태(D2): 10.14. 접수 중 7건·예정 9건의 계층", total, "개만 표시 / 11.25. 전부 마감 안내")
-
-    # 14) 불러오기(D2b) — 파일 업로드 대신 불러오기가 하는 일(widget_state → session_state)을 그대로 재현한다
-    from matcher import MasterProfile, match_all
-    from profile_form import widget_state
-    from profile_io import master_from_dict, master_to_dict
-    # 본인·세대 값이 크게 달라 범위를 잘못 옮기면 판정이 갈리는 프로필(부모와 사는 미혼 청년 + 기혼 세대주 두 가지)
-    profiles = [MasterProfile(
-        home_self="무주택", home_household="주택보유", income_self=1_000_000, income_household=12_000_000,
-        assets_self=10_000_000, assets_household=900_000_000, car_self=0, car_household=50_000_000,
-        birth_date=date(2001, 3, 1),
-        common=dict(marital_status="미혼", household_size=3, house_head_status="세대원", dual_income=False,
-                    children_birth_dates=[], residence_area="서울특별시", school_area="서울특별시", student_status="재학중",
-                    parents_count=2, parents_monthly_income=3_000_000, is_employed=True, is_social_rookie=True,
-                    registered_with_parents=True, welfare_status="해당없음", parent_welfare_status="해당없음")),
-        MasterProfile(
-        home_self="무주택", home_household="무주택", income_self=2_500_000, income_household=5_000_000,
-        assets_self=30_000_000, assets_household=120_000_000, car_self=0, car_household=15_000_000,
-        birth_date=date(1994, 5, 17),
-        common=dict(marital_status="혼인중", marriage_date=date(2023, 3, 2), household_size=3, house_head_status="세대주",
-                    dual_income=True, children_birth_dates=[date(2025, 1, 9)], residence_area="서울특별시",
-                    income_base_area="서울특별시", spouse_residence_area="서울특별시", owned_home_in_5y=False,
-                    housing_weak_type="해당없음", supports_elderly_parent_1y=True))]
-    for saved in map(master_to_dict, profiles):
-        m = master_from_dict(saved)
-        at = AppTest.from_file(str(ROOT / "pages" / "1_내_조건으로_공고_찾기.py"), default_timeout=120)
-        for k, v in widget_state(m).items():
-            at.session_state[k] = v
-        at.run()
-        assert not at.exception, at.exception
-        assert not at.warning, [w.value for w in at.warning]       # value=와 session_state 충돌 경고 없음
-        at.button(key="m_run").click().run()
-        at.radio(key="m_view").set_value("전체 공고(마감 포함)").run()
-        assert not at.exception, at.exception
-        got = {m_.label: int(m_.value) for m_ in at.metric}
-        direct = [x.verdict for x in match_all(m, ALL_NOTICES)]
-        want = {"✅ 지원 가능": direct.count("ELIGIBLE"),
-                "🟡 보류": direct.count("MANUAL_REVIEW") + direct.count("NEEDS_INFO"),
-                "❌ 지원 불가": direct.count("INELIGIBLE")}
-        hold_line = next(c.value for c in at.caption if c.value.startswith("보류 "))
-        assert f"추가 정보 필요 {direct.count('NEEDS_INFO')}건" in hold_line and             f"수동 확인 필요 {direct.count('MANUAL_REVIEW')}건" in hold_line, hold_line
-        assert got == want, (got, want)
-        # 결과 수만이 아니라 어떤 공고·계층이 나왔는지까지(신청 불가를 뺀 펼침 목록) 같아야 한다
-        rows = {e.label.split(" | ")[2] for e in at.expander if " | " in e.label}
-        rows_want = {f"{x.notice.title} · {x.layer}" for x in match_all(m, ALL_NOTICES) if x.verdict != "INELIGIBLE"}
-        assert rows == rows_want, (rows ^ rows_want)
-        print("14) 내 조건 불러오기(D2b): 화면 판정 = 직접 판정", got)
-
     # 15) 공고 업로드(P0)
-    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
+    at = AppTest.from_file(str(ROOT / "ops" / "preview.py"), default_timeout=60).run()
     at.sidebar.radio(key="pick_mode").set_value("공고문 PDF 올리기").run()
     assert not at.exception, at.exception
     assert any("공고문 PDF를 올리면" in i.value for i in at.info) and not at.button, "업로드 전에는 판정 버튼이 없어야 한다"
@@ -345,7 +231,7 @@ def main():
     import operator_mode
     os.environ.setdefault(operator_mode.ENV, "smoke-operator-pw")
     password = operator_mode.configured_password()
-    at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=60).run()
+    at = AppTest.from_file(str(ROOT / "ops" / "preview.py"), default_timeout=60).run()
     assert not any("운영자" in e.label for e in at.sidebar.expander), "주소에 ?operator가 없으면 운영자 칸이 보이면 안 된다"
     from source_verify import pdf_path
     at = AppTest.from_file(str(ROOT / "tools" / "ui_fixture_draft.py"), default_timeout=120)

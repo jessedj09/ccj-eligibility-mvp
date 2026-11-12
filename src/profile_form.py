@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """profile_form.py — 저장 파일(MasterProfile) → '내 조건으로 공고 찾기' 화면의 입력란 값(D2b).
 
-화면(pages/1_내_조건으로_공고_찾기.py)이 불러오기에 쓴다. streamlit 없이 테스트할 수 있게 분리했다 — 화면이 MasterProfile에 넘기는
+예전 Streamlit 찾기 화면이 불러오기에 쓰던 표(2026-11-12 화면은 삭제 — 공개 화면 /find/all). 시험이 저장 형식을 고정한다. streamlit 없이 테스트할 수 있게 분리했다 — 화면이 MasterProfile에 넘기는
 항목과 이 표가 어긋나지 않는지는 tests/test_d2b_profile_api.py가, 불러온 결과가 같은 판정을 내는지는 tools/ui_smoke.py가 확인한다.
 """
 from typing import Any, Dict

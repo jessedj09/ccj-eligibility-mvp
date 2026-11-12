@@ -3,7 +3,6 @@
 
 저장 → 불러오기를 거쳐도 판정이 같아야 하고, API는 화면과 같은 엔진·매처를 그대로 부른 결과를 돌려줘야 한다.
 """
-import ast
 import json
 from datetime import date
 from pathlib import Path
@@ -15,7 +14,6 @@ from profile_form import WIDGETS, widget_state
 from profile_io import ProfileFormatError, household_from_dict, master_from_dict, master_to_dict
 from rule_engine import HouseholdProfile, evaluate
 
-PAGE = Path(__file__).resolve().parent.parent / "pages" / "1_내_조건으로_공고_찾기.py"
 
 NEWLYWED = MasterProfile(
     home_self="무주택", home_household="무주택", income_self=2_500_000, income_household=5_000_000,
@@ -75,25 +73,6 @@ def test_household_from_dict():
     assert p.marriage_date == date(2020, 1, 2) and p.profile_id == "api"
     with pytest.raises(ProfileFormatError, match="필수 항목"):
         household_from_dict({"age": 30})
-
-
-def _page_master_call():
-    tree = ast.parse(PAGE.read_text(encoding="utf-8"))
-    call = next(n for n in ast.walk(tree) if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "MasterProfile")
-    master = {k.arg for k in call.keywords if k.arg != "common"}
-    common_call = next(k.value for k in call.keywords if k.arg == "common")
-    return master, {k.arg for k in common_call.keywords}
-
-
-def test_load_mapping_covers_everything_the_page_saves():
-    """화면이 저장하는 항목(MasterProfile에 넘기는 항목)과 불러오기 표(WIDGETS)가 정확히 같아야 한다 — 새 질문을 화면에 추가하고
-    표에 빠뜨리면 저장은 되는데 불러오기에서 사라진다."""
-    master, common = _page_master_call()
-    table_master = {n[7:] for _, n, _ in WIDGETS if n.startswith("master.")}
-    table_common = {n for _, n, _ in WIDGETS if not n.startswith("master.")} | {"children_birth_dates"}
-    assert master == table_master
-    assert common == table_common
-    assert len({k for k, _, _ in WIDGETS}) == len(WIDGETS)
 
 
 def test_widget_state_values():
