@@ -154,7 +154,8 @@ def _confirmed_layers(m: MasterProfile, notice, judge: Optional[Callable] = None
     return layers, matches
 
 
-def _preview_layers(m: MasterProfile, rep: J.Registered, announced: Optional[date]) -> Tuple[List[Dict], List[Match]]:
+def _preview_layers(m: MasterProfile, rep: J.Registered, announced: Optional[date],
+                    stopped: frozenset = frozenset()) -> Tuple[List[Dict], List[Match]]:
     regs, index = registered()
     notice = ALL_NOTICES[rep.notice_id]
     dated = dataclasses.replace(notice, announcement_date=announced) if announced else notice
@@ -164,6 +165,8 @@ def _preview_layers(m: MasterProfile, rep: J.Registered, announced: Optional[dat
         lp = J.preview_layer(p, layer, notice, rep.template, index, announced)
         if lp.outcome == J.NONE:
             continue
+        if lp.outcome == J.UNLIKELY and rep.template in stopped:     # 예비 판정 감시가 놓침을 기록한 틀 — '어려움'을 쓰지 않는다
+            lp = dataclasses.replace(lp, outcome=J.CHECK)
         layers.append({"layer": layer, "result": preview_group(lp), "verdict": lp.verdict,
                        "reasons": lp.reasons[:3]})
         if lp.result is not None:
@@ -176,7 +179,8 @@ def _best(layers: List[Dict]) -> str:
     return next((g for g in GROUPS if g in got), UNJUDGED)
 
 
-def judge_row(m: MasterProfile, row: Dict, today: date, analyzed: Optional[Callable] = None) -> Tuple[Dict, List[Match]]:
+def judge_row(m: MasterProfile, row: Dict, today: date, analyzed: Optional[Callable] = None,
+              stopped: frozenset = frozenset()) -> Tuple[Dict, List[Match]]:
     """수집 공고(같은 공고 묶은 행) 하나 → 공고 카드와 판정(추가 질문 집계용)."""
     announced = _d(row.get("announced"))
     basis, rep, layers, matches = NONE, None, [], []
@@ -195,7 +199,7 @@ def judge_row(m: MasterProfile, row: Dict, today: date, analyzed: Optional[Calla
             rep = J.pick_representative(row["template"], row.get("issuer"), row.get("program"), announced, regs)
             if rep is not None:
                 basis = PREVIEW
-                layers, matches = _preview_layers(m, rep, announced)
+                layers, matches = _preview_layers(m, rep, announced, stopped)
     result = _best(layers) if basis != NONE else UNJUDGED
     if basis != NONE and not layers:
         result = UNJUDGED if basis == PREVIEW else VERIFY
@@ -287,7 +291,8 @@ def questions(matches: List[Match], m: Optional[MasterProfile] = None) -> List[D
 
 
 def find_open(m: MasterProfile, live_rows: List[Dict], at: datetime, analyzed: Optional[Callable] = None,
-              regions: Optional[List[str]] = None, kind: Optional[str] = None, live_ok: bool = True) -> Dict:
+              regions: Optional[List[str]] = None, kind: Optional[str] = None, live_ok: bool = True,
+              stopped: frozenset = frozenset()) -> Dict:
     """기본 조건 → 지금 모집 중인 공고 카드 목록. live_rows: 저장소의 수집 공고(같은 공고 묶기 전).
     live_ok=False(저장소에 닿지 않음)면 등록 공고만으로 만들고 알린다."""
     today = at.date()
@@ -298,7 +303,7 @@ def find_open(m: MasterProfile, live_rows: List[Dict], at: datetime, analyzed: O
     for row in rows:
         if not _region_ok(row, regions) or (kind in (RENT, SALE) and kind_of(row) != kind):
             continue
-        card, ms = judge_row(m, row, today, analyzed)
+        card, ms = judge_row(m, row, today, analyzed, stopped)
         cards.append(card)
         matches += ms
     cards.sort(key=_sort_key)
@@ -321,7 +326,7 @@ def find_open(m: MasterProfile, live_rows: List[Dict], at: datetime, analyzed: O
 # ------------------------------------------------------------------ 올려서 분석된 공고 잇기(F35)
 def match_analyzed(row: Dict, candidates: List[Dict]) -> Optional[str]:
     """수집 공고와 같은 공고로 보이는 분석 공고의 sha256 — 기관·공고일·사업 키가 같고 제목이 비슷(0.7 이상)할 때만."""
-    title = LN._norm(row.get("title") or "")
+    title = LN._norm_short(row.get("title") or "")     # 꼬리말을 뗀 단지·사업 부분(LN.registered_match와 같은 기준)
     want = LN._program_key(row.get("program"))
     best, best_r = None, 0.0
     for c in candidates:
@@ -330,7 +335,7 @@ def match_analyzed(row: Dict, candidates: List[Dict]) -> Optional[str]:
         prog = LN._program_key(c.get("program"))
         if want and prog and want != prog:
             continue
-        r = SequenceMatcher(None, title, LN._norm(c.get("title") or "")).ratio()
+        r = SequenceMatcher(None, title, LN._norm_short(c.get("title") or "")).ratio()
         if r > best_r:
             best, best_r = c["sha256"], r
     return best if best_r >= 0.7 else None

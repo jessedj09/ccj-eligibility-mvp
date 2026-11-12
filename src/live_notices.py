@@ -210,7 +210,6 @@ def registered_match(n: LiveNotice, index=None, program: Optional[str] = None) -
         if _INDEX is None:
             _INDEX = _registered_index()
         index = _INDEX
-    title = _norm(n.title)
     short = _norm_short(n.title)
     best, best_r = None, 0.0
     want = _program_key(program)
@@ -221,7 +220,9 @@ def registered_match(n: LiveNotice, index=None, program: Optional[str] = None) -
         theirs = rest[0] if rest else frozenset()
         if mine and theirs and mine != theirs:          # 하위 유형이 다름(평창장평 일반형·고령자복지형)
             continue
-        r = max(SequenceMatcher(None, title, t).ratio(), SequenceMatcher(None, short, _norm_short(t)).ratio())
+        # 꼬리말('국민임대주택 예비입주자 모집 공고')을 뗀 단지·사업 부분으로만 — 전체 제목은 꼬리말이 같아 다른 단지도 비슷하게 나온다
+        # (2026-11-13: 화성동탄 ↔ 인천논현 국민임대가 0.7을 넘음)
+        r = SequenceMatcher(None, short, _norm_short(t)).ratio()
         if r > best_r:
             best, best_r = nid, r
     return best if best_r >= 0.7 else None

@@ -514,7 +514,7 @@ class AnalysisRequest(BaseModel):
 
 
 LIVE_TTL = 300                                # 수집 공고는 3시간마다 바뀌므로 프로세스 안에서 5분 둔다
-_live = {"t": 0.0, "rows": [], "analyzed": [], "ok": False}
+_live = {"t": 0.0, "rows": [], "analyzed": [], "ok": False, "stopped": frozenset()}
 _live_lock = threading.Lock()
 _requested: Dict[str, float] = {}             # 분석 요청 반복 막기(접속자 해시·공고 → 시각, 메모리에만)
 
@@ -538,8 +538,9 @@ def _live_rows():
             r["last_seen"] = datetime.fromisoformat(r["last_seen"]) if r.get("last_seen") else None
         rows, ok = find.relink(rows), True
     analyzed = store.analyzed_notices() if ok else []
+    stopped = store.preview_stopped() if ok else frozenset()      # 예비 판정 감시가 '어려움'을 멈춘 판정 틀
     with _live_lock:
-        _live.update(t=now, rows=rows, analyzed=analyzed, ok=ok and bool(rows))
+        _live.update(t=now, rows=rows, analyzed=analyzed, ok=ok and bool(rows), stopped=stopped)
         return rows, analyzed, _live["ok"]
 
 
@@ -567,7 +568,7 @@ def find_open_notices(req: FindRequest):
         return None if d is None or _paused(d, store) else d
     try:
         return find.find_open(master, rows, _at(req.at), from_upload, req.regions,
-                              req.kind if req.kind in (find.RENT, find.SALE) else None, ok)
+                              req.kind if req.kind in (find.RENT, find.SALE) else None, ok, _live["stopped"])
     except (TypeError, ValueError) as e:
         raise HTTPException(422, f"프로필 값 오류: {e}")
 

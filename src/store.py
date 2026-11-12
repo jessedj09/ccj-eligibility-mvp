@@ -102,6 +102,13 @@ CREATE TABLE IF NOT EXISTS live_notices (                -- 공공데이터포�
 CREATE INDEX IF NOT EXISTS live_notices_open ON live_notices (window_end, last_seen);
 ALTER TABLE live_notices ADD COLUMN IF NOT EXISTS request_count integer NOT NULL DEFAULT 0;   -- 흥신소 '분석 요청'(익명 건수)
 ALTER TABLE live_notices ADD COLUMN IF NOT EXISTS last_requested_at timestamptz;
+CREATE TABLE IF NOT EXISTS preview_checks (                -- 예비 판정 감시(docs/12 — 분석된 공고의 예비 ↔ 확정 비교, 2026-11-13)
+    sha256 text PRIMARY KEY, template text NOT NULL, compared integer NOT NULL, missed integer NOT NULL,
+    likely_ok integer NOT NULL, likely_wrong integer NOT NULL, checked_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS preview_resumed (               -- 놓침으로 멈춘 판정 틀의 '어려움'을 운영자가 다시 켠 시각
+    template text PRIMARY KEY, resumed_at timestamptz NOT NULL DEFAULT now()
+);
 """
 
 
@@ -169,6 +176,11 @@ class NullStore:
     def live_notices(self, open_only=True, limit=500): return []
     def live_detail_needed(self, keys): return set(keys)
     def request_analysis(self, source, external_id): return False
+    def record_preview_check(self, sha, template, compared, missed, likely_ok, likely_wrong): return False
+    def preview_checked(self, shas): return set()
+    def preview_stopped(self): return frozenset()
+    def resume_preview(self, template): return False
+    def preview_health(self): return []
     def analyzed_notices(self, days=120): return []
 
 
@@ -469,10 +481,52 @@ class Store(NullStore):
     def live_notices(self, open_only=True, limit=500) -> list:
         """모은 공고(마감 안 된 것 — 마감일이 오늘 이후이거나 모름, 최근 공고부터)."""
         rows = self._run(lambda c: c.execute(
-            f"""SELECT {", ".join(self.LIVE_COLS)}, detail_key, first_seen, last_seen FROM live_notices
+            f"""SELECT {", ".join(self.LIVE_COLS)}, detail_key, request_count, first_seen, last_seen FROM live_notices
                 WHERE NOT %s OR window_end IS NULL OR window_end >= (now() AT TIME ZONE 'Asia/Seoul')::date
                 ORDER BY announced DESC NULLS LAST, first_seen DESC LIMIT %s""", (open_only, limit)).fetchall())
-        return [dict(zip(self.LIVE_COLS + ("detail_key", "first_seen", "last_seen"), r)) for r in rows]
+        return [dict(zip(self.LIVE_COLS + ("detail_key", "request_count", "first_seen", "last_seen"), r)) for r in rows]
+
+    # ---- 예비 판정 감시(2026-11-13) ----
+    @_safe(False)
+    def record_preview_check(self, sha, template, compared, missed, likely_ok, likely_wrong) -> bool:
+        """분석된 공고 하나의 예비 ↔ 확정 비교(같은 골든 입력). 다시 비교하면 덮어쓴다."""
+        self._run(lambda c: c.execute(
+            """INSERT INTO preview_checks (sha256, template, compared, missed, likely_ok, likely_wrong)
+               VALUES (%s, %s, %s, %s, %s, %s)
+               ON CONFLICT (sha256) DO UPDATE SET template = EXCLUDED.template, compared = EXCLUDED.compared,
+                 missed = EXCLUDED.missed, likely_ok = EXCLUDED.likely_ok, likely_wrong = EXCLUDED.likely_wrong, checked_at = now()""",
+            (sha, template, compared, missed, likely_ok, likely_wrong)))
+        return True
+
+    @_safe(set())
+    def preview_checked(self, shas) -> set:
+        shas = list(shas)
+        if not shas:
+            return set()
+        rows = self._run(lambda c: c.execute("SELECT sha256 FROM preview_checks WHERE sha256 = ANY(%s)", (shas,)).fetchall())
+        return {r[0] for r in rows}
+
+    @_safe(frozenset())
+    def preview_stopped(self) -> frozenset:
+        """놓침이 기록된 판정 틀(운영자가 다시 켠 뒤의 놓침만) — 이 틀은 예비 '어려움'을 쓰지 않는다."""
+        rows = self._run(lambda c: c.execute(
+            """SELECT DISTINCT p.template FROM preview_checks p LEFT JOIN preview_resumed r ON r.template = p.template
+               WHERE p.missed > 0 AND (r.resumed_at IS NULL OR p.checked_at > r.resumed_at)""").fetchall())
+        return frozenset(r[0] for r in rows)
+
+    @_safe(False)
+    def resume_preview(self, template) -> bool:
+        self._run(lambda c: c.execute(
+            """INSERT INTO preview_resumed (template) VALUES (%s)
+               ON CONFLICT (template) DO UPDATE SET resumed_at = now()""", (template,)))
+        return True
+
+    @_safe([])
+    def preview_health(self) -> list:
+        rows = self._run(lambda c: c.execute(
+            """SELECT template, count(*), sum(compared), sum(missed), sum(likely_ok), sum(likely_wrong), max(checked_at)
+               FROM preview_checks GROUP BY template ORDER BY template""").fetchall())
+        return [dict(zip(("template", "notices", "compared", "missed", "likely_ok", "likely_wrong", "last_checked"), r)) for r in rows]
 
     @_safe(False)
     def request_analysis(self, source, external_id) -> bool:

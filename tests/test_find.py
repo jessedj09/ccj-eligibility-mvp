@@ -152,7 +152,7 @@ class _Spy:
             self.calls.append(name)
             if name == "live_notices":
                 return list(ROWS)
-            if name == "demoted_programs":
+            if name in ("demoted_programs", "preview_stopped"):
                 return frozenset()
             return [] if name in ("analyzed_notices",) else None
         return f
@@ -166,7 +166,7 @@ def test_api_find_reads_only_and_request_analysis_once(monkeypatch):
     c = _client()
     j = c.post("/find", json={"profile": YOUTH, "at": AT.isoformat()}).json()
     assert j["notice"] is None and any(x["basis"] == F.PREVIEW for x in j["items"])
-    assert set(spy.calls) <= {"live_notices", "analyzed_notices", "demoted_programs"}      # 조건을 저장하지 않는다
+    assert set(spy.calls) <= {"live_notices", "analyzed_notices", "demoted_programs", "preview_stopped"}   # 조건을 저장하지 않는다
     spy.calls.clear()
     first = c.post("/find/request-analysis", json={"source": "lh", "external_id": "A1"}).json()
     again = c.post("/find/request-analysis", json={"source": "lh", "external_id": "A1"}).json()

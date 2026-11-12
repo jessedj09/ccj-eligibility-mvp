@@ -151,6 +151,48 @@ def add_details(key: str, rows, needed, today: Optional[date] = None):
     return out, fetched
 
 
+def report_coverage(store, grouped, today: date) -> None:
+    """확정 판정 범위·분석 대기 공고·예비 판정 감시(묶음 A, 2026-11-13). 새로 분석된 공고는 예비 ↔ 확정을 비교해 기록한다.
+    GitHub 작업에서는 요약($GITHUB_STEP_SUMMARY)에도 쓴다."""
+    import coverage as V
+    analyzed = store.analyzed_notices() if store else []
+    cov, waiting = V.coverage(grouped, analyzed), V.pending(grouped, analyzed)
+    print(f"확정 판정 범위 {cov['pct']}% — 등록 {cov.get('registered', 0)} + 분석 {cov.get('analyzed', 0)} / 판정 대상 {cov['target']}"
+          f" · 분석 대기 {len(waiting)}건")
+    for r in waiting:
+        print(f"  [분석 대기] {r.get('window_start') or '?'}~{r.get('window_end') or '?'} | {r.get('issuer')} {r.get('program')} | "
+              f"{L.clean_title(r['title'])[:50]} | 요청 {r.get('request_count') or 0}")
+    checks = []
+    if store:
+        import find
+        pairs = [(r, find.match_analyzed(r, analyzed)) for r in grouped if r.get("route") == L.TEMPLATE]
+        pairs = [(r, sha) for r, sha in pairs if sha]
+        done = store.preview_checked([sha for _, sha in pairs])
+        for r, sha in pairs:
+            if sha in done:
+                continue
+            try:
+                import analysis
+                import draft
+                snap = store.latest_analysis(sha, analysis.analysis_version())
+                got = V.check_preview(r, draft.from_snapshot(snap)) if snap else None
+            except Exception as e:      # noqa: BLE001 — 감시가 수집을 막지 않는다
+                log.warning("예비 판정 비교 실패 %s: %s", r["title"][:30], e)
+                continue
+            if got:
+                tname, c = got
+                store.record_preview_check(sha, tname, c["compared"], c["missed"], c["likely_ok"], c["likely_wrong"])
+                checks.append((r["title"], tname, c))
+                print(f"  [예비 판정 비교] {L.clean_title(r['title'])[:40]} | {tname} | 비교 {c['compared']} · 놓침 {c['missed']}")
+    stopped = store.preview_stopped() if store else frozenset()
+    if stopped:
+        print("예비 '어려움'을 멈춘 판정 틀:", ", ".join(sorted(stopped)))
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if path:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(V.summary_markdown(cov, waiting, checks, stopped, today) + "\n")
+
+
 def main(argv=None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -187,15 +229,16 @@ def main(argv=None) -> int:
     if store and type(store).__name__ != "NullStore":
         saved = store.upsert_live([n.as_dict() for n in rows], fetched)
     open_rows = [n for n in rows if L.is_open(n, today)]
-    grouped = L.merge_duplicates([n.as_dict() for n in open_rows])        # 정정공고·LH와 청약홈의 같은 공고는 하나로
+    live = store and type(store).__name__ != "NullStore"
+    import find
+    # 저장소가 있으면 저장된 행(분석 요청 건수·주택관리번호 포함)으로, 없으면 이번에 모은 행으로 요약한다
+    base = find.relink(store.live_notices(open_only=True, limit=1000)) if live else [n.as_dict() for n in open_rows]
+    grouped = L.merge_duplicates([r for r in base if find._is_open(r, today)])   # 정정공고·LH와 청약홈의 같은 공고는 하나로
     routes = Counter(r["route"] for r in grouped)
     print(f"상세 조회 {len(fetched)}건 · 저장 {saved}건" + ("" if store and saved else " (저장소 없음 — 저장 안 함)"))
     print(f"마감 안 된 공고 {len(grouped)}건(같은 공고 묶기 전 {len(open_rows)}건): 등록 공고 {routes[L.REGISTERED]} · 판정 틀 있음 {routes[L.TEMPLATE]} · "
           f"판정 안 하는 사업 {routes[L.UNSUPPORTED]}")
-    for n in sorted(open_rows, key=lambda x: (x.route != L.REGISTERED, x.route != L.TEMPLATE, x.window_end or "")):
-        if n.route != L.UNSUPPORTED:
-            print(f"  [{n.route}] {n.issuer} {n.program} | {n.title[:50]} | {n.window_start or '?'}~{n.window_end or '?'}"
-                  + (f" | {n.registered_id}" if n.registered_id else ""))
+    report_coverage(store if live else None, grouped, today)
     if a.json:
         Path(a.json).write_text(json.dumps([n.as_dict() for n in rows], ensure_ascii=False, indent=1), encoding="utf-8")
     return 1 if failed else 0
