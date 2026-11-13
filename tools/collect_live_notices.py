@@ -108,6 +108,19 @@ def _seoul_wants_detail(n, today: date) -> bool:
     return n.status == "" and (n.announced or "") >= (today - timedelta(days=45)).isoformat()
 
 
+def collect_myhome(key: str) -> dict:
+    """마이홈 공공주택 모집공고(임대·분양) → LH 공고 ID별 보조 정보(묶음 C). 보조 출처라 실패해도 수집을 실패로 만들지 않는다."""
+    items = []
+    for url in (L.MYHOME_RENT, L.MYHOME_SALE):
+        for page in range(1, MAX_PAGES + 1):
+            resp = _get(url, key, {"numOfRows": PAGE, "pageNo": page})
+            got = L.parse_myhome(resp)
+            items += got
+            if len(got) < PAGE or page * PAGE >= L.myhome_total(resp):
+                break
+    return L.myhome_info(items)
+
+
 def collect_lh(key: str, today: date):
     """LH 주택 공고(최근 2개월, 유형별 쪽 넘김) — LiveNotice 목록."""
     out = []
@@ -224,10 +237,30 @@ def main(argv=None) -> int:
     needed = set(keys) if needed is None else needed
     rows, fetched = add_details(key, rows, needed, today)
     rows = [L.link(n) for n in rows]
+    try:
+        info = collect_myhome(key)
+    except SourceError as e:
+        info = {}
+        print(f"마이홈(보조 정보): 실패 — {e} (지난 값 유지)")
+    filled = differ = 0
+    if info:
+        out = []
+        for n in rows:
+            mi = info.get(n.external_id) if n.source == L.LH_SOURCE else None
+            if mi and mi.get("window"):
+                if not n.window_start:
+                    filled += 1
+                elif (n.window_start, n.window_end) != tuple(mi["window"]):
+                    differ += 1
+            out.append(L.with_myhome(n, mi) if mi else n)
+        rows = out
+        print(f"마이홈(보조 정보): LH 공고 {sum(1 for n in rows if n.source == L.LH_SOURCE and n.external_id in info)}건 연결 · "
+              f"접수기간 보충 {filled}건 · LH 상세와 다름 {differ}건")
 
     saved = 0
     if store and type(store).__name__ != "NullStore":
-        saved = store.upsert_live([n.as_dict() for n in rows], fetched)
+        saved = store.upsert_live([dict(n.as_dict(), extra=info.get(n.external_id) if n.source == L.LH_SOURCE else None)
+                                   for n in rows], fetched)
     open_rows = [n for n in rows if L.is_open(n, today)]
     live = store and type(store).__name__ != "NullStore"
     import find

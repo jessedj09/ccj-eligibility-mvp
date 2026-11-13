@@ -216,8 +216,19 @@ def judge_row(m: MasterProfile, row: Dict, today: date, analyzed: Optional[Calla
         "registered_id": rid if basis == CONFIRMED and rid else None,
         "result": result, "label": LABELS[result], "layers": layers,
         "related": [{"title": r["title"], "url": r.get("url")} for r in row.get("related", [])],
+        "info": _info(row.get("extra")),
     }
     return card, matches
+
+
+def _info(extra) -> Optional[Dict]:
+    """마이홈 보조 정보(묶음 C) → 카드 한 줄 — 단지 주소·임대보증금·월임대료(범위, 원)·공급 세대수."""
+    if not isinstance(extra, dict):
+        return None
+    out = {k: extra.get(k) for k in ("address", "deposit", "rent", "supply", "complexes", "myhome_url") if extra.get(k)}
+    if extra.get("addresses", 0) > 1:
+        out["more_addresses"] = extra["addresses"] - 1
+    return out or None
 
 
 # ------------------------------------------------------------------ 목록

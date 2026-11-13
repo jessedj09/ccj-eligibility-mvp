@@ -288,6 +288,9 @@ export type FindCard = {
   url: string | null; basis: "confirmed" | "preview" | "none"; basis_note: string;
   preview_from: { notice_id: string; title: string; announced: string } | null; registered_id: string | null;
   result: FindGroup; label: string; layers: FindLayer[]; related: { title: string; url: string | null }[];
+  /** 마이홈 보조 정보(묶음 C — LH 공고만): 단지 주소·임대보증금·월임대료(원, [최소, 최대])·공급 세대수 */
+  info?: { address?: string; more_addresses?: number; deposit?: [number, number]; rent?: [number, number]; supply?: number;
+    complexes?: string[]; myhome_url?: string } | null;
 };
 export type FindResult = {
   at: string; collected_at: string | null; stale: boolean; notice: string | null;

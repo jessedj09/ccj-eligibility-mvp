@@ -514,3 +514,72 @@ def with_seoul_detail(n: LiveNotice, view_html: str) -> LiveNotice:
     if hn:
         key["house_no"] = hn
     return replace(n, announced=ann, detail_key=key, **w)
+
+
+# ------------------------------------------------------------------ 마이홈 보조 정보(묶음 C, 2026-11-14)
+# 국토교통부 마이홈포털 공공주택 모집공고 조회(15108420, apis.data.go.kr/1613000/HWSPR02) — LH·지방공사 공고(SH 없음, 2026-11-13 확인).
+# 공식 링크(url)의 panId가 LH 공고 ID(PAN_ID)와 같아 정확히 잇는다. 카드 보조 정보(단지 주소·임대보증금·월임대료·공급 세대수)와
+# LH 접수기간 보충·교차 확인에 쓴다. 판정에는 쓰지 않는다.
+MYHOME_RENT = "https://apis.data.go.kr/1613000/HWSPR02/rsdtRcritNtcList"
+MYHOME_SALE = "https://apis.data.go.kr/1613000/HWSPR02/ltRsdtRcritNtcList"
+
+
+def parse_myhome(resp) -> List[Dict]:
+    body = ((resp or {}).get("response") or {}).get("body") or {}
+    items = body.get("item") or []
+    return items if isinstance(items, list) else [items]
+
+
+def myhome_total(resp) -> int:
+    try:
+        return int((((resp or {}).get("response") or {}).get("body") or {}).get("totalCount") or 0)
+    except ValueError:
+        return 0
+
+
+def _pan_id(item: Dict) -> Optional[str]:
+    m = re.search(r"panId=(\d+)", item.get("url") or "")
+    return m.group(1) if m else None
+
+
+def _address(a: Optional[str]) -> str:
+    a = re.sub(r"\s+", " ", a or "").strip()
+    half = len(a) // 2
+    if a and len(a) % 2 == 1 and a[:half] == a[half + 1:]:      # 같은 주소가 두 번 이어 붙은 응답
+        return a[:half]
+    return a
+
+
+def _money_range(values) -> Optional[List[int]]:
+    v = sorted({int(x) for x in values if isinstance(x, (int, float)) and x > 0})
+    return [v[0], v[-1]] if v else None
+
+
+def myhome_info(items: List[Dict]) -> Dict[str, Dict]:
+    """마이홈 공고 항목(단지별 여러 줄) → LH 공고 ID별 보조 정보."""
+    by: Dict[str, List[Dict]] = {}
+    for it in items:
+        pid = _pan_id(it)
+        if pid:
+            by.setdefault(pid, []).append(it)
+    out = {}
+    for pid, rows in by.items():
+        addrs = list(dict.fromkeys(_address(r.get("fullAdres")) for r in rows if r.get("fullAdres")))
+        complexes = list(dict.fromkeys((r.get("hsmpNm") or "").strip() for r in rows if r.get("hsmpNm")))
+        supply = sum(int(r.get("sumSuplyCo") or 0) for r in rows if str(r.get("sumSuplyCo") or "").isdigit()
+                     or isinstance(r.get("sumSuplyCo"), int))
+        begins = sorted(d for d in (_d(r.get("beginDe")) for r in rows) if d)
+        ends = sorted(d for d in (_d(r.get("endDe")) for r in rows) if d)
+        out[pid] = {"address": addrs[0] if addrs else None, "addresses": len(addrs), "complexes": complexes[:5],
+                    "deposit": _money_range(r.get("rentGtn") for r in rows),
+                    "rent": _money_range(r.get("mtRntchrg") for r in rows), "supply": supply or None,
+                    "window": [begins[0], ends[-1]] if begins and ends else None,
+                    "type": rows[0].get("suplyTyNm"), "myhome_url": rows[0].get("pcUrl")}
+    return out
+
+
+def with_myhome(n: LiveNotice, info: Optional[Dict]) -> LiveNotice:
+    """LH 접수기간을 못 얻은 공고(상세 조회 실패 등)는 마이홈 접수기간으로 채운다."""
+    if not info or not info.get("window") or n.window_start:
+        return n
+    return replace(n, window_start=info["window"][0], window_end=n.window_end or info["window"][1])

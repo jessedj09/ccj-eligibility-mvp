@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS live_notices (                -- 공공데이터포�
 CREATE INDEX IF NOT EXISTS live_notices_open ON live_notices (window_end, last_seen);
 ALTER TABLE live_notices ADD COLUMN IF NOT EXISTS request_count integer NOT NULL DEFAULT 0;   -- 흥신소 '분석 요청'(익명 건수)
 ALTER TABLE live_notices ADD COLUMN IF NOT EXISTS last_requested_at timestamptz;
+ALTER TABLE live_notices ADD COLUMN IF NOT EXISTS extra jsonb;      -- 마이홈 보조 정보(주소·보증금·월임대료·공급 세대수 — 묶음 C)
 CREATE TABLE IF NOT EXISTS preview_checks (                -- 예비 판정 감시(docs/12 — 분석된 공고의 예비 ↔ 확정 비교, 2026-11-13)
     sha256 text PRIMARY KEY, template text NOT NULL, compared integer NOT NULL, missed integer NOT NULL,
     likely_ok integer NOT NULL, likely_wrong integer NOT NULL, checked_at timestamptz NOT NULL DEFAULT now()
@@ -461,8 +462,8 @@ class Store(NullStore):
             for r in rows:
                 key = (r["source"], r["external_id"])
                 c.execute(
-                    f"""INSERT INTO live_notices ({", ".join(cols)}, detail_key, detail_fetched_at)
-                        VALUES ({", ".join(["%s"] * len(cols))}, %s::jsonb, CASE WHEN %s THEN now() END)
+                    f"""INSERT INTO live_notices ({", ".join(cols)}, detail_key, detail_fetched_at, extra)
+                        VALUES ({", ".join(["%s"] * len(cols))}, %s::jsonb, CASE WHEN %s THEN now() END, %s::jsonb)
                         ON CONFLICT (source, external_id) DO UPDATE SET
                           title = EXCLUDED.title, issuer = EXCLUDED.issuer, kind = EXCLUDED.kind, region = EXCLUDED.region,
                           announced = EXCLUDED.announced, status = EXCLUDED.status, url = EXCLUDED.url,
@@ -472,8 +473,10 @@ class Store(NullStore):
                           registered_id = EXCLUDED.registered_id, route = EXCLUDED.route,
                           detail_key = COALESCE(live_notices.detail_key, '{{}}'::jsonb) || EXCLUDED.detail_key,   -- 주택관리번호 등은 남긴다
                           detail_fetched_at = COALESCE(EXCLUDED.detail_fetched_at, live_notices.detail_fetched_at),
+                          extra = COALESCE(EXCLUDED.extra, live_notices.extra),   -- 마이홈이 실패한 수집은 지난 값 유지
                           last_seen = now()""",
-                    tuple(r.get(k) for k in cols) + (json.dumps(r.get("detail_key") or {}, ensure_ascii=False), key in fetched))
+                    tuple(r.get(k) for k in cols) + (json.dumps(r.get("detail_key") or {}, ensure_ascii=False), key in fetched,
+                                                     json.dumps(r["extra"], ensure_ascii=False) if r.get("extra") else None))
             return len(rows)
         return self._run(go)
 
@@ -481,10 +484,10 @@ class Store(NullStore):
     def live_notices(self, open_only=True, limit=500) -> list:
         """모은 공고(마감 안 된 것 — 마감일이 오늘 이후이거나 모름, 최근 공고부터)."""
         rows = self._run(lambda c: c.execute(
-            f"""SELECT {", ".join(self.LIVE_COLS)}, detail_key, request_count, first_seen, last_seen FROM live_notices
+            f"""SELECT {", ".join(self.LIVE_COLS)}, detail_key, request_count, extra, first_seen, last_seen FROM live_notices
                 WHERE NOT %s OR window_end IS NULL OR window_end >= (now() AT TIME ZONE 'Asia/Seoul')::date
                 ORDER BY announced DESC NULLS LAST, first_seen DESC LIMIT %s""", (open_only, limit)).fetchall())
-        return [dict(zip(self.LIVE_COLS + ("detail_key", "request_count", "first_seen", "last_seen"), r)) for r in rows]
+        return [dict(zip(self.LIVE_COLS + ("detail_key", "request_count", "extra", "first_seen", "last_seen"), r)) for r in rows]
 
     # ---- 예비 판정 감시(2026-11-13) ----
     @_safe(False)

@@ -41,6 +41,9 @@ test("기본 조건만으로 지금 모집 중인 공고를 묶음별로 보여 
   const preview = page.locator('[data-testid="find-card"][data-basis="preview"]').first();
   await expect(preview.getByTestId("card-basis")).toContainText("같은 사업 최근 공고");
   await expect(preview.getByTestId("card-upload")).toBeVisible();
+  // 마이홈 보조 정보(묶음 C): 단지 주소·보증금·월임대료·공급 세대수
+  await expect(page.getByTestId("card-info").first()).toContainText("보증금 1,200만~1,500만 원");
+  await expect(page.getByTestId("card-info").first()).toContainText("공급 40세대");
   if (want.counts.likely) await expect(page.getByTestId("group-likely")).toContainText("지원 가능 (단, 공고문 내 지원자격 상세 확인 필요)");
 
   // 접힌 묶음(실제 공고문 확인필요·지원 어려움·판정 안 함)은 <details>

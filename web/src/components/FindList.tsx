@@ -24,6 +24,22 @@ function Schedule({ c }: { c: FindCard }) {
   return <span className={`rounded px-1.5 py-0.5 text-xs ${color}`} data-testid="card-schedule">{s.text}{d}</span>;
 }
 
+const man = (v: number) => `${(v / 10000).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}만`;
+const range = (r?: [number, number]) => (r ? (r[0] === r[1] ? `${man(r[0])} 원` : `${man(r[0])}~${man(r[1])} 원`) : null);
+
+function Info({ c }: { c: FindCard }) {
+  const i = c.info;
+  if (!i) return null;
+  const parts = [
+    i.address ? `📍 ${i.address}${i.more_addresses ? ` 외 ${i.more_addresses}곳` : ""}` : null,
+    range(i.deposit) ? `보증금 ${range(i.deposit)}` : null,
+    range(i.rent) ? `월 ${range(i.rent)}` : null,
+    i.supply ? `공급 ${i.supply.toLocaleString("ko-KR")}세대` : null,
+  ].filter(Boolean);
+  if (!parts.length) return null;
+  return <p className="mt-1 text-xs text-slate-600" data-testid="card-info">{parts.join(" · ")}</p>;
+}
+
 function Card({ c }: { c: FindCard }) {
   const [asked, setAsked] = useState<"" | "busy" | "done" | "fail">("");
   const t = TONE[c.result];
@@ -44,6 +60,7 @@ function Card({ c }: { c: FindCard }) {
         <span className="text-xs text-slate-500">{[c.issuer, c.kind, c.region].filter(Boolean).join(" · ")}</span>
       </div>
       <div className="mt-1.5 font-medium break-keep">{c.title}</div>
+      <Info c={c} />
       <p className="mt-1 text-xs text-slate-600" data-testid="card-basis">{c.basis_note}</p>
       {c.layers.length > 0 && (
         <details className="mt-2 text-sm">
