@@ -83,21 +83,34 @@ def _walk_raw(conds, out: Dict[str, Tuple[str, str, bool]]):
             _walk_raw(t.get("conditions", []), out)
 
 
+def _group_sigs(conds) -> Dict[str, Tuple[str, Tuple[str, ...]]]:
+    """순위·유형 묶음(최상위 조건 중 tracks가 있는 것) rule_id → (field, 트랙 ID 목록) — 묶음 구성이 공고마다 같은지 보려고."""
+    return {c["id"]: (c.get("field") or "", tuple(str(t.get("id")) for t in c["tracks"])) for c in conds if c.get("tracks")}
+
+
 class CommonIndex:
-    """판정 틀·계층(기본 이름)마다 등록 공고 모두에 있는 조건 field와 그 식들."""
+    """판정 틀·계층(기본 이름)마다 등록 공고 모두에 있는 조건 field와 그 식들, 모든 공고에 같은 구성으로 있는 순위·유형 묶음."""
 
     def __init__(self, members: Iterable[Registered]):
         self._raw: Dict[str, Dict[str, Dict[str, Tuple[str, str, bool]]]] = {}
+        self._raw_groups: Dict[str, Dict[str, Dict[str, Tuple[str, Tuple[str, ...]]]]] = {}
         groups: Dict[Tuple[str, str], List[Dict[str, Tuple[str, str, bool]]]] = defaultdict(list)
+        sigs: Dict[Tuple[str, str], List[set]] = defaultdict(list)
+        self._members: Dict[str, List[str]] = defaultdict(list)
         for r in members:
+            self._members[r.template].append(r.notice_id)
             doc = _raw(r.notice_id)
-            per = {}
+            per, per_g = {}, {}
             for layer, body in doc["layers"].items():
                 idx: Dict[str, Tuple[str, str, bool]] = {}
                 _walk_raw(body.get("conditions", []), idx)
                 per[layer] = idx
+                per_g[layer] = _group_sigs(body.get("conditions", []))
                 groups[(r.template, base_layer(layer))].append(idx)
+                sigs[(r.template, base_layer(layer))].append(set(per_g[layer].values()))
             self._raw[r.notice_id] = per
+            self._raw_groups[r.notice_id] = per_g
+        self._common_groups = {k: set.intersection(*v) for k, v in sigs.items()}
         self._common: Dict[Tuple[str, str], Dict[str, Set[str]]] = {}
         for key, idxs in groups.items():
             fields = None
@@ -115,6 +128,15 @@ class CommonIndex:
 
     def common(self, template: str, layer: str) -> Dict[str, Set[str]]:
         return self._common.get((template, base_layer(layer)), {})
+
+    def group_sig(self, nid: str, layer: str, rule_id: str) -> Optional[Tuple[str, Tuple[str, ...]]]:
+        return self._raw_groups.get(nid, {}).get(layer, {}).get(rule_id)
+
+    def members(self, template: str) -> List[str]:
+        return list(self._members.get(template, []))
+
+    def common_groups(self, template: str, layer: str) -> set:
+        return self._common_groups.get((template, base_layer(layer)), set())
 
 
 def pick_representative(template: str, issuer: str, program: Optional[str], announced: Optional[date],
@@ -166,6 +188,64 @@ def _judge_failed(result: EvaluationResult, conds: Dict[str, Tuple[str, str, boo
     return fields, solid and bool(fields), money
 
 
+def _solid_kind(rid: str, conds: Dict[str, Tuple[str, str, bool]], common: Dict[str, Set[str]]) -> Optional[str]:
+    """조건 하나가 '어려움' 근거가 되는가 → "stable"(모든 공고에 같은 식) / "money"(모든 공고에 있는 금액 — 여유 폭 검사 필요) / None."""
+    f, check, group = conds.get(rid, ("", "", False))
+    if group or not f or f in VARIABLE_FIELDS or f not in common:
+        return None
+    if f in MONEY_FIELDS:
+        return "money"
+    return "stable" if common[f] == {check} else None
+
+
+def _top_level_solid(result: EvaluationResult, profile: HouseholdProfile, rep: NoticeRuleSet, layer: str,
+                     conds: Dict[str, Tuple[str, str, bool]], common: Dict[str, Set[str]]) -> bool:
+    """필수 조건(순위·유형 묶음 밖) 중 하나라도 '어려움' 근거 조건에 걸리면 다른 조건과 상관없이 어렵다(2026-11-14 묶음 B):
+    그 조건은 같은 판정 틀의 모든 공고에 같은 식으로 있으므로 이 공고에도 있고, 묶음 밖 조건은 하나만 걸려도 지원 불가다.
+    금액 조건은 금액을 MONEY_MARGIN 배로 줄여도 그 조건에 걸릴 때만. 묶음(트랙) 안 조건은 다른 순위로 통과할 수 있어 여기서 보지 않는다."""
+    kinds = {rid: _solid_kind(rid, conds, common) for rid in result.failed}
+    if any(k == "stable" for k in kinds.values()):
+        return True
+    money = [rid for rid, k in kinds.items() if k == "money"]
+    if not money:
+        return False
+    r2 = evaluate(_scaled(profile), rep, layer)
+    return any(rid in r2.failed for rid in money)
+
+
+def _group_solid(result: EvaluationResult, profile: HouseholdProfile, rep: NoticeRuleSet, layer: str,
+                 conds: Dict[str, Tuple[str, str, bool]], common: Dict[str, Set[str]], index: "CommonIndex", template: str) -> bool:
+    """순위·유형 묶음에서 모두 떨어진 경우(2026-11-14 묶음 B — 영구임대 1순위 신분 '가~타'): 묶음 구성이 같은 틀의 모든 공고에서 같고,
+    모든 순위가 '어려움' 근거 조건(모든 공고에 같은 식 — 금액은 여유 폭을 줘도)으로 떨어질 때만."""
+    r2 = None
+    for rid in result.failed:
+        sig = index.group_sig(rep.notice_id, layer, rid)
+        if sig is None or sig not in index.common_groups(template, layer):
+            continue
+        ok = True
+        for tid in sig[1]:
+            tr = result.tracks.get(tid)
+            if tr is None or tr.verdict != "INELIGIBLE":
+                ok = False
+                break
+            kinds = {x: _solid_kind(x, conds, common) for x in tr.failed}
+            if any(k == "stable" for k in kinds.values()):
+                continue
+            money = [x for x, k in kinds.items() if k == "money"]
+            if not money:
+                ok = False
+                break
+            if r2 is None:
+                r2 = evaluate(_scaled(profile), rep, layer)
+            t2 = r2.tracks.get(tid)
+            if t2 is None or not any(x in t2.failed for x in money):
+                ok = False
+                break
+        if ok:
+            return True
+    return False
+
+
 def _scaled(profile: HouseholdProfile) -> HouseholdProfile:
     kw = {a: int(getattr(profile, a) * MONEY_MARGIN) for a in MONEY_ATTRS
           if isinstance(getattr(profile, a, None), int) and not isinstance(getattr(profile, a), bool)}
@@ -185,6 +265,9 @@ def preview_layer(profile: HouseholdProfile, layer: str, rep: NoticeRuleSet, rep
     r = evaluate(profile, rep, rl)
     v = r.verdict
     if v == "ELIGIBLE":
+        extra = _sibling_extra(profile, layer, rep, rl, rep_template, index)
+        if extra:     # 같은 사업 다른 공고에만 있는 조건에 걸림 — '지원 가능(단서)' 대신 '실제 공고문 확인필요'
+            return LayerPreview(layer, CHECK, "INELIGIBLE", [SIBLING_NOTE.format(", ".join(extra))], extra, r)
         return LayerPreview(layer, LIKELY, v, result=r)
     if v != "INELIGIBLE":
         return LayerPreview(layer, CHECK if v in ("NEEDS_INFO", "MANUAL_REVIEW") else NONE, v, result=r)
@@ -194,8 +277,41 @@ def preview_layer(profile: HouseholdProfile, layer: str, rep: NoticeRuleSet, rep
         # 금액 한도로 걸림 — 금액을 줄여서도 걸리고 그때 걸린 조건도 모두 '어려움' 조건이어야
         r2 = evaluate(_scaled(profile), rep, rl)
         solid = r2.verdict == "INELIGIBLE" and _judge_failed(r2, conds, common)[1]
+    if not solid:
+        solid = _top_level_solid(r, profile, rep, rl, conds, common)
+    if not solid:
+        solid = _group_solid(r, profile, rep, rl, conds, common, index, rep_template)
     reasons = [conds_note for conds_note in _notes(rep, rl, _failed(r))]
     return LayerPreview(layer, UNLIKELY if solid and not stale else CHECK, v, reasons, fields, r)
+
+
+SIBLING_NOTE = "같은 사업의 다른 공고에는 이 조건으로 지원할 수 없는 기준이 있습니다({}) — 이 공고문에서 확인하세요"
+_SIBLINGS: Dict[str, NoticeRuleSet] = {}
+
+
+def _sibling_extra(profile: HouseholdProfile, layer: str, rep: NoticeRuleSet, rl: str, template: str,
+                   index: CommonIndex) -> List[str]:
+    """대표 공고 기준 지원 가능일 때, 같은 판정 틀의 다른 등록 공고에서 대표 공고에 없는 조건(field)으로 떨어지면 그 field들(2026-11-14 묶음 B —
+    신혼희망타운 하위 유형마다 소득·나이 조건 유무가 달라 생기던 헛걸음). 공고일 기준 계산은 수집 공고 날짜(rep에 이미 반영)로."""
+    from rule_data import load_notice
+    rep_fields = {f for f, _c, g in index.conditions(rep.notice_id, rl).values() if f and not g}
+    out: List[str] = []
+    for nid in index.members(template):
+        if nid == rep.notice_id:
+            continue
+        sib = _SIBLINGS.get(nid) or _SIBLINGS.setdefault(nid, load_notice(nid))
+        sl = match_layer(layer, sib)
+        if sl is None:
+            continue
+        rs = evaluate(profile, replace(sib, announcement_date=rep.announcement_date), sl)
+        if rs.verdict != "INELIGIBLE":
+            continue
+        conds = index.conditions(nid, sl)
+        for rid in _failed(rs):
+            f, _c, g = conds.get(rid, ("", "", False))
+            if f and not g and f not in rep_fields and f not in out:
+                out.append(f)
+    return out
 
 
 def _notes(notice: NoticeRuleSet, layer: str, ids: List[str]) -> List[str]:

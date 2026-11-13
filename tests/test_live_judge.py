@@ -84,3 +84,45 @@ def test_backtest_no_misses_on_known_risky_templates():
     rc = EP.main(["--limit", "60", "--template", "lh.newlywed_town_sale", "lh.public_rental", "lh.select_rental",
                   "sh.happy_housing"])
     assert rc == 0
+
+
+# ---------------------------------------------------------------- 묶음 B(2026-11-14) — 예비 판정 품질
+def _regs_for(template, *nids):
+    from find import registered
+    regs, _ = registered()
+    return [r for r in regs if r.template == template and (not nids or r.notice_id in nids)]
+
+
+def test_one_common_mandatory_failure_is_enough_for_unlikely():
+    """필수 조건(묶음 밖) 하나가 모든 공고에 같은 식인 조건이면, 공고마다 다른 조건에 함께 걸려도 '어려움'."""
+    conds = {"a": ("home_ownership", "c1", False), "b": ("residence_area", "c2", False)}
+    common = {"home_ownership": {"c1"}, "residence_area": {"c2"}}
+    r = _result("a", "b")
+    assert J._judge_failed(r, conds, common)[1] is False                          # 전부-같음 규칙으로는 못 감
+    assert J._top_level_solid(r, None, None, "L", conds, common) is True           # 하나로 충분
+    assert J._top_level_solid(_result("b"), None, None, "L", conds, common) is False
+
+
+def test_group_all_tracks_failed_on_common_conditions():
+    """영구임대 1순위 신분 묶음: 구성이 같은 틀 모든 공고에서 같고 모든 순위가 '어려움' 근거 조건으로 떨어지면 '어려움'."""
+    index = J.CommonIndex(_regs_for("lh.permanent_rental"))
+    rep = load_notice("N34")
+    layer = next(iter(rep.layers))
+    rid = next(c.rule_id for c in rep.layers[layer].conditions if c.tracks)
+    assert index.group_sig("N34", layer, rid) in index.common_groups("lh.permanent_rental", layer)
+
+
+def test_sibling_extra_condition_turns_likely_into_check():
+    """대표 공고에 없는 조건(같은 사업 다른 공고에만 있음)에 걸리면 '지원 가능(단서)' 대신 확인 필요 — 신혼희망타운 하위 유형."""
+    regs = _regs_for("lh.newlywed_town_sale")
+    index = J.CommonIndex(regs)
+    rep = load_notice("N45")                       # 추가 입주자 — 소득 조건 없음
+    layer = "신혼부부"
+    rich = None
+    for _n, _l, p in gc.cases(only=[("N46", layer)]):
+        if evaluate(p, load_notice("N46"), layer).verdict == "INELIGIBLE" and evaluate(p, rep, layer).verdict == "ELIGIBLE":
+            rich = p
+            break
+    assert rich is not None
+    out = J.preview_layer(rich, layer, rep, "lh.newlywed_town_sale", index, date(2026, 10, 1))
+    assert out.outcome == J.CHECK and out.verdict == "INELIGIBLE" and out.fields and "다른 공고" in out.reasons[0]
