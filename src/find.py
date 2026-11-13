@@ -335,19 +335,29 @@ def find_open(m: MasterProfile, live_rows: List[Dict], at: datetime, analyzed: O
 
 
 # ------------------------------------------------------------------ 올려서 분석된 공고 잇기(F35)
-def match_analyzed(row: Dict, candidates: List[Dict]) -> Optional[str]:
-    """수집 공고와 같은 공고로 보이는 분석 공고의 sha256 — 기관·공고일·사업 키가 같고 제목이 비슷(0.7 이상)할 때만."""
+def _same_slot(a_issuer, a_date, a_prog, b_issuer, b_date, b_prog) -> bool:
+    wa, wb = LN._program_key(a_prog), LN._program_key(b_prog)
+    return a_issuer == b_issuer and str(a_date)[:10] == str(b_date)[:10] and not (wa and wb and wa != wb)
+
+
+def match_analyzed(row: Dict, candidates: List[Dict], peers: Optional[List[Dict]] = None) -> Optional[str]:
+    """수집 공고와 같은 공고로 보이는 분석 공고의 sha256 — 기관·공고일·사업 키가 같고 제목이 비슷(0.7 이상)할 때.
+    제목을 모를 수 있는 업로드(PDF 첫 쪽에서 읽은 제목은 부정확 — 2026-11-14)를 위해: 같은 기관·공고일·사업의 수집 공고(peers)와
+    분석 공고가 **각각 하나뿐**이면 제목이 달라도 잇는다. 같은 날 같은 사업 공고가 여럿이면 제목이 비슷해야만."""
     title = LN._norm_short(row.get("title") or "")     # 꼬리말을 뗀 단지·사업 부분(LN.registered_match와 같은 기준)
-    want = LN._program_key(row.get("program"))
+    same = [c for c in candidates if _same_slot(c.get("issuer"), c.get("announcement_date"), c.get("program"),
+                                                 row.get("issuer"), row.get("announced"), row.get("program"))]
     best, best_r = None, 0.0
-    for c in candidates:
-        if c.get("issuer") != row.get("issuer") or str(c.get("announcement_date")) != str(row.get("announced")):
-            continue
-        prog = LN._program_key(c.get("program"))
-        if want and prog and want != prog:
-            continue
+    for c in same:
         r = SequenceMatcher(None, title, LN._norm_short(c.get("title") or "")).ratio()
         if r > best_r:
             best, best_r = c["sha256"], r
-    return best if best_r >= 0.7 else None
+    if best_r >= 0.7:
+        return best
+    if peers is not None and len(same) == 1:
+        slot = [p for p in peers if p.get("route") == LN.TEMPLATE and _same_slot(
+            p.get("issuer"), p.get("announced"), p.get("program"), row.get("issuer"), row.get("announced"), row.get("program"))]
+        if len(slot) == 1:
+            return same[0]["sha256"]
+    return None
 

@@ -559,9 +559,11 @@ def find_open_notices(req: FindRequest):
     master = _master(req.profile)
     rows, analyzed, ok = _live_rows()
     store = get_store()
+    import live_notices as LN
+    peers = LN.merge_duplicates(rows) if analyzed else []          # 같은 날 같은 사업 공고가 하나뿐인지 볼 비교 대상
 
     def from_upload(row):
-        sha = find.match_analyzed(row, analyzed)
+        sha = find.match_analyzed(row, analyzed, peers)
         if sha is None:
             return None
         d = _draft_for(sha)

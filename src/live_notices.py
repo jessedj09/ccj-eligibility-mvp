@@ -124,8 +124,21 @@ def lh_windows(detail) -> Optional[Dict[str, str]]:
     return {"window_start": min(starts) if starts else None, "window_end": max(ends) if ends else None}
 
 
+def lh_pdf_url(detail) -> Optional[str]:
+    """LH 상세 응답의 공고문 PDF 주소(dsAhflInfo — '공고문(PDF)'). 2026-11-14 사용자 결정으로 수집 작업이 이 주소의 공고문을
+    내려받아 자동 분석한다(robots가 /lhapply/lhFile.do를 막지만 공식 API가 주는 주소 — 비영리·공익 목적, 사용자 판단)."""
+    for r in _ds(detail, "dsAhflInfo"):
+        url, kind = (r.get("AHFL_URL") or "").strip(), (r.get("SL_PAN_AHFL_DS_CD_NM") or "")
+        if url.startswith("http") and "PDF" in kind.upper() and "공고" in kind:
+            return url
+    return None
+
+
 def with_detail(n: LiveNotice, detail) -> LiveNotice:
-    w = lh_windows(detail)
+    w = lh_windows(detail) or {}
+    pdf = lh_pdf_url(detail)
+    if pdf:
+        w["detail_key"] = dict(n.detail_key, pdf=pdf)
     return replace(n, **w) if w else n
 
 

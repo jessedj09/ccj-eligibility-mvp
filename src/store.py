@@ -183,6 +183,7 @@ class NullStore:
     def resume_preview(self, template): return False
     def preview_health(self): return []
     def analyzed_notices(self, days=120): return []
+    def merge_live_detail(self, source, external_id, data): return False
 
 
 def _safe(default):
@@ -539,12 +540,21 @@ class Store(NullStore):
                WHERE source = %s AND external_id = %s RETURNING request_count""", (source, external_id)).fetchone())
         return row is not None
 
+    @_safe(False)
+    def merge_live_detail(self, source, external_id, data) -> bool:
+        """수집 공고의 detail_key에 값을 더한다(자동 분석 시도 기록 등 — 다음 수집에서도 남는다)."""
+        row = self._run(lambda c: c.execute(
+            """UPDATE live_notices SET detail_key = COALESCE(detail_key, '{}'::jsonb) || %s::jsonb
+               WHERE source = %s AND external_id = %s RETURNING 1""",
+            (json.dumps(data, ensure_ascii=False), source, external_id)).fetchone())
+        return row is not None
+
     @_safe([])
     def analyzed_notices(self, days=120) -> list:
         """올려서 판정할 수 있게 분석된 공고(최근 공고일) — 수집 공고와 잇는 데 쓴다(find.match_analyzed)."""
         rows = self._run(lambda c: c.execute(
             """SELECT n.sha256, n.issuer, n.program, n.title, n.announcement_date FROM notices n
-               WHERE n.origin = 'upload' AND n.announcement_date >= (now() - make_interval(days => %s))::date
+               WHERE n.origin IN ('upload', 'collect') AND n.announcement_date >= (now() - make_interval(days => %s))::date
                  AND EXISTS (SELECT 1 FROM analyses a WHERE a.sha256 = n.sha256 AND a.status = 'ok')""", (days,)).fetchall())
         return [dict(zip(("sha256", "issuer", "program", "title", "announcement_date"), r)) for r in rows]
 

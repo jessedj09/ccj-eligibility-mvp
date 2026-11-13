@@ -61,7 +61,22 @@ def follow_up(d: draft.Draft, issuer: Optional[str]) -> Optional[Tuple[str, int]
     return None
 
 
-def analyze(data: bytes, ident=None, store=None) -> draft.Draft:
+def pdf_title(data: bytes) -> Optional[str]:
+    """PDF 첫 쪽 윗부분에서 공고 제목으로 보이는 줄('공고'·'모집'이 든 첫 줄) — 올린 공고를 흥신소 수집 공고와 잇는 데 쓴다(2026-11-14).
+    읽지 못하면 None."""
+    try:
+        import pypdfium2 as pdfium
+        doc = pdfium.PdfDocument(data)
+        text = doc[0].get_textpage().get_text_range() if len(doc) else ""
+    except Exception:       # noqa: BLE001 — 제목은 보조 정보
+        return None
+    lines = [" ".join(x.split()) for x in text.splitlines() if x.strip()][:20]
+    return next((x for x in lines if ("공고" in x or "모집" in x) and 6 <= len(x) <= 120), None)
+
+
+def analyze(data: bytes, ident=None, store=None, title: Optional[str] = None, origin: str = "upload",
+            source_url: Optional[str] = None) -> draft.Draft:
+    """origin: upload(재판소에 올린 공고) / collect(수집 작업이 공식 API 주소로 받은 LH 공고 — title은 수집 목록의 공고명)."""
     store = store or get_store()
     sha = hashlib.sha256(data).hexdigest()
     version = analysis_version()
@@ -78,6 +93,7 @@ def analyze(data: bytes, ident=None, store=None) -> draft.Draft:
         d = dataclasses.replace(d, program=known, reason=draft.unsupported_reason(known))
     issuer = getattr(ident, "issuer", None)
     store.save_notice(sha, issuer=issuer, program=d.program or getattr(ident, "program", None),
+                      title=title or pdf_title(data), origin=origin, source_url=source_url,
                       announcement_date=d.announcement_date or getattr(ident, "announcement", None))
     store.save_analysis(sha, version, draft.to_snapshot(d, sha, created=datetime.now(timezone.utc).isoformat()),
                         overall_grade(d))

@@ -20,24 +20,26 @@ import live_notices as LN
 CHECK_LIMIT = 120          # 계층마다 골든 입력 수(수집 작업 안에서 — 공고 하나 수 초)
 
 
-def _analyzed_sha(row: Dict, analyzed: List[Dict]) -> Optional[str]:
+def _analyzed_sha(row: Dict, analyzed: List[Dict], peers: Optional[List[Dict]] = None) -> Optional[str]:
     import find
-    return find.match_analyzed(row, analyzed) if row.get("template") else None
+    return find.match_analyzed(row, analyzed, peers) if row.get("template") else None
 
 
 def pending(rows: Iterable[Dict], analyzed: List[Dict]) -> List[Dict]:
     """같은 공고를 묶은 마감 안 된 행 → 분석 대기 공고(판정 틀 있음 · 등록 아님 · 분석된 업로드와 이어지지 않음)."""
-    out = [r for r in rows if r.get("route") == LN.TEMPLATE and not r.get("registered_id") and not _analyzed_sha(r, analyzed)]
+    rows = list(rows)
+    out = [r for r in rows if r.get("route") == LN.TEMPLATE and not r.get("registered_id") and not _analyzed_sha(r, analyzed, rows)]
     return sorted(out, key=lambda r: (str(r.get("window_start") or "9999"), -(r.get("request_count") or 0), r["title"]))
 
 
 def coverage(rows: Iterable[Dict], analyzed: List[Dict]) -> Dict[str, int]:
     c = Counter()
+    rows = list(rows)
     for r in rows:
         if r.get("route") == LN.REGISTERED or r.get("registered_id"):
             c["registered"] += 1
         elif r.get("route") == LN.TEMPLATE:
-            c["analyzed" if _analyzed_sha(r, analyzed) else "pending"] += 1
+            c["analyzed" if _analyzed_sha(r, analyzed, rows) else "pending"] += 1
         else:
             c["unsupported"] += 1
     target = c["registered"] + c["analyzed"] + c["pending"]
@@ -84,18 +86,27 @@ def check_preview(row: Dict, d, limit: int = CHECK_LIMIT) -> Optional[Tuple[str,
 
 
 def summary_markdown(cov: Dict[str, int], waiting: List[Dict], checks: List[Tuple[str, str, Counter]],
-                     stopped: Iterable[str], today: date) -> str:
+                     stopped: Iterable[str], today: date, autos=()) -> str:
     """수집 예약 작업 요약(GitHub 작업 요약 — $GITHUB_STEP_SUMMARY)."""
     lines = [f"## 공고 수집 {today.isoformat()}", "",
              f"**확정 판정 범위 {cov['pct']}%** — 등록 {cov.get('registered', 0)} + 분석 {cov.get('analyzed', 0)} / "
              f"판정 대상 {cov['target']}(분석 대기 {cov.get('pending', 0)}, 판정 안 하는 사업 {cov.get('unsupported', 0)})", ""]
+    if autos:
+        lines += ["### LH 공고문 자동 분석(이번 수집)", "", "| 공고 | 결과 | 등급 | 크기 | 걸린 시간 |", "|---|---|---|---|---|"]
+        for r, rec in autos:
+            lines.append(f"| {LN.clean_title(r['title'])[:50]} | {rec.get('result')} | {rec.get('grade') or ''} | "
+                         f"{rec.get('kb', '?')}KB | {rec.get('seconds')}초 |")
+        lines.append("")
     if waiting:
-        lines += ["### 분석 대기 공고 — 공고문을 내려받아 재판소에 올리면 모두에게 확정 판정", "",
-                  "| 접수 | 기관 | 사업 | 공고 | 분석 요청 | 공식 공고 |", "|---|---|---|---|---|---|"]
+        lines += ["### 분석 대기 공고 — LH는 수집 작업이 자동 분석(한 번에 8건), 그 밖은 공고문을 재판소에 올리면 모두에게 확정 판정", "",
+                  "| 접수 | 기관 | 사업 | 공고 | 분석 요청 | 공식 공고 | 공고문 |", "|---|---|---|---|---|---|---|"]
         for r in waiting:
             when = f"{r.get('window_start') or '?'}~{r.get('window_end') or '?'}"
+            dk = r.get("detail_key") or {}
+            auto = (dk.get("auto") or {}).get("result")
+            pdf = f"[PDF]({dk['pdf']})" + (f" ({auto})" if auto else "") if dk.get("pdf") else ""
             lines.append(f"| {when} | {r.get('issuer') or ''} | {r.get('program') or ''} | {LN.clean_title(r['title'])[:60]} | "
-                         f"{r.get('request_count') or 0} | {('[링크](' + r['url'] + ')') if r.get('url') else ''} |")
+                         f"{r.get('request_count') or 0} | {('[링크](' + r['url'] + ')') if r.get('url') else ''} | {pdf} |")
         lines.append("")
     if checks:
         lines += ["### 예비 판정 감시(새로 분석된 공고)", "", "| 공고 | 판정 틀 | 비교 | 놓침 | 가능성 있음 맞음/헛걸음 |",

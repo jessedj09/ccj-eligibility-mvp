@@ -44,6 +44,10 @@ RETRIES = 1                    # 접속 실패·시간 초과면 이만큼 더 �
 RETRY_WAIT = 3                 # 다시 시도하기 전 쉼(초)
 USER_AGENT = "ccj-collector/0.1"
 SEOUL_PAUSE = 1.0              # 주택포털은 화면 — 공공데이터 API보다 천천히
+AUTO_MAX = 8                   # 한 번 수집에 자동 분석할 LH 공고문 수(2026-11-14 A안 — 접수 시작 가까운 순)
+AUTO_PAUSE = 2.0               # 공고문 내려받기 사이 쉼(초)
+PDF_TIMEOUT = 60
+PDF_MAX = 25 * 1024 * 1024
 SEOUL_MAX_PAGES = 5
 
 
@@ -84,6 +88,67 @@ def _get_html(url: str) -> str:
             time.sleep(RETRY_WAIT)
     time.sleep(SEOUL_PAUSE)
     return text
+
+
+def _get_bytes(url: str) -> bytes:
+    """공고문 PDF(LH 상세 API가 준 첨부 주소). 크기 상한 PDF_MAX."""
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    for attempt in range(RETRIES + 1):
+        try:
+            with urllib.request.urlopen(req, timeout=PDF_TIMEOUT) as r:
+                size = int(r.headers.get("Content-Length") or 0)
+                if size > PDF_MAX:
+                    raise SourceError(f"공고문이 너무 큽니다({size // 1024 // 1024}MB)")
+                data = r.read(PDF_MAX + 1)
+            if len(data) > PDF_MAX:
+                raise SourceError("공고문이 너무 큽니다")
+            return data
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            if attempt == RETRIES:
+                raise SourceError(str(e)) from None
+            time.sleep(RETRY_WAIT)
+
+
+def auto_analyze(store, grouped, analyzed, today: date, limit: int = AUTO_MAX) -> list:
+    """분석 대기 LH 공고의 공고문을 공식 API 주소로 내려받아 재판소와 같은 자동 분석으로 저장한다(2026-11-14 사용자 결정 A안 —
+    robots가 /lhapply/lhFile.do를 막지만 공식 API가 주는 주소, 비영리·공익 목적). 같은 공고문(주소)은 한 번만 시도하고
+    결과를 수집 공고의 detail_key.auto에 남긴다. PDF는 분석 뒤 보관하지 않는다(후속 작업이 있을 때만 저장소 정책대로 잠시).
+    → [(행, 기록)]"""
+    import hashlib
+    import analysis
+    import coverage as V
+    import notice_identify as ni
+    todo = []
+    for r in V.pending(grouped, analyzed):
+        dk = r.get("detail_key") or {}
+        pdf = dk.get("pdf")
+        if r.get("source") != L.LH_SOURCE or not pdf or (dk.get("auto") or {}).get("pdf") == pdf:
+            continue
+        todo.append((r, pdf))
+    out = []
+    for r, pdf in todo[:limit]:
+        t0 = time.time()
+        rec = {"pdf": pdf, "at": today.isoformat()}
+        try:
+            data = _get_bytes(pdf)
+            rec["kb"] = len(data) // 1024
+            ident = ni.identify_pdf(data)
+            if ident.status in (ni.NOT_NOTICE, ni.UNREADABLE, ni.REGISTERED):
+                rec["result"] = ident.status.lower()
+            else:
+                d = analysis.analyze(data, ident, store, title=r["title"], origin="collect", source_url=r.get("url"))
+                rec.update(result=d.status, grade=analysis.overall_grade(d), sha=hashlib.sha256(data).hexdigest())
+        except SourceError as e:
+            rec.update(result="download_error", error=str(e)[:200])
+        except Exception as e:      # noqa: BLE001 — 분석 실패가 수집을 막지 않는다
+            rec.update(result="analysis_error", error=f"{type(e).__name__}: {e}"[:200])
+        rec["seconds"] = round(time.time() - t0, 1)
+        store.merge_live_detail(r["source"], r["external_id"], {"auto": rec})
+        out.append((r, rec))
+        print(f"  [자동 분석] {L.clean_title(r['title'])[:40]} | {rec['result']}{' · ' + rec['grade'] if rec.get('grade') else ''}"
+              f" | {rec.get('kb', '?')}KB · {rec['seconds']}초")
+        time.sleep(AUTO_PAUSE)
+    return out
 
 
 def collect_seoul(key: str, today: date):
@@ -164,7 +229,7 @@ def add_details(key: str, rows, needed, today: Optional[date] = None):
     return out, fetched
 
 
-def report_coverage(store, grouped, today: date) -> None:
+def report_coverage(store, grouped, today: date, autos=()) -> None:
     """확정 판정 범위·분석 대기 공고·예비 판정 감시(묶음 A, 2026-11-13). 새로 분석된 공고는 예비 ↔ 확정을 비교해 기록한다.
     GitHub 작업에서는 요약($GITHUB_STEP_SUMMARY)에도 쓴다."""
     import coverage as V
@@ -178,7 +243,7 @@ def report_coverage(store, grouped, today: date) -> None:
     checks = []
     if store:
         import find
-        pairs = [(r, find.match_analyzed(r, analyzed)) for r in grouped if r.get("route") == L.TEMPLATE]
+        pairs = [(r, find.match_analyzed(r, analyzed, grouped)) for r in grouped if r.get("route") == L.TEMPLATE]
         pairs = [(r, sha) for r, sha in pairs if sha]
         done = store.preview_checked([sha for _, sha in pairs])
         for r, sha in pairs:
@@ -203,7 +268,7 @@ def report_coverage(store, grouped, today: date) -> None:
     path = os.environ.get("GITHUB_STEP_SUMMARY")
     if path:
         with open(path, "a", encoding="utf-8") as f:
-            f.write(V.summary_markdown(cov, waiting, checks, stopped, today) + "\n")
+            f.write(V.summary_markdown(cov, waiting, checks, stopped, today, autos) + "\n")
 
 
 def main(argv=None) -> int:
@@ -271,7 +336,12 @@ def main(argv=None) -> int:
     print(f"상세 조회 {len(fetched)}건 · 저장 {saved}건" + ("" if store and saved else " (저장소 없음 — 저장 안 함)"))
     print(f"마감 안 된 공고 {len(grouped)}건(같은 공고 묶기 전 {len(open_rows)}건): 등록 공고 {routes[L.REGISTERED]} · 판정 틀 있음 {routes[L.TEMPLATE]} · "
           f"판정 안 하는 사업 {routes[L.UNSUPPORTED]}")
-    report_coverage(store if live else None, grouped, today)
+    autos = []
+    if live:
+        autos = auto_analyze(store, grouped, store.analyzed_notices(), today)
+        if autos:
+            print(f"자동 분석 {len(autos)}건: " + ", ".join(f"{k} {v}" for k, v in Counter(x['result'] for _, x in autos).items()))
+    report_coverage(store if live else None, grouped, today, autos)
     if a.json:
         Path(a.json).write_text(json.dumps([n.as_dict() for n in rows], ensure_ascii=False, indent=1), encoding="utf-8")
     return 1 if failed else 0
