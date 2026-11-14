@@ -76,7 +76,8 @@ export type Result = {
   review: Review[];
   tracks: Track[];
   notes: string[];
-  display: { group: string; title: string; icon: string; todo: string };
+  /** kind: 보류 갈래(R-②) — input 입력하면 판정 / source 원문 확인 / ambiguous 해석이 갈림 / self_report 자기신고 / input_check 입력 확인 */
+  display: { group: string; title: string; icon: string; todo: string; kind?: string | null };
   checks: { kind: string; page: number | null; text: string }[];
   common_note: string;
   /** 무엇으로 판정했는가(피드백 B2) — 판정 시각·계층·공고일·엔진 판, 등록 공고면 규칙 판·원문 지문, 올린 공고면 분석 판. */

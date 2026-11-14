@@ -40,7 +40,7 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile  # noqa: E
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
-from display_status import COMMON_NOTE, display, display_checks  # noqa: E402
+from display_status import COMMON_NOTE, display_result  # noqa: E402
 from explainability import explain  # noqa: E402
 from matcher import match_all, missing_fields, missing_inputs  # noqa: E402
 import notice_identify as ni  # noqa: E402
@@ -315,9 +315,9 @@ def _profile(raw: Dict[str, Any], notice=None):
 
 def _result_json(result, notice, checks=()) -> Dict[str, Any]:
     """엔진 설명(5상태) + 화면 3상태 표시 + 원문에서 확인할 곳 + 공통 문구."""
-    shown = display_checks(len(checks)) if checks else display(result.verdict)
+    shown = display_result(result.verdict, result.review_reasons, len(checks))
     out = _explanation_json(explain(result, notice))
-    out.update(display={"group": shown.group, "title": shown.title, "icon": shown.icon, "todo": shown.todo},
+    out.update(display={"group": shown.group, "title": shown.title, "icon": shown.icon, "todo": shown.todo, "kind": shown.kind},
                checks=[{"kind": c.kind, "page": c.page, "text": c.text} for c in checks], common_note=COMMON_NOTE)
     return out
 
@@ -481,12 +481,12 @@ def _window_json(w) -> Dict[str, Any]:
 
 def _match_json(x, stat, sched) -> Dict[str, Any]:
     n, nid = x.notice, x.notice.notice_id
-    shown = display(x.verdict)
+    shown = display_result(x.verdict, x.result.review_reasons)
     s = sched.get(nid)
     return {"notice_id": nid, "title": n.title, "layer": x.layer, "verdict": x.verdict,
             "issuer": n.meta.get("issuer"), "program": n.meta.get("program"),
             "announcement_date": n.announcement_date.isoformat(),
-            "display": {"group": shown.group, "title": shown.title, "icon": shown.icon, "todo": shown.todo},
+            "display": {"group": shown.group, "title": shown.title, "icon": shown.icon, "todo": shown.todo, "kind": shown.kind},
             "eligible_tracks": list(x.result.eligible_tracks), "schedule": _status_json(stat[nid]),
             "windows": [_window_json(w) for w in s.windows] if s else [], "schedule_note": s.note if s else None,
             "explanation": _explanation_json(explain(x.result, n))}

@@ -142,7 +142,7 @@ export default function Find() {
         <h1 className="mt-1 text-xl font-bold sm:text-2xl">자세히 <span className="text-base font-medium text-slate-500">전체 조건으로 모든 등록 공고 보기(지난 공고·What-if)</span></h1>
         <p className="mt-1 text-sm text-slate-600">
           한 번 입력하면 보유한 모든 공고의 계층·주택형을 판정합니다. 모르는 항목은 &lsquo;모름&rsquo;으로 두세요 — 그 정보가 필요한 공고는
-          &lsquo;추가 정보 필요&rsquo;로 표시되고, 무엇을 더 입력하면 되는지 알려 드립니다.
+          &lsquo;보류 — 입력하면 판정&rsquo;으로 표시되고, 무엇을 더 입력하면 되는지 알려 드립니다.
         </p>
       </div>
 
@@ -221,7 +221,7 @@ export default function Find() {
                 <div className={`${card} border-amber-300`} data-testid="find-questions">
                   <h2 className="mb-1 text-base font-semibold">보류를 줄이려면 — 이 항목만 알려 주세요</h2>
                   <p className="mb-3 text-xs text-slate-600">
-                    아래 항목이 비어 있어 일부 공고를 &lsquo;추가 정보 필요&rsquo;로 두었습니다. 아는 대로 넣고 다시 판정하면 그 공고들이 판정됩니다.
+                    아래 항목이 비어 있어 일부 공고를 &lsquo;입력하면 판정&rsquo;으로 두었습니다. 아는 대로 넣고 다시 판정하면 그 공고들이 판정됩니다.
                   </p>
                   {stored && me && ask.fields.some((f) => me.not_saved.includes(f.name)) && (
                     <p className="mb-3 text-xs text-amber-800" data-testid="ask-not-saved">

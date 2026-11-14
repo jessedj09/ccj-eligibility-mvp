@@ -5,8 +5,8 @@ const STATUS_ORDER: Record<string, number> = { OPEN: 0, UPCOMING: 1, CLOSED: 2 }
 
 const GROUPS = [
   { verdict: "ELIGIBLE", title: "✅ 지원 가능", tone: "text-green-800" },
-  { verdict: "NEEDS_INFO", title: "🟡 보류 — ⚠️ 추가 정보 필요(더 입력하면 판정)", tone: "text-amber-800" },
-  { verdict: "MANUAL_REVIEW", title: "🟡 보류 — 🔍 수동 확인 필요(원문·기관 확인)", tone: "text-amber-800" },
+  { verdict: "NEEDS_INFO", title: "🟡 보류 — ⚠️ 입력하면 판정", tone: "text-amber-800" },
+  { verdict: "MANUAL_REVIEW", title: "🟡 보류 — 해석이 갈림·자기신고·입력 확인(공고마다 할 일 표시)", tone: "text-amber-800" },
   { verdict: "INELIGIBLE", title: "❌ 지원 불가", tone: "text-red-800" },
 ] as const;
 
@@ -45,6 +45,9 @@ function MatchCard({ m }: { m: MatchItem }) {
           </p>
         )}
         {m.schedule_note && <p className="text-xs text-slate-500">🗓️ {m.schedule_note}</p>}
+        {m.display?.kind && (
+          <p className="text-xs text-amber-900" data-testid="hold-kind">{m.display.icon} {m.display.title}: {m.display.todo}</p>
+        )}
         {e.failed.map((r) => (
           <p key={r.rule_id} className="text-xs">❌ {r.description} <span className="text-slate-500">(근거: {r.source_ref})</span></p>
         ))}
@@ -82,7 +85,7 @@ export default function MatchList({ result }: { result: MatchResult }) {
         ))}
       </div>
       <p className="text-xs text-slate-600">
-        보류 {hold}건 = ⚠️ 추가 정보 필요 {n("NEEDS_INFO")}건(더 입력하면 판정) · 🔍 수동 확인 필요 {n("MANUAL_REVIEW")}건(원문·기관 확인).
+        보류 {hold}건 = ⚠️ 입력하면 판정 {n("NEEDS_INFO")}건 · ⚖️ 해석이 갈림·🙋 자기신고·✏️ 입력 확인 {n("MANUAL_REVIEW")}건(공고마다 할 일 표시).
         공고·계층(주택형) 단위로 셉니다. 신청 자격(필수요건)만 판정합니다 — 공통 결격사유(공공임대 불법 양도·전대 이력 등), 순위·가점·추첨·당첨, 서류 심사(실제 소득·자산 조회)는 확인하지 않습니다.
         접수 일정은 공고 이후 바뀔 수 있으니 신청 전 원문과 공지사항을 확인하세요.
       </p>

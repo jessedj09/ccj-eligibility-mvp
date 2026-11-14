@@ -94,7 +94,7 @@ export default function ResultView({ result, source }: { result: Result; source?
         <Reasons title="충족한 조건" items={result.matched} tone="text-green-800" />
         <Reasons title="충족하지 못한 조건" items={result.failed} tone="text-red-800" />
         <Reasons title="추가로 입력하면 판정할 수 있는 조건" items={result.unknown} tone="text-amber-800" />
-        <Reasons title="자동 확정이 어려운 조건 (수동 확인 필요)" items={result.review} tone="text-amber-800" />
+        <Reasons title="자동으로 확정하지 않은 조건" items={result.review} tone="text-amber-800" />
       </div>
 
       {result.tracks.length > 0 && (

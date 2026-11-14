@@ -24,7 +24,7 @@ from rule_data import REGION_NONE, region_groups
 from explainability import explain
 from profiles_data import PROFILES
 from schedule import load_schedules, status as schedule_status
-from display_status import COMMON_NOTE, display, display_checks
+from display_status import COMMON_NOTE, display_result
 from form_spec import C4_AMOUNTS, C4_BOOLS, C4_CHOICES, CHOICE_FIELDS, REGION_LABELS
 from notice_identify import REGISTERED, SAME_NOTICE_OTHER_FILE, UNREGISTERED, identify_pdf
 from upload_view import render_auto, render_draft, render_draft_refused, render_identified, render_not_judgeable
@@ -404,7 +404,7 @@ if st.session_state.get("judged"):
 
         # 화면은 지원 가능 / 보류(원인) / 지원 불가 3상태로 보인다(PRD v2.1 F18). 엔진 판정은 5상태 그대로.
         icon, style = VERDICT_STYLE[exp.verdict]
-        shown = display_checks(len(checks)) if checks else display(exp.verdict)
+        shown = display_result(result.verdict, result.review_reasons, len(checks))
         getattr(st, style)(f"{icon} {shown.title} · {exp.headline}")
         st.caption(shown.todo)
         for c in checks:
