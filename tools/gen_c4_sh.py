@@ -63,16 +63,19 @@ INCOME_II = dict(  # SH22 p.10 / SH18 p.13 / SH19 p.12: 130%(배우자 소득 �
     base_dual={2: 12319167, 3: 16336858, 4: 17604404, 5: 18653970}, adder_dual=1158556)
 
 
-def sh_newlywed(nid, kind, dates, single_parent_minor, quotes):
-    """kind: "I"(SH21) / "II"(SH22·SH18·SH19). dates: marriage/child6/newborn/minor(지원대상 한부모 미성년 자녀) 리터럴."""
+def sh_newlywed(nid, kind, dates, single_parent_minor, quotes, income=None, assets=None, cars=None, asset_quote=None,
+                car_quote=None, prospective_quote=None, table_prefix=""):
+    """kind: "I"(SH21) / "II"(SH22·SH18·SH19). dates: marriage/child6/newborn/minor(지원대상 한부모 미성년 자녀) 리터럴.
+    income·assets·cars·…_quote·table_prefix는 같은 조건을 다른 금액·문구로 쓰는 사업(청년안심주택 신혼부부Ⅰ·Ⅱ, 2026-11-14)용 —
+    주지 않으면 SH 신혼·신생아 매입임대 금액·문구 그대로."""
     p = nid
     exempt = {"all": [{"ne": [{"var": "marital_status"}, "예비신혼"]},
                       {"any": [{"in": [{"var": "welfare_status"}, WELFARE_EXEMPT]},
                                {"eq": [{"var": "is_supported_single_parent"}, True]}]}]}
 
-    def youngest_after(d):
+    def youngest_after(d):         # d: 원문 날짜 리터럴, 또는 식(청년안심주택 미성년 — 원문에 날짜 없음 → minor_cutoff)
         return {"if": [{"is": [{"var": "has_children"}, False]}, False,
-                       {"gte": [{"var": "youngest_child_birth_date"}, {"date": d}]}]}
+                       {"gte": [{"var": "youngest_child_birth_date"}, d if isinstance(d, dict) else {"date": d}]}]}
 
     supported = {"eq": [{"var": "is_supported_single_parent"}, True]}
     if single_parent_minor:
@@ -85,7 +88,8 @@ def sh_newlywed(nid, kind, dates, single_parent_minor, quotes):
         {"id": "지원대상한부모", "label": "「한부모가족지원법」 지원대상 한부모가족(증명서 발급 가능)", "conditions": [
             cond(f"{p}-T-supported", "is_supported_single_parent", [quotes["supported"]],
                  "지원대상 한부모가족(한부모가족 증명서 발급 가능)인지"
-                 + (f" — 미성년 자녀({dates['minor']} 이후 출생)가 있어야 함" if single_parent_minor else ""),
+                 + ((" — 미성년 자녀(공고일 현재 19세 미만)가 있어야 함" if isinstance(dates["minor"], dict)
+                     else f" — 미성년 자녀({dates['minor']} 이후 출생)가 있어야 함") if single_parent_minor else ""),
                  supported)]},
         {"id": "신혼부부", "label": "혼인 7년 이내(재혼 포함)", "conditions": [
             cond(f"{p}-T-newlywed", "marital_status/marriage_date", [quotes["marriage"]],
@@ -93,7 +97,7 @@ def sh_newlywed(nid, kind, dates, single_parent_minor, quotes):
                  {"all": [{"eq": [{"var": "marital_status"}, "혼인중"]},
                           {"gte": [{"var": "marriage_date"}, {"date": dates["marriage"]}]}]})]},
         {"id": "예비신혼부부", "label": "입주일 전일까지 혼인신고할 예비신혼부부", "conditions": [
-            cond(f"{p}-T-prospective", "marital_status", ["입주일 전일까지 혼인신고를 하는 사람"],
+            cond(f"{p}-T-prospective", "marital_status", [prospective_quote or "입주일 전일까지 혼인신고를 하는 사람"],
                  "혼인 예정(예비신혼)인지 — 입주일 전일까지 혼인신고해야 함", {"eq": [{"var": "marital_status"}, "예비신혼"]})]},
         {"id": "6세이하한부모", "label": "6세 이하 자녀를 둔 한부모가족", "conditions": [
             cond(f"{p}-T-singleparent", "marital_status/youngest_child_birth_date", [quotes["child6_sp"]],
@@ -108,14 +112,14 @@ def sh_newlywed(nid, kind, dates, single_parent_minor, quotes):
         types.append({"id": "혼인가구", "label": "공고일 현재 혼인신고가 완료된 기타 혼인가구", "conditions": [
             cond(f"{p}-T-married", "marital_status", [quotes["married"]], "공고일 현재 혼인 중(혼인신고 완료)인지",
                  {"eq": [{"var": "marital_status"}, "혼인중"]})]})
-    inc = INCOME_I if kind == "I" else INCOME_II
+    inc = income or (INCOME_I if kind == "I" else INCOME_II)
     ratio = ("70%", "90%") if kind == "I" else ("130%", "200%")
     table_quote = ([f"{inc['base'][s]:,}" for s in (2, 3, 4, 5)] + [f"{inc['base_dual'][s]:,}" for s in (2, 3, 4, 5)]
                    + [f"1인당 평균금액({inc['adder']:,}원)", f"1인당 평균금액({inc['adder_dual']:,}원)"])
-    if kind == "I":
+    if assets is None and kind == "I":
         assets, cars = [345000000, 379000000, 413000000], [45420000, 49960000, 54510000]
         asset_quote = ["34,500만원 이하", "379,000,000원 이하", "413,000,000원 이하"]
-    else:
+    elif assets is None:
         assets, cars = [362000000, 396000000, 431000000], None
         asset_quote = ["36,200만원 이하", "396,000,000원 이하", "431,000,000원 이하"]
     exempt_quote = quotes["exempt"]
@@ -127,25 +131,25 @@ def sh_newlywed(nid, kind, dates, single_parent_minor, quotes):
          "tracks": types},
         cond(f"{p}-income", "monthly_income", [quotes["income"], exempt_quote],
              f"해당 세대 월평균소득이 {ratio[0]}(배우자 소득이 있으면 {ratio[1]}) 이하인지 — 2인은 +10%p, 수급자 등은 검증 면제",
-             {"any": [exempt, {"lte": [{"var": "monthly_income"}, {"term": "limit"}]}]}, table="sh_rental_income"),
+             {"any": [exempt, {"lte": [{"var": "monthly_income"}, {"term": "limit"}]}]}, table=f"{table_prefix}sh_rental_income"),
         cond(f"{p}-assets", "total_assets", asset_quote[:1] + [exempt_quote],
              "총자산이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
-             {"any": [exempt, {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}]}, table="sh_rental_assets"),
+             {"any": [exempt, {"lte": [{"var": "total_assets"}, {"term": "asset_limit"}]}]}, table=f"{table_prefix}sh_rental_assets"),
     ]
     if cars:
-        conds.append(cond(f"{p}-car", "car_value", ["4,542만원 이하", exempt_quote],
+        conds.append(cond(f"{p}-car", "car_value", [car_quote or "4,542만원 이하", exempt_quote],
                           "자동차가액이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
                           {"any": [exempt, {"lte": [{"var": "car_value", "unknown_values": ["확인불가"]},
-                                                    {"term": "car_limit"}]}]}, table="sh_rental_assets"))
+                                                    {"term": "car_limit"}]}]}, table=f"{table_prefix}sh_rental_assets"))
     tables = {
-        "sh_rental_income": {
+        f"{table_prefix}sh_rental_income": {
             "label": f"SH 매입임대 소득 상한액: 가구원수×배우자 소득 유무 ({ratio[0]}/{ratio[1]}, 2인 +10%p 반영 금액)",
             "columns": ["size", "dual"], "inputs": {"size": {"var": "household_size"}, "dual": {"var": "dual_income"}},
             "outputs": ["limit"], "rows": income_rows(**inc),
             "source": {"quote": table_quote, "derivation": (
                 f"2~5인은 원문 금액. 6인 이상은 원문 규칙대로 5인 금액에 1인당 평균금액({inc['adder']:,}원 / "
                 f"배우자 소득 시 {inc['adder_dual']:,}원)을 더해 계산했다. 1인 가구 금액은 원문에 없다.")}},
-        "sh_rental_assets": {
+        f"{table_prefix}sh_rental_assets": {
             "label": "SH 매입임대 자산 기준: 2023.3.28. 이후 출생 자녀 수(기존 미성년 자녀 포함 최대 2명)",
             "columns": ["child"], "inputs": {"child": {"fn": "child_bonus_count"}},
             "outputs": ["asset_limit"] + (["car_limit"] if cars else []),

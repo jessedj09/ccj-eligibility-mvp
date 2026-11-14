@@ -1867,11 +1867,25 @@ SH_YOUTH_INCOME = {"2025": ("income_standard", ["4,576,036", "6,452,897", "8,168
 WELFARE_1ST_SH = ["생계·의료·주거급여 수급자", "차상위계층"]
 
 
-def sh_youth_rental(nid, money=None, age_quote=None):
+SH_YOUTH_Q = dict(     # 조건별 원문 문장(SH 청년 매입임대) — 청년안심주택 청년 계층은 같은 조건을 다른 문구로(SH_SAFE_YOUTH_Q)
+    home=["무주택자(본인)인미혼(현재혼인상태가아님)", "무주택요건충족은본인에한하며"],
+    marital=["무주택자(본인)인미혼(현재혼인상태가아님)", "기혼자,외국인,재외국민은신청불가합니다"],
+    rank_head="■신청순위순위자격상세요건",
+    t1=["생계,의료,주거급여중어느하나에해당하는급여를받는수급자가구", "신청자와동일한주민등록등본표에등재된신청자의부모",
+        "차상위계층가구", "지원대상한부모가족"],
+    t2_income=["본인과부모의월평균소득이전년도도시근로자가구당월평균소득의100%이하"],
+    t3_income=["본인의월평균소득이전년도도시근로자가구당월평균소득의100%이하", "1인가구기준으로본인소득과자산을심사"],
+    table_note="1인가구는20%p가산,2인가구는10%p가산",
+)
+
+
+def sh_youth_rental(nid, money=None, age_quote=None, q=None):
     """money: {"income": 소득표 연도, "assets2": 2순위 본인+부모 총자산(만원), "assets3": 3순위 본인 총자산, "car": 자동차(만원)},
-    age_quote: 청년 유형 나이 문구 원문(2026년 1차 '청년만19세이상~만39세이하인자', 2025년 2차 '청년만19세이상~39세이하인자')."""
+    age_quote: 청년 유형 나이 문구 원문(2026년 1차 '청년만19세이상~만39세이하인자', 2025년 2차 '청년만19세이상~39세이하인자'),
+    q: 조건별 원문 문장(기본 SH_YOUTH_Q)."""
     money = money or SH_YOUTH_MONEY_2026
     age_quote = age_quote or "청년만19세이상~만39세이하인자"
+    q = q or SH_YOUTH_Q
     ref, amounts = SH_YOUTH_INCOME[money["income"]]
     p = nid
     a2, a3, car = money["assets2"], money["assets3"], money["car"]
@@ -1880,22 +1894,21 @@ def sh_youth_rental(nid, money=None, age_quote=None):
 
     def common(prefix):
         return [
-            cond(f"{p}-{prefix}-home", "home_ownership", ["무주택자(본인)인미혼(현재혼인상태가아님)", "무주택요건충족은본인에한하며"],
+            cond(f"{p}-{prefix}-home", "home_ownership", list(q["home"]),
                  "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)", {"eq": [{"var": "home_ownership"}, "무주택"]}),
-            cond(f"{p}-{prefix}-marital", "marital_status", ["무주택자(본인)인미혼(현재혼인상태가아님)", "기혼자,외국인,재외국민은신청불가합니다"],
+            cond(f"{p}-{prefix}-marital", "marital_status", list(q["marital"]),
                  "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
                  {"in": [{"var": "marital_status"}, ["미혼", "한부모", "예비신혼"]]}),
         ]
 
     rank = {
         "id": f"{p}-rank", "field": "순위", "required": True,
-        "source": {"quote": ["■신청순위순위자격상세요건"]},
+        "source": {"quote": [q["rank_head"]]},
         "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
         "tracks": [
             {"id": "1순위", "label": "수급자·차상위계층 가구 또는 지원대상 한부모가족(소득·자산 검증 없음)", "conditions": [
                 cond(f"{p}-T1-welfare", "welfare_status/parent_welfare_status/is_supported_single_parent",
-                     ["생계,의료,주거급여중어느하나에해당하는급여를받는수급자가구", "신청자와동일한주민등록등본표에등재된신청자의부모",
-                      "차상위계층가구", "지원대상한부모가족"],
+                     list(q["t1"]),
                      "본인이 생계·의료·주거급여 수급자·차상위계층이거나 지원대상 한부모가족인지, 또는 같은 주민등록등본에 등재된 "
                      "부모가 수급자·차상위계층인지",
                      {"any": [
@@ -1907,7 +1920,7 @@ def sh_youth_rental(nid, money=None, age_quote=None):
             {"id": "2순위", "label": f"본인+부모 소득 100%(1인 120%·2인 110%) 이하, 본인+부모 총자산 {a2:,}만원·자동차 {car:,}만원 이하",
              "conditions": [
                  cond(f"{p}-T2-income", "monthly_income/parents_monthly_income/parents_count",
-                      ["본인과부모의월평균소득이전년도도시근로자가구당월평균소득의100%이하"],
+                      list(q["t2_income"]),
                       f"본인과 부모의 월평균소득 합계가 가구원수(본인+부모) 기준 이내인지(1인 {amounts[0]} / 2인 {amounts[1]} / "
                       f"3인 {amounts[2]}원)",
                       {"lte": [{"fn": "add", "args": [{"var": "monthly_income"}, {"var": "parents_monthly_income"}]},
@@ -1923,7 +1936,7 @@ def sh_youth_rental(nid, money=None, age_quote=None):
              ]},
             {"id": "3순위", "label": f"본인 소득 1인 가구 기준(120%) 이하, 본인 총자산 {a3:,}만원·자동차 {car:,}만원 이하", "conditions": [
                 cond(f"{p}-T3-income", "monthly_income",
-                     ["본인의월평균소득이전년도도시근로자가구당월평균소득의100%이하", "1인가구기준으로본인소득과자산을심사"],
+                     list(q["t3_income"]),
                      f"본인 월평균소득이 {amounts[0]}원(1인 가구 100%+20%p) 이하인지",
                      {"lte": [{"var": "monthly_income"}, {"lookup": [ref, 1, 120]}]}),
                 cond(f"{p}-T3-assets", "total_assets", [q3], f"본인 총자산이 {a3:,}만원 이하인지",
@@ -1956,7 +1969,7 @@ def sh_youth_rental(nid, money=None, age_quote=None):
         "columns": ["size"], "inputs": {"size": {"fn": "add", "args": [1, {"var": "parents_count"}]}},
         "outputs": ["ratio"],
         "rows": [r({"size": 1}, [120]), r({"size": 2}, [110]), r({"size": "3+"}, [100])],
-        "source": {"quote": amounts + ["1인가구는20%p가산,2인가구는10%p가산"]},
+        "source": {"quote": amounts + [q["table_note"]]},
     }}
     return {name: {"conditions": conds} for name, conds in layers.items()}, tables
 
@@ -1977,6 +1990,106 @@ SH_YOUTH_NOTES = sh_youth_notes(22, 28, 27)
 SH_YOUTH_UNSUPPORTED = [{"name": "이공계인재", "page": 22,
                          "note": "청년(19~39세)이면서 서울 소재 대학에서 연구 중인 이공계열 전일제 대학원생·박사후연구원 — 이공계인재 "
                                  "성장주택만 신청할 수 있다. 연구 신분을 묻지 않아 판정하지 않는다."}]
+
+
+# ------------------------------------------------------------------------------------------------
+# SH 청년안심주택(공공임대, 2026-11-14 묶음 D — 2026년 1차로 만든 판정 틀). 계층 세 가지:
+# - 청년: SH 청년 매입임대(sh_youth_rental)의 청년 유형과 같은 1·2·3순위(본인+부모 / 본인) 소득·자산 — 인용문만 청년안심 문구.
+#   대학생·취업준비생도 청년으로 신청(별도 유형 없음).
+# - 신혼부부Ⅰ·Ⅱ: SH 신혼·신생아 매입임대Ⅰ·Ⅱ(gen_c4_sh.sh_newlywed)와 같은 세부 자격·소득(70%/90%, 130%/200%)·자산 — 여기에
+#   신청자 19세 이상 39세 이하가 더해진다. 소득·자산 금액은 공고마다 원문에서 읽는다(money — 2025년 공고는 2024년도 표).
+_spec4 = importlib.util.spec_from_file_location("gen_c4_sh", ROOT / "tools" / "gen_c4_sh.py")
+C4SH = importlib.util.module_from_spec(_spec4)
+_spec4.loader.exec_module(C4SH)
+
+SH_SAFE_MONEY_2026 = {
+    "youth": {"income": "2025", "assets2": 34500, "assets3": 25100, "car": 4542},
+    "nw1": {"base": [4693016, 5717900, 6161541, 6528890], "dual": [5866270, 7351586, 7921982, 8394287],
+            "adder": 405495, "adder_dual": 521350, "assets": [34500, 37900, 41300], "cars": [4542, 4996, 5451]},
+    "nw2": {"base": [8212778, 10618958, 11442863, 12125081], "dual": [12319167, 16336858, 17604404, 18653970],
+            "adder": 753061, "adder_dual": 1158556, "assets": [36200, 39600, 43100]},
+}
+SH_SAFE_DATES_2026 = {"marriage": "2019-04-01", "newborn": "2024-04-01", "child6": "2019-04-01"}
+MINOR = {"fn": "minor_cutoff"}      # 보호대상 한부모 '미성년 자녀' — 원문에 날짜가 없어 공고일 19년 전 다음 날(함수)
+SH_SAFE_YOUTH_Q = dict(
+    home=["19세이상39세이하인무주택자,미혼(현재혼인상태가아님)", "무주택요건충족은본인에한하며"],
+    marital=["19세이상39세이하인무주택자,미혼(현재혼인상태가아님)", "외국인,재외국민은신청할수없습니다"],
+    rank_head="■순위별자격요건순위자격상세요건",
+    t1=["생계,의료,주거급여중어느하나에해당하는급여를받는수급자가구", "신청자와동일한주민등록표등본에등재된신청자의부모",
+        "차상위계층가구", "보호대상한부모가족"],
+    t2_income=["본인과부모의월평균소득이전년도도시근로자가구원수별가구당월평균소득의100%이하"],
+    t3_income=["본인의월평균소득이전년도도시근로자가구원수별가구당월평균소득의100%이하", "1인가구기준으로본인의소득을심사"],
+    table_note="1인가구는20%p가산,2인가구는10%p가산",
+)
+
+
+def _sh_safe_newlywed(nid, kind, m, dates, age_quote):
+    """신혼부부Ⅰ(kind I)·Ⅱ(kind II) 계층 — SH 신혼·신생아 매입임대 조건 + 19~39세. 표 이름은 계층마다 따로."""
+    roman = "I" if kind == "I" else "II"
+    ratio = "70%이하" if kind == "I" else "130%이하"
+    q = dict(home=f"19세이상39세이하인무주택세대구성원으로서아래의신혼부부{roman}신청자격중하나에해당하고",
+             type_head=f"아래의신혼부부{roman}신청자격중하나에해당하고",
+             income=f"해당세대의월평균소득이전년도도시근로자가구원수별가구당월평균소득의{ratio[:-2]}이하",
+             exempt="수급자(생계·의료·주거·교육급여),보호대상한부모가족,차상위계층은소득·자산검증불필요",
+             newborn=f"공고일로부터최근2년이내출산한자녀가있는가구({_dot(dates['newborn'])}.이후태어난자녀및태아)",
+             supported="여성가족부장관이정하여고시하는한부모가족※미성년자녀가있는경우에한함",
+             marriage=f"공고일현재혼인7년이내({_dot(dates['marriage'])}.~",
+             child6_sp=f"6세이하자녀를둔모자가족또는부자가족({_dot(dates['child6'])}.이후출생한자녀및태아)",
+             child6_m=f"6세이하자녀가있는혼인가구({_dot(dates['child6'])}.이후출생한자녀및태아)",
+             married="혼인가구(5순위)기타혼인가구(")
+    inc = {"base": dict(zip((2, 3, 4, 5), m["base"])), "adder": m["adder"],
+           "base_dual": dict(zip((2, 3, 4, 5), m["dual"])), "adder_dual": m["adder_dual"]}
+    a = m["assets"]
+    layers, tables = C4SH.sh_newlywed(
+        f"{nid}-{roman}", kind, dict(dates, minor=MINOR), True, q, income=inc,
+        assets=[x * 10000 for x in a], cars=[x * 10000 for x in m["cars"]] if m.get("cars") else None,
+        asset_quote=[f"총자산가액:{a[0]:,}만원이하", f"{a[1]:,}만원이하", f"{a[2]:,}만원이하"],
+        car_quote=f"자동차가액{m['cars'][0]:,}만원이하*(현재가치기준)" if m.get("cars") else None,
+        prospective_quote="입주일전일까지혼인신고를하는사람", table_prefix=f"safe_nw{roman.lower()}_")
+    conds = layers["신혼·신생아"]["conditions"]
+    conds.insert(1, cond(f"{nid}-{roman}-age", "age", [age_quote],
+                         "공고일 현재 신청자가 19세 이상 39세 이하인지", {"between": [{"var": "age"}, 19, 39]}))
+    return conds, tables
+
+
+def _dot(iso):
+    """'2019-04-01' → '2019.04.01'(청년안심 원문 날짜 표기)."""
+    return iso.replace("-", ".")
+
+
+def sh_youth_safe(nid, money=None, dates=None, layers=None):
+    """layers: 이번 공고의 모집 계층(2025년 3차는 신혼부부Ⅱ 없음). money의 없는 계층 금액은 None."""
+    money = money or SH_SAFE_MONEY_2026
+    dates = dates or SH_SAFE_DATES_2026
+    layers = layers or ["청년", "신혼부부Ⅰ", "신혼부부Ⅱ"]
+    out, tables = {}, {}
+    if "청년" in layers:
+        youth_layers, t = sh_youth_rental(nid, money["youth"], age_quote="19세이상39세이하인무주택자", q=SH_SAFE_YOUTH_Q)
+        out["청년"] = youth_layers["청년"]
+        tables.update(t)
+    for name, kind, key in (("신혼부부Ⅰ", "I", "nw1"), ("신혼부부Ⅱ", "II", "nw2")):
+        if name in layers:
+            conds, t = _sh_safe_newlywed(nid, kind, money[key], dates,
+                                         f"19세이상39세이하인무주택세대구성원으로서아래의신혼부부{kind}신청자격")
+            out[name] = {"conditions": conds}
+            tables.update(t)
+    return out, tables
+
+
+SH_SAFE_NOTES = [
+    "신청 유형(청년·신혼부부Ⅰ·신혼부부Ⅱ) 중 공고일 현재 본인에 해당하는 한 가지를 골라 신청한다. 대학생·취업준비생도 청년으로 신청하고, "
+    "자녀가 있어 함께 살려면 신혼부부 유형으로 신청해야 한다(p.21~22).",
+    "청년 2순위 소득·자산은 주민등록 세대 구성과 상관없이 본인과 부모가 대상이고 3순위는 1인 가구 기준 본인만 본다(p.24).",
+    "신혼부부 순위(신생아·보호대상 한부모 → 자녀 있는 신혼 → 자녀 없는 신혼 → 6세 이하 자녀 혼인가구 → 그 밖의 혼인가구)와 "
+    "가점은 선정 순서라 자격이 아니다(p.27, p.29, p.32). 신혼부부Ⅰ은 소득 70%(배우자 소득 있으면 90%), Ⅱ는 130%(200%) 이하다.",
+    "신혼부부 소득표는 2~5인 금액만 싣고 6인 이상은 5인 금액에 1인당 금액을 더한다. 1인 가구 금액은 원문에 없어 확인 필요(p.27, p.29).",
+]
+
+SH_SAFE_NOTES_2025 = [SH_SAFE_NOTES[0].replace("신혼부부Ⅰ·신혼부부Ⅱ", "신혼부부Ⅰ — 이번 공고는 신혼부부Ⅱ 모집 없음").split("(p.")[0] + ".",
+                      SH_SAFE_NOTES[1].split("(p.")[0] + ".",
+                      "신혼부부 순위(신생아·보호대상 한부모 → 자녀 있는 신혼 → 자녀 없는 신혼 → 6세 이하 자녀 혼인가구)와 가점은 선정 "
+                      "순서라 자격이 아니다. 신혼부부Ⅰ은 소득 70%(배우자 소득 있으면 90%) 이하다.",
+                      SH_SAFE_NOTES[3].split("(p.")[0] + "."]
 
 
 PLAN = [
@@ -2329,6 +2442,23 @@ PLAN = [
          unsupported=SH_YOUTH_UNSUPPORTED, notes=SH_YOUTH_NOTES),
     # 처음 보는 공고 검증(2026-11-14) — 판정 틀을 완성한 뒤 원문을 읽기 전에 초안을 얼림(docs/draft-checks/Z-sh-youth-2025-2.tpl.draft.json —
     # 소득표 연도를 정하지 못해 보류). 2025년 공고라 2024년도 소득표·다른 자산·자동차 한도, 이공계인재 유형 없음
+    # SH 청년안심주택(공공임대) — 2026년 1차로 만든 판정 틀(2026-11-14 묶음 D). 2025년 3차는 처음 보는 공고(틀 완성 뒤 초안을 얼린 다음 등록)
+    dict(nid="N73", key="SH73", title="SH 2026년 1차 서울시 청년안심주택(공공임대) 입주자모집", ann="2026-03-31",
+         program="청년안심주택", template="sh_youth_safe",
+         params={"money": SH_SAFE_MONEY_2026, "dates": SH_SAFE_DATES_2026, "layers": ["청년", "신혼부부Ⅰ", "신혼부부Ⅱ"]},
+         notes=SH_SAFE_NOTES),
+    # 처음 보는 공고 검증(2026-11-14) — 틀 완성 뒤 원문을 읽기 전 초안을 얼림(docs/draft-checks/Z-sh-safe-2025-3.tpl.draft.json — 신혼부부
+    # 구간을 못 읽어 막힘). 2025년 공고라 2024년도 소득표·다른 자산·자동차 한도, 신혼부부Ⅱ 모집 없음
+    dict(nid="N74", key="SH74", title="SH 2025년 3차 서울시 청년안심주택(공공임대) 입주자모집", ann="2025-12-30",
+         program="청년안심주택", template="sh_youth_safe",
+         params={"money": {"youth": {"income": "2024", "assets2": 33700, "assets3": 25400, "car": 4563},
+                           "nw1": {"base": [4381602, 5338881, 6004662, 6321734], "dual": [5477003, 6864276, 7720279, 8127943],
+                                   "adder": 491426, "adder_dual": 631834, "assets": [33700, 37100, 40500],
+                                   "cars": [4563, 5019, 5475]},
+                           "nw2": None},
+                 "dates": {"marriage": "2018-12-31", "newborn": "2023-12-31", "child6": "2018-12-31"},
+                 "layers": ["청년", "신혼부부Ⅰ"]},
+         notes=SH_SAFE_NOTES_2025),
     dict(nid="N72", key="SH72", title="SH 2025년 2차 청년 매입임대주택 입주자모집", ann="2025-12-26",
          program="청년매입임대", template="sh_youth_rental",
          params={"money": {"income": "2024", "assets2": 33700, "assets3": 25400, "car": 4563},
@@ -2339,7 +2469,8 @@ PLAN = [
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
 # 통합공공임대는 계층 이름(일반 등)이 다른 사업과 겹치고, 같은 문구가 우선공급(p.15~16)·일반공급(p.16~18)에 다 있어
 # 일반공급 쪽을 가리키는 기준점을 템플릿별로 둔다(인용문·기준표 모두).
-TEMPLATE_ANCHOR = {"sh_youth_rental": ("2입주자선정기준■신청자격", 22), "integrated_rental": ("신혼부부,한부모가족을제외한모든계층", 17), "public_rental": ("무주택세대구성원", 1),
+TEMPLATE_ANCHOR = {"sh_youth_rental": ("2입주자선정기준■신청자격", 22),
+                   "sh_youth_safe": ("신청자격및입주자선정방법■신청자격(공통사항)", 21), "integrated_rental": ("신혼부부,한부모가족을제외한모든계층", 17), "public_rental": ("무주택세대구성원", 1),
                    "newlywed_town_sale": ("신혼부부신청자격", 11), "public_sale": ("다자녀가구특별공급■신청자격", 20),
                    "sh_land_sale": ("청년특별공급■신청자격", 28), "sh_national_rental": ("4.신청자격가.공통사항", 22),
                    "sh_permanent_rental": ("3신청자격", 7),
@@ -2375,11 +2506,12 @@ BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_re
             "elderly_welfare": elderly_welfare, "sh_multichild_rental": sh_multichild_rental,
             "integrated_job_rental": integrated_job_rental,
             "lh_share_sale": lh_share_sale,
-            "lh_select_rental": lh_select_rental, "sh_happy_housing": sh_happy_housing, "sh_youth_rental": sh_youth_rental}
+            "lh_select_rental": lh_select_rental, "sh_happy_housing": sh_happy_housing, "sh_youth_rental": sh_youth_rental,
+            "sh_youth_safe": sh_youth_safe}
 ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH", "public_rental": "LH",
           "newlywed_town_sale": "LH", "public_sale": "LH", "sh_land_sale": "SH", "sh_national_rental": "SH", "sh_permanent_rental": "SH", "elderly_welfare": "LH", "lh_share_sale": "LH", "lh_select_rental": "LH",
           "sh_multichild_rental": "SH", "integrated_job_rental": "LH", "sh_happy_housing": "SH",
-          "sh_youth_rental": "SH"}
+          "sh_youth_rental": "SH", "sh_youth_safe": "SH"}
 
 
 def make_doc(plan, pdf, pages):

@@ -49,7 +49,7 @@ def resolve_interpretations(results: Dict[str, Any], detail: str):
     shown = ", ".join(f"{name}={'충족' if v else '불충족'}" for name, v in results.items())
     return ReviewNeeded(REVIEW_AMBIGUOUS_SOURCE, f"{detail} [{shown}]")
 Layer = Literal["대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자",
-                "취업준비생", "신혼·신생아", "일반"]
+                "취업준비생", "신혼·신생아", "일반", "신혼부부Ⅰ", "신혼부부Ⅱ"]
 
 
 # ---------------------------------------------------------------------------

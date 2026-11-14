@@ -27,7 +27,8 @@ from rule_engine import (
 RULES_DIR = Path(__file__).resolve().parent.parent / "rules"
 LAYERS = ("대학생", "청년", "신혼부부", "한부모", "고령자", "산업단지근로자", "주거급여수급자", "지역전략산업종사자",
           "취업준비생", "신혼·신생아", "일반", "주거약자", "예비신혼부부",     # G3: 신혼희망타운 분양 유형
-          "다자녀가구", "노부모부양", "생애최초", "신생아", "일반공급")          # G3: LH 공공분양 특별·일반공급
+          "다자녀가구", "노부모부양", "생애최초", "신생아", "일반공급",         # G3: LH 공공분양 특별·일반공급
+          "신혼부부Ⅰ", "신혼부부Ⅱ")     # SH 청년안심주택(2026-11-14) — 소득 기준이 다른 두 신혼 유형(괄호 이름은 예비 판정이 한 계층으로 묶음)
 REVIEW_STATUSES = ("DRAFT", "REVIEWED", "PUBLISHED", "RETIRED")
 CTX_KEYS = ("announcement_date",)
 TIMINGS = ("NOW", "BEFORE_MOVE_IN")

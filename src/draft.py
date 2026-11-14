@@ -41,6 +41,7 @@ PASSING = ("lh.youth_rental", "lh.newlywed_rental", "lh.deundeun", "sh.jeonse", 
            "lh.newlywed_town_sale", "lh.public_sale", "sh.land_sale",
            "sh.national_rental", "sh.permanent_rental", "lh.elderly_welfare", "sh.multichild_rental", "lh.integrated_job", "sh.happy_housing",
            "sh.youth_rental",   # SH 청년 매입임대(2026-11-14 묶음 D — 2026년 1차로 만든 틀, 2025년 2차 처음 보는 공고 검증)
+           "sh.youth_safe",     # SH 청년안심주택 공공임대(2026-11-14 묶음 D — 2026년 1차로 만든 틀, 2025년 3차 처음 보는 공고 검증)
            "lh.share_sale",    # G6(2026-11-03): LH 나눔형 — 2024.1. 사전청약 기준(같은 금액·비율 문구의 공고만 판정)
            "lh.select_rental")  # G7(2026-11-03): LH 선택형 공공임대 — 같은 원칙   # G5(2026-11-03): SH 국민·영구임대 — 공고 1건씩으로 만든 틀(같은 원칙으로 공개)
 OK, UNSUPPORTED, BLOCKED, UNREADABLE = "ok", "unsupported", "blocked", "unreadable"

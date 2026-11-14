@@ -11534,5 +11534,215 @@
    "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
    "timing": "NOW"
   }
+ ],
+ "N73/청년": [
+  {
+   "id": "N73-Y-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-Y-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-Y-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "공고일 현재 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-Y-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.23",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N73/신혼부부Ⅰ": [
+  {
+   "id": "N73-I-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-I-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "공고일 현재 신청자가 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-I-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "세부 신청자격(신생아가구·지원대상 한부모·신혼부부·예비신혼부부·6세 이하 자녀 한부모·6세 이하 자녀 혼인가구) 중 하나에 해당하는지(순위는 자격으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-I-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.26",
+   "note": "해당 세대 월평균소득이 70%(배우자 소득이 있으면 90%) 이하인지 — 2인은 +10%p, 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-I-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.27",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-I-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
+ ],
+ "N73/신혼부부Ⅱ": [
+  {
+   "id": "N73-II-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-II-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "공고일 현재 신청자가 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-II-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "세부 신청자격(신생아가구·지원대상 한부모·신혼부부·예비신혼부부·6세 이하 자녀 한부모·6세 이하 자녀 혼인가구·혼인가구) 중 하나에 해당하는지(순위는 자격으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-II-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "해당 세대 월평균소득이 130%(배우자 소득이 있으면 200%) 이하인지 — 2인은 +10%p, 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N73-II-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.29",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
+ ],
+ "N74/청년": [
+  {
+   "id": "N74-Y-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N74-Y-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N74-Y-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "공고일 현재 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N74-Y-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N74/신혼부부Ⅰ": [
+  {
+   "id": "N74-I-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "무주택세대구성원인지(세대 전원 무주택)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N74-I-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "공고일 현재 신청자가 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N74-I-type",
+   "field": "유형",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "세부 신청자격(신생아가구·지원대상 한부모·신혼부부·예비신혼부부·6세 이하 자녀 한부모·6세 이하 자녀 혼인가구) 중 하나에 해당하는지(순위는 자격으로 정해짐)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N74-I-income",
+   "field": "monthly_income",
+   "required": true,
+   "source_ref": "공고문 p.28",
+   "note": "해당 세대 월평균소득이 70%(배우자 소득이 있으면 90%) 이하인지 — 2인은 +10%p, 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N74-I-assets",
+   "field": "total_assets",
+   "required": true,
+   "source_ref": "공고문 p.30",
+   "note": "총자산이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  },
+  {
+   "id": "N74-I-car",
+   "field": "car_value",
+   "required": true,
+   "source_ref": "공고문 p.30",
+   "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
+   "timing": "NOW"
+  }
  ]
 }

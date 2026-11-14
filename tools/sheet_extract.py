@@ -379,6 +379,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return "sh.happy_housing"
     if program == "청년매입임대" and issuer == "SH":   # SH 청년 매입임대(2026년 1차 기준, 2026-11-14) — LH 틀과 구성은 같고 서울 소재 대학 등이 다르다
         return "sh.youth_rental"
+    if program == "청년안심주택" and issuer == "SH":   # SH 청년안심주택 공공임대(2026년 1차 기준, 2026-11-14) — 민간임대는 VARIANT가 막는다
+        return "sh.youth_safe"
     if program == "다자녀 매입임대":      # SH 다자녀 매입임대(2026.5.29.) — LH 다자녀 매입임대는 아직 검증 전
         return "sh.multichild_rental" if issuer == "SH" else None
     if program == "고령자복지주택":       # G5: LH 고령자복지주택(영구임대형만 — 국민임대형 등은 gate가 막는다)
@@ -743,6 +745,84 @@ def _sh_youth(pages):
             Field(FILLED, money, how="소득표 연도(1~3인 금액)·2·3순위 총자산·자동차 한도 문구"),
             "age_quote": Field(FILLED, age.group(0), how="청년 유형 나이 문구") if age else
             Field(HELD, None, how="청년 유형 나이 문구(만19세이상~39세이하) 없음")}
+
+
+NUM = r"\d{1,2},\d{3},\d{3}"
+SAFE_ROW = {"I": (r"70%이하", r"90%이하"), "II": (r"130%이하", r"200%이하")}
+SAFE_DATE = {"marriage": re.compile(r"혼인7년이내\((\d{4})\.(\d{1,2})\.(\d{1,2})\.?~"),
+             "newborn": re.compile(r"(\d{4})\.(\d{1,2})\.(\d{1,2})\.?이후태어난자녀"),
+             "child6": re.compile(r"6세이하자녀를둔모자가족또는부자가족\((\d{4})\.(\d{1,2})\.(\d{1,2})\.?이후출생")}
+SAFE_DATE_YEARS = {"marriage": 7, "newborn": 2, "child6": 7}
+
+
+def _safe_newlywed(seg, kind, with_car):
+    """신혼부부Ⅰ·Ⅱ 구간 텍스트 → 2~5인 소득(배우자 소득 없음/있음)·6인 이상 1인당 금액·자산(출생자녀 0·1·2명)·자동차. 못 읽으면 None."""
+    out = {}
+    for key, label in zip(("base", "dual"), SAFE_ROW[kind]):
+        m = re.search(label + f"((?:{NUM}){{4}})", seg)
+        if not m:
+            return None
+        out[key] = [int(x.replace(",", "")) for x in re.findall(NUM, m.group(1))]
+    adders = [int(x.replace(",", "")) for x in re.findall(r"1인당평균금액\(([\d,]+)원\)", seg)]
+    if len(adders) != 3:              # 구간마다 세 줄(낮은 구간·기본·배우자 소득) — 이름표가 틀린 공고가 있어 순서로 읽는다
+        return None
+    out["adder"], out["adder_dual"] = adders[1], adders[2]
+    m = re.search(r"총자산가액:([\d,]+)만원이하", seg)
+    if not m:
+        return None
+    rest = re.findall(r"([\d,]+)만원이하", seg[m.end():])
+    out["assets"] = [int(m.group(1).replace(",", ""))] + [int(x.replace(",", "")) for x in rest[:2]]
+    if with_car:
+        m = re.search(r"자동차가액([\d,]+)만원이하", seg)
+        if not m:
+            return None
+        rest = re.findall(r"([\d,]+)만원이하", seg[m.end():])
+        out["cars"] = [int(m.group(1).replace(",", ""))] + [int(x.replace(",", "")) for x in rest[:2]]
+    ok = (len(out["assets"]) == 3 and out["assets"] == sorted(out["assets"])
+          and all(b < d for b, d in zip(out["base"], out["dual"])) and out["base"] == sorted(out["base"])
+          and (not with_car or (len(out["cars"]) == 3 and out["cars"] == sorted(out["cars"]))))
+    return out if ok else None
+
+
+def _sh_safe(pages, ann):
+    """SH 청년안심주택(공공임대): 모집 계층(청년 '5-1청년계층', 신혼부부Ⅰ '■신혼부부I', Ⅱ '■신혼부부II' — 공고마다 다르다: 2025년 3차는
+    Ⅱ 없음)을 고르고, 청년은 SH 청년 매입임대와 같은 금액 읽기(소득표 연도·2·3순위 자산·자동차), 신혼부부Ⅰ·Ⅱ는 구간(다음 신혼 구간
+    또는 '●무주택세대구성원'까지)마다 소득표 두 줄·1인당 금액·자산(·자동차)을 읽는다. 기준일(혼인 7년·신생아 2년·6세 이하)은 원문
+    날짜를 읽어 공고일 관례(공고일 − N년 다음 날 ±2일)와 맞는지 본다. 하나라도 못 읽으면 보류."""
+    text = "".join(pages)
+    m1, m2 = re.search(r"■신혼부부I(?!I)", text), re.search(r"■신혼부부II", text)
+    end = text.find("●무주택세대구성원", max(m.start() for m in (m1, m2) if m) if (m1 or m2) else 0)
+    end = end if end > 0 else len(text)
+    layers = (["청년"] if "5-1청년계층" in text else []) + (["신혼부부Ⅰ"] if m1 else []) + (["신혼부부Ⅱ"] if m2 else [])
+    lost = []
+    youth = _sh_youth(pages)["money"] if "청년" in layers else None
+    if youth is not None and youth.status != FILLED:
+        lost.append(youth.how)
+    nw1 = _safe_newlywed(text[m1.start():m2.start() if m2 and m2.start() > m1.start() else end], "I", True) if m1 else None
+    nw2 = _safe_newlywed(text[m2.start():end], "II", False) if m2 else None
+    if m1 and nw1 is None:
+        lost.append("신혼부부Ⅰ 소득·자산·자동차 표")
+    if m2 and nw2 is None:
+        lost.append("신혼부부Ⅱ 소득·자산 표")
+    if not layers:
+        lost.append("모집 계층(청년·신혼부부Ⅰ·Ⅱ 구간 제목)")
+    money = {"youth": youth.value if youth else None, "nw1": nw1, "nw2": nw2}
+    dates = {}
+    for key, rx in SAFE_DATE.items():
+        m = rx.search(text)
+        iso = None
+        if m and ann:
+            try:
+                d = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+                iso = d.isoformat() if abs((d - years_before(ann, SAFE_DATE_YEARS[key]) - timedelta(days=1)).days) <= 2 else None
+            except ValueError:
+                iso = None
+        dates[key] = (Field(FILLED, iso, how=f"원문 날짜('{m.group(0)}')") if iso else
+                      Field(HELD, None, how="원문 날짜를 읽지 못하거나 공고일 관례(공고일 − N년 다음 날)와 다름"))
+    return {"layers": Field(FILLED if layers else HELD, layers, how="구간 제목('5-1청년계층'·'■신혼부부I'·'■신혼부부II')"),
+            "money": Field(HELD, money, how=f"읽지 못한 금액: {lost}") if lost else
+            Field(FILLED, money, how="청년 소득표 연도·2·3순위 자산, 신혼부부Ⅰ·Ⅱ 소득표·1인당 금액·자산·자동차"),
+            "dates": dates}
 
 
 def _near_convention(hit, ann, years):
@@ -1213,7 +1293,8 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
           "sh.jeonse": lambda: _jeonse(pages, ann, sib, program, llm),
           "lh.happy_housing": lambda: _happy_housing(pages, ann, sib, program, pages[0][:200], llm),
           "sh.happy_housing": lambda: _sh_happy(pages, ann),
-          "sh.youth_rental": lambda: _sh_youth(pages)}[template]
+          "sh.youth_rental": lambda: _sh_youth(pages),
+          "sh.youth_safe": lambda: _sh_safe(pages, ann)}[template]
     out["fields"] = fn()
     return out
 
@@ -1606,7 +1687,9 @@ RELAXED = re.compile(r"입주자격완화|【완화조건】|완화기준은해�
 
 # 변형 공고: 통합공공임대 일자리연계형 지원주택은 직업·근무지 요건과 거주기간이 일반형과 달라 일반형 틀로 판정하지 않는다(G2).
 # 공공임대 틀은 예비입주자 모집만 — 최초 입주자 모집(특별·일반공급, 소득·자산 기준)은 다른 사업이다(G4).
-VARIANT = {"sh.youth_rental": (re.compile(r"자립준비청년|기숙사형|위국헌신"), True,   # 2026-11-14 — 자격이 일반 청년 매입임대와 다름
+VARIANT = {"sh.youth_safe": (re.compile(r"민간임대"), True,      # 2026-11-14 — 민간임대 청년안심주택은 사업자·자격 기준이 다름
+                             "청년안심주택 '{}' 공고(p.1) — 공공임대 청년안심주택과 자격이 달라 자동 판정하지 않습니다"),
+           "sh.youth_rental": (re.compile(r"자립준비청년|기숙사형|위국헌신"), True,   # 2026-11-14 — 자격이 일반 청년 매입임대와 다름
                                "SH 청년 매입임대 '{}' 공고(p.1) — 일반 청년 매입임대와 자격이 달라 자동 판정하지 않습니다"),
            "lh.youth_rental": (re.compile(r"자립준비청년"), True,      # 보호종료 5년 이내 등 — 나이 기준일이 없다(2026-11-08)
                                 "청년매입임대 '{}' 우선공급 공고(p.1) — 보호종료·시설 퇴소 요건이 일반 청년과 달라 자동 판정하지 않습니다"),

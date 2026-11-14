@@ -25,6 +25,7 @@ def test_sh_address_wins_over_lh_program_label():
 def test_lh_templates_not_used_for_sh_notices():
     assert X.choose_template("SH", "든든전세") is None
     assert X.choose_template("SH", "청년매입임대") == "sh.youth_rental"    # 2026-11-14: SH 전용 틀(LH 틀은 쓰지 않음)
+    assert X.choose_template("SH", "청년안심주택") == "sh.youth_safe"
     assert X.choose_template("SH", "행복주택") == "sh.happy_housing"     # 2026-11-10: SH 전용 틀(LH 틀은 쓰지 않음)
     assert X.choose_template("LH", "청년매입임대") == "lh.youth_rental"
     assert X.choose_template("LH", "행복주택") == "lh.happy_housing"

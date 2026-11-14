@@ -122,6 +122,9 @@ def test_title_program_links_to_templates_and_registered():
     assert link("2027년 1차 행복주택 입주자 모집공고", "행복주택", "2027-05-01").template == "sh.happy_housing"
     assert link("2027년 1차 청년 매입임대주택 입주자모집공고", "매입임대주택", "2027-05-01").template == "sh.youth_rental"
     assert link("2026년 1차 청년 매입임대주택 입주자 모집공고", "매입임대주택", "2026-06-26").registered_id == "N71"
+    assert link("2027년 1차 청년안심주택(공공임대) 입주자 모집공고", "청년안심주택", "2027-03-31").template == "sh.youth_safe"
+    assert link("2026년 1차 청년안심주택(공공임대) 입주자모집 공고", "청년안심주택", "2026-03-31").registered_id == "N73"
+    assert link("2027년 청년안심주택(민간임대) 입주자 모집공고", "청년안심주택", "2027-03-31").template is None
     # 판정 틀이 없는 SH 사업은 판정하지 않는다(청년 매입임대의 변형 사업 포함)
     for t, k in (("2027년 자립준비청년 매입임대주택 입주자모집공고", "매입임대주택"), ("2027년 1차 기숙사형 청년주택 입주자모집 공고", "매입임대주택"),
                  ("2027년 위국헌신 청년 매입임대주택 입주자모집", "매입임대주택"),

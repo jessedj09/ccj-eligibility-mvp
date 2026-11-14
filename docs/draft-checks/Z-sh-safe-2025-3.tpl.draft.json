@@ -1,0 +1,20 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "8e59049e3cdc1a42cf68b6385f41365940a1e11f5c2335f98fd0d0aa241cd9eb",
+  "file": "공공_251230_2025년 3차 청년안심주택 모집공고문.pdf",
+  "created": "2026-11-14",
+  "status": "blocked",
+  "reason": "판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다: 청년(소득표 연도·2·3순위 자산·자동차)·신혼부부Ⅰ·Ⅱ(2~5인 소득 두 줄·1인당 금액·자산·자동차) 금액",
+  "template": "sh.youth_safe",
+  "program": "청년안심주택",
+  "announcement_date": "2025-12-30",
+  "held_fields": [
+    "money"
+  ],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}
