@@ -28,7 +28,9 @@ ISSUER_NAMES = (("한국토지주택공사", "LH"), ("서울주택도시공사",
 KIND_PROGRAM = {"영구임대": "영구임대주택", "국민임대": "국민임대주택", "공공임대": "공공임대주택", "행복주택": "행복주택"}
 # 판정 틀이 있어도 자동 판정하지 않는 공고 — 입주자격 완화(공고 업로드 때도 차단: sheet_extract.RELAXED),
 # 기업·기관에 주는 물량(기관공급 — 개인 모집이 아님)
-NOT_JUDGED = re.compile(r"자격완화|선계약\s*후\s*검증|기관공급|대상기업|고령자복지형|민간임대")
+NOT_JUDGED = re.compile(r"자격완화|선계약\s*후\s*검증|기관공급|대상기업|고령자복지형|민간임대|선착순")
+# '선착순'(2026-11-14): LH 청년 매입임대 선착순 예비입주자 모집 — 남은 물량을 순서대로 주며 자격이 완화될 수 있어 원문을 보기 전에는
+# 일반 모집 틀로 판정하지 않는다(공고문이 분석되면 그 결과로 — 입주자격 완화는 sheet_extract.RELAXED가 잡는다)
 # '민간임대'(2026-11-14): 민간임대 청년안심주택(역세권 청년주택)은 사업자마다 모집 — 공공임대 청년안심주택 틀로 판정하지 않는다
 # '고령자복지형' 통합공공임대(2026-11-11): 일반형과 자격이 다른 하위 유형 — 일반형 틀로 판정하지 않는다(등록 공고면 그 규칙으로)
 TITLE_TAG = re.compile(r"^\s*(?:\[[^\]]{1,12}\]\s*)+")      # '[정정공고]', '[중단공고][수의계약]' 같은 머리표
@@ -256,8 +258,10 @@ def link(n: LiveNotice, index=None) -> LiveNotice:
     _, program = nc.classify([clean_title(n.title) + " " + n.kind, marker])
     if program is None and n.source == LH_SOURCE:
         program = KIND_PROGRAM.get(n.kind)
-    if n.issuer == "SH" and (program is None or program in SH_GENERIC):
-        program = sh_title_program(n.title, n.kind) or program
+    if program is None or program in SH_GENERIC:      # 제목에 띄어쓰기·'ㆍ'가 있어 분류표(띄어쓰기 없는 원문용)가 못 잡는 사업 이름
+        program = sh_title_program(n.title, n.kind) or program        # (2026-11-14: LH '청년 매입임대주택' 등이 판정 안 함이던 결함)
+        if n.issuer != "SH" and program and program.startswith("SH "):
+            program = program[3:]
     if n.source == LH_SOURCE and n.kind.startswith("행복주택"):
         # LH 유형이 행복주택이면 행복주택 — 제목의 '신혼희망타운'으로 분양이 되지 않게(2026-11-11 구리갈매 A-1BL)
         program = "행복주택(신혼희망타운)" if "신혼희망" in n.kind else "행복주택"
@@ -375,8 +379,10 @@ SEOUL_NOT_NOTICE = re.compile(r"당첨자|발표|결과|연기|취소|주택정�
 # 분류기가 제목만으로는 뭉뚱그려 답하는 사업 이름 — 제목의 사업 이름으로 다시 정한다(판정 틀과 같은 이름)
 SH_GENERIC = {"매입임대주택", "분양주택", "도시형생활주택", "공공임대주택"}
 SH_TITLE_PROGRAM = (
-    (re.compile(r"신혼\s*[·ㆍ]?\s*신생아\s*매입임대\s*주택\s*(Ⅱ|2|II)|미리내집\s*\(\s*신혼"), "SH 신혼·신생아 매입임대Ⅱ"),
-    (re.compile(r"신혼\s*[·ㆍ]?\s*신생아\s*매입임대"), "SH 신혼·신생아 매입임대Ⅰ"),
+    # 'Ⅱ'가 사업 이름 앞(신생아Ⅱ 매입임대 — LH 제목)이나 뒤(매입임대주택Ⅱ — SH 제목)에 온다. LH 공고면 link가 'SH '를 뗀다
+    (re.compile(r"신혼\s*[·ㆍ.]?\s*신생아\s*(?:(?:Ⅱ|II)\s*(?:전세형\s*)?매입임대|매입임대\s*(?:주택)?\s*(?:Ⅱ|2|II))|미리내집\s*\(\s*신혼"),
+     "SH 신혼·신생아 매입임대Ⅱ"),
+    (re.compile(r"신혼\s*[·ㆍ.]?\s*신생아\s*(?:Ⅰ|I)?\s*매입임대"), "SH 신혼·신생아 매입임대Ⅰ"),
     (re.compile(r"다자녀\s*매입임대"), "다자녀 매입임대"),
     (re.compile(r"청년\s*매입임대"), "청년매입임대"),        # SH 청년 매입임대(2026-11-14 판정 틀) — 자립준비청년·기숙사형·위국헌신은 아래에서 뺀다
     (re.compile(r"토지임대부\s*분양"), "토지임대부 분양주택"),
@@ -390,8 +396,9 @@ class SeoulFormatError(ValueError):
 
 
 def sh_title_program(title: str, kind: str = "") -> Optional[str]:
+    """제목의 사업 이름(SH·LH 공통 — 2026-11-14부터 LH 매입임대 제목에도). 판정 틀 없는 변형 사업이면 None."""
     t = clean_title(title)
-    if re.search(r"자립준비청년|기숙사형|위국헌신|공공한옥|이공계", t):   # 판정 틀 없는 SH 변형 사업
+    if re.search(r"자립준비청년|기숙사형|위국헌신|공공한옥|이공계", t):   # 판정 틀 없는 변형 사업
         return None
     return next((p for rx, p in SH_TITLE_PROGRAM if rx.search(t)), None)
 

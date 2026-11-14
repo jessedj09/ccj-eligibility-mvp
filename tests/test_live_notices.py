@@ -71,6 +71,20 @@ def test_link_routes_by_template_and_relaxed_titles():
     assert L.link(lh("[부산] 2026년 2차 일반 매입임대주택 입주자 모집 공고", "매입임대")).route == L.UNSUPPORTED
 
 
+def test_lh_rental_titles_with_spaces_or_dot_variants_reach_templates():
+    """2026-11-14: 띄어쓰기('청년 매입임대주택')·'ㆍ' 가운뎃점·'신생아Ⅰ매입임대' 제목이 분류표에 안 걸려 판정 안 함이던 결함."""
+    for t, prog, tpl in (("[제주지역본부-제주시] 청년 매입임대주택 예비입주자 모집 공고", "청년매입임대", "lh.youth_rental"),
+                         ("[정정공고]2026년 3차 대구경북지역 신혼ㆍ신생아Ⅰ매입임대 입주자 모집공고", "신혼·신생아 매입임대Ⅰ",
+                          "lh.newlywed_rental"),
+                         ("2026년 대구경북 신혼ㆍ신생아Ⅱ 매입임대 입주자 모집", "신혼·신생아 매입임대Ⅱ", "lh.newlywed_rental")):
+        n = L.link(lh(t, "매입임대"))
+        assert (n.program, n.template, n.route) == (prog, tpl, L.TEMPLATE), t
+    # 선착순(자격 완화 가능)·판정 틀 없는 매입임대(기존주택·다자녀·장애인 자립특화형·자립준비청년)는 판정 안 함
+    for t in ("[경기북부] 청년 매입임대주택 선착순 예비입주자 모집공고 (김포시, 포천시)", "청주 다자녀 매입임대주택 입주자 모집",
+              "장애인 자립특화형 매입임대 입주자 모집", "[경남] 자립준비청년 매입임대 예비입주자 모집"):
+        assert L.link(lh(t, "매입임대")).route == L.UNSUPPORTED, t
+
+
 def test_registered_notice_is_matched_only_on_same_date_and_title():
     n = lh("SH 2026년 1차 행복주택 입주자모집", "행복주택", announced="2026-05-28", issuer="SH")
     assert L.link(n).registered_id == "N68" and L.link(n).route == L.REGISTERED
