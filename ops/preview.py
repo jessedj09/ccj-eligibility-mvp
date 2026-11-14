@@ -78,7 +78,7 @@ def _draft_upload(up, ident):
 
 
 operator = sidebar_gate()
-auto_public = auto_judge_public()   # v3 자동 판정을 일반 사용자에게 열었는가(기본 꺼짐 — 베타 공개 기준 충족 후 켬)
+auto_public = auto_judge_public()   # v3 자동 판정을 일반 사용자에게 열었는가(코드 기본 꺼짐 — 운영은 2026-11-01부터 켬, 사업별 공개는 draft.PASSING)
 current_draft = None   # 자동 분석한 초안(있으면 등록 규칙 대신 이것으로 판정)
 
 with st.sidebar:

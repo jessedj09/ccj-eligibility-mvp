@@ -1,0 +1,4 @@
+{
+  "_comment": "사업(판정 틀)별 독립 검증 완료 기록 — src/verification.py(R-⑤ 검증 상태 표시)가 읽는다. 그 사업의 워크시트 사례(docs/independent-validation-worksheet.md 1~24, docs/independent-validation-cases.json)를 사람이 원문만 보고 모두 채우고 python tools/worksheet_check.py 대조 불일치 0을 확인한 뒤에만 더한다. 형식: \"verified\": {\"lh.happy_housing\": {\"verified_at\": \"YYYY-MM-DD\", \"cases\": [1, 2], \"note\": \"...\"}}. 지금(2026-11-14)은 채운 사례 0건 — 모든 사업이 '검증 중'.",
+  "verified": {}
+}

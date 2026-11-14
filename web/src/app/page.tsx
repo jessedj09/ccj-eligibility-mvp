@@ -66,7 +66,7 @@ function Identified({ up, confirmed, onConfirm }: { up: UploadResult; confirmed:
       {correction}
       {j.supported_programs && j.supported_programs.length > 0 && (
         <p className="text-xs text-slate-600">
-          새 공고 자동 판정 지원 사업: {j.supported_programs.join(", ")}. 다른 사업은 정확도를 검증하며 차례로 추가합니다.
+          새 공고 자동 판정 지원 사업: {j.supported_programs.join(", ")}. 다른 사업은 판정 틀을 만드는 대로 차례로 추가합니다(사업별 검증 상태는 이용 안내에서 볼 수 있습니다).
         </p>
       )}
       {j.registered ? (

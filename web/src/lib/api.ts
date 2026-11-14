@@ -87,6 +87,8 @@ export type Result = {
   };
   /** '정보 부족' 조건마다 그 조건이 읽는 입력 항목(피드백 B1) — 화면은 지금 '모름'인 항목만 다시 묻는다. */
   questions?: { rule_id: string; description: string; source_ref: string; fields: string[] }[];
+  /** 이 판정에 쓴 사업(판정 틀)의 검증 상태(R-⑤) — 독립 검증 완료 / 검증 중 / 정확도 점검 중. 판정은 바꾸지 않는다. */
+  verification?: { template: string; status: "verified" | "in_progress" | "paused"; label: string; note: string } | null;
 };
 
 export type NoticeSummary = {

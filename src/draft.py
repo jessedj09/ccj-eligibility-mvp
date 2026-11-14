@@ -40,9 +40,9 @@ PASSING = ("lh.youth_rental", "lh.newlywed_rental", "lh.deundeun", "sh.jeonse", 
            "lh.national_rental", "lh.permanent_rental", "lh.integrated_rental",
            "lh.newlywed_town_sale", "lh.public_sale", "sh.land_sale",
            "sh.national_rental", "sh.permanent_rental", "lh.elderly_welfare", "sh.multichild_rental", "lh.integrated_job", "sh.happy_housing",
-           "sh.youth_rental",   # SH 청년 매입임대(2026-11-14 묶음 D — 2026년 1차로 만든 틀, 2025년 2차 처음 보는 공고 검증)
-           "sh.hope_housing",   # SH 희망하우징 공공기숙사(2026-11-14 묶음 D — 2026년 2차로 만든 틀, 3차 잔여세대 처음 보는 공고 검증)
-           "sh.youth_safe",     # SH 청년안심주택 공공임대(2026-11-14 묶음 D — 2026년 1차로 만든 틀, 2025년 3차 처음 보는 공고 검증)
+           "sh.youth_rental",   # SH 청년 매입임대(2026-11-14 묶음 D — 2026년 1차로 만든 틀 — 2025년 2차 얼린 초안은 막혀 처음 보는 공고 검증은 다음 공고 때)
+           "sh.hope_housing",   # SH 희망하우징 공공기숙사(2026-11-14 묶음 D — 2026년 2차로 만든 틀 — 3차 잔여세대는 대학 요건이 달라 막힘, 검증은 다음 일반 모집 때)
+           "sh.youth_safe",     # SH 청년안심주택 공공임대(2026-11-14 묶음 D — 2026년 1차로 만든 틀 — 2025년 3차 얼린 초안은 막혀 처음 보는 공고 검증은 다음 공고 때)
            "lh.share_sale",    # G6(2026-11-03): LH 나눔형 — 2024.1. 사전청약 기준(같은 금액·비율 문구의 공고만 판정)
            "lh.select_rental")  # G7(2026-11-03): LH 선택형 공공임대 — 같은 원칙   # G5(2026-11-03): SH 국민·영구임대 — 공고 1건씩으로 만든 틀(같은 원칙으로 공개)
 OK, UNSUPPORTED, BLOCKED, UNREADABLE = "ok", "unsupported", "blocked", "unreadable"
@@ -58,8 +58,8 @@ def unsupported_reason(program: Optional[str]) -> str:
     if not program:
         return "공고문에서 사업 유형을 알아보지 못했습니다."
     if nc.is_sale(program):
-        return f"이 분양 공고({program})는 아직 자동 판정을 지원하지 않습니다(정확도를 검증하며 차례로 추가합니다)."
-    return f"이 사업({program})은 아직 자동 판정을 지원하지 않습니다(정확도를 검증하며 차례로 추가합니다)."
+        return f"이 분양 공고({program})는 아직 자동 판정을 지원하지 않습니다(판정 틀을 만드는 대로 차례로 추가합니다)."
+    return f"이 사업({program})은 아직 자동 판정을 지원하지 않습니다(판정 틀을 만드는 대로 차례로 추가합니다)."
 
 
 def _program_name(ext: Dict) -> Optional[str]:

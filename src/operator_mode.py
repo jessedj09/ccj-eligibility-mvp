@@ -29,8 +29,9 @@ def configured_password() -> Optional[str]:
 
 
 def auto_judge_public() -> bool:
-    """자동 판정(v3 — 미등록 공고를 룰 엔진으로 자동 판정)을 일반 사용자에게 여는 스위치. 기본은 꺼짐(운영자만) — 베타 공개 기준
-    (PRD v3 13절)을 충족하면 secrets `auto_judge_public = true` 또는 환경변수 CCJ_AUTO_JUDGE_PUBLIC=1로 켠다."""
+    """자동 판정(v3 — 미등록 공고를 룰 엔진으로 자동 판정)을 일반 사용자에게 여는 스위치. 코드 기본은 꺼짐(운영자만) — 운영은
+    2026-11-01부터 켬(secrets `auto_judge_public = true` 또는 환경변수 CCJ_AUTO_JUDGE_PUBLIC=1). 어떤 사업을 여는지는 `draft.PASSING`
+    (판정 틀이 있으면 공개 — 2026-11-02·11-14 결정, 검증 상태는 표시만). 베타 공개 기준(서비스 전체, PRD 13절)과는 다른 스위치다."""
     try:
         value = st.secrets.get("auto_judge_public")
     except Exception:

@@ -69,6 +69,11 @@ export default function ResultView({ result, source }: { result: Result; source?
           <p className="mb-1 font-semibold text-slate-800">이 판정이 확인한 것</p>
           <p>입력하신 정보 기준으로, 이 공고·계층의 신청 자격(필수요건) {checked}개 조건을 공고문 원문과 대조했습니다.</p>
           {source && <p className="mt-1 text-slate-500" data-testid="source">{SOURCE_LABEL[source]}</p>}
+          {result.verification && (
+            <p className="mt-1 text-slate-600" data-testid="verification">
+              검증 상태: <b>{result.verification.label}</b> — {result.verification.note}
+            </p>
+          )}
           {result.basis && (
             <p className="mt-1 text-slate-400" data-testid="basis">
               {result.basis.judged_at.replace("T", " ").slice(0, 16)} 판정 ·{" "}

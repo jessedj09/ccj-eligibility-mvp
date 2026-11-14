@@ -111,6 +111,16 @@ def summary_line(res: Dict, holdout: bool = False) -> str:
             f"개발에 안 쓴 공고 {1 if holdout else 0}건")
 
 
+def headline(danger: int, judged: int, n: int) -> str:
+    """보고서 제목. 초안이 한 명도 판정하지 않았으면(차단·미지원 — 판정 없음 100%) 위험 0이 검증 근거가 아니라고 밝힌다
+    (2026-11-14 정정 — 10-31 피드백 10항 '위험 0에는 분모를 붙여라')."""
+    if danger:
+        return f"❌ 위험 {danger}건 (가상 신청자 {n:,}명)"
+    if not judged:
+        return f"판정하지 않음 — 초안이 판정한 신청자 0명/{n:,}명(차단·미지원). 위험 0이지만 검증 근거가 아니다"
+    return f"✅ 위험 0건 (초안이 판정한 신청자 {judged:,}명/{n:,}명)"
+
+
 def to_markdown(res: Dict, holdout: bool = False) -> str:
     d, s = res["draft"], res["snapshot"]
     total = Counter()
@@ -124,7 +134,7 @@ def to_markdown(res: Dict, holdout: bool = False) -> str:
            + f" · 사업 `{d.template}` · 공고일 {d.announcement_date}",
            f"- 초안의 보류 빈칸 {len(d.held_fields)}개 · 찾지 못한 인용문 {len(d.missing)}개 · 기준표 연도 다름 {len(d.stale)}개 · "
            f"새 제한 문구 {len(d.restrictions)}개", "",
-           f"## 결과: {'✅ 위험 0건' if not danger else f'❌ 위험 {danger}건'} (가상 신청자 {n:,}명)", "",
+           f"## 결과: {headline(danger, n - total[NOT_JUDGED], n)}", "",
            f"> {summary_line(res, holdout)}", "",
            "| 계층 | 신청자 | 같음 | 초안이 더 조심 | ⚠️ 틀린 지원 가능 | ⚠️ 다른 확정 판정 | 초안 판정 없음 | 5상태까지 같음 |",
            "|---|---|---|---|---|---|---|---|"]

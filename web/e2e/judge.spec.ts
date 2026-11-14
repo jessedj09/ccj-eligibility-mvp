@@ -101,6 +101,9 @@ test("이용 안내에 지원 범위 표가 있다", async ({ page }) => {
   await page.goto("/about");
   await expect(page.getByTestId("scope-table")).toContainText("LH 통합공공임대(일반형)");
   await expect(page.getByTestId("scope-table")).toContainText("새 공고 자동 판정");
+  // R-⑤ 사업별 검증 상태(API가 계산 — 지금은 모두 '검증 중')
+  await expect(page.getByTestId("verification-table")).toContainText("LH 청년매입임대");
+  await expect(page.getByTestId("verification-table")).toContainText("검증 중");
 });
 
 test("목록에서 공고를 고르고, 나이 기준을 넘기면 지원 불가와 근거 쪽이 보인다", async ({ page }) => {
@@ -115,6 +118,7 @@ test("목록에서 공고를 고르고, 나이 기준을 넘기면 지원 불가
   await expect(page.getByTestId("result-title")).toBeInViewport();   // 긴 입력란 아래에 생긴 결과로 스크롤(PC·휴대폰)
   await expect(page.getByTestId("result")).toContainText("충족하지 못한 조건");
   await expect(page.getByTestId("result")).toContainText("공고문 p.");
+  await expect(page.getByTestId("verification")).toContainText("검증 중");   // R-⑤ 이 판정에 쓴 사업의 검증 상태
 });
 
 test("혼인 상태를 '혼인중'으로 바꾸면 혼인신고일을 묻는다(서버 양식의 조건부 항목)", async ({ page, request }) => {

@@ -430,7 +430,28 @@ def evaluate_one(req: EvaluateRequest):
         result, checks = evaluate(profile, notice, req.layer), []
     get_store().count("judged")
     return dict(_result_json(result, notice, checks), basis=_basis(req, notice, d),
-                questions=_questions(result, notice, req.layer))
+                questions=_questions(result, notice, req.layer), verification=_verification(notice, d))
+
+
+def _demoted() -> frozenset:
+    """멈춘 사업 목록 — 읽지 못하면(DB 장애) 빈 목록으로 표시만 한다(판정 멈춤은 _paused가 따로 막는다)."""
+    d = get_store().demoted_programs()
+    return frozenset() if d is UNKNOWN_DEMOTED else d
+
+
+def _verification(notice, d) -> Optional[Dict[str, Any]]:
+    """R-⑤(2026-11-14): 이 판정에 쓴 사업(판정 틀)의 검증 상태 — 독립 검증 완료 / 검증 중 / 정확도 점검 중. 표시만(판정 불변)."""
+    import verification as V
+    from find import registered
+    template = d.template if d is not None else {r.notice_id: r.template for r in registered()[0]}.get(notice.notice_id)
+    return V.verification_json(template, _demoted())
+
+
+@app.get("/verification")
+def verification_list():
+    """이용 안내 지원 범위 표 — 새 공고 자동 판정 사업마다 이름·검증 상태(R-⑤)."""
+    import verification as V
+    return {"programs": V.all_programs(_demoted())}
 
 
 @app.get("/match/form")

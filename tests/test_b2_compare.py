@@ -135,3 +135,10 @@ def test_layer_missing_from_draft_is_not_judged(n12_snapshot):
     del snap["doc"]["layers"]["청년"]
     res = dc.compare(snap, limit=50)
     assert res["counts"]["청년"][dc.NOT_JUDGED] == 50 and dc.danger_count(res) == 0
+
+
+def test_headline_does_not_call_unjudged_comparison_safe():
+    """초안이 한 명도 판정하지 않은 비교(차단·미지원)는 '위험 0'을 검증 근거처럼 쓰지 않는다(2026-11-14 정정)."""
+    assert "판정하지 않음" in dc.headline(0, 0, 10_906) and "✅" not in dc.headline(0, 0, 10_906)
+    assert dc.headline(0, 500, 1_000).startswith("✅ 위험 0건 (초안이 판정한 신청자 500명/1,000명)")
+    assert dc.headline(3, 500, 1_000).startswith("❌ 위험 3건")
