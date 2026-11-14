@@ -1,0 +1,18 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "8e59049e3cdc1a42cf68b6385f41365940a1e11f5c2335f98fd0d0aa241cd9eb",
+  "file": "공공_251230_2025년 3차 청년안심주택 모집공고문.pdf",
+  "created": "2026-11-14",
+  "status": "unsupported",
+  "reason": "이 사업(SH 청년안심주택)은 아직 자동 판정을 지원하지 않습니다(정확도를 검증하며 차례로 추가합니다).",
+  "template": null,
+  "program": "청년안심주택",
+  "announcement_date": "2025-12-30",
+  "held_fields": [],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

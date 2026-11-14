@@ -1,0 +1,358 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "4f790eb1089cfe2d566c9d117ff5f56cc7a6eda23ea3b5fa4947ba918afefaef",
+  "file": "2026년 3차 희망하우징(공공기숙사) 잔여세대 입주자 모집공고(2026_ 10_ 28_).pdf",
+  "created": "2026-11-14",
+  "status": "blocked",
+  "reason": "판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다: 공통 신청자격 문장('현재 서울특별시에 거주하는 성년자인 무주택세대구성원'), 성년 요건 문장, 소득 기준 문장(70% 이하)",
+  "template": "sh.national_rental",
+  "program": "국민임대주택",
+  "announcement_date": "2026-10-28",
+  "held_fields": [
+    "eligibility_quote",
+    "adult_quote",
+    "income_quote"
+  ],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [
+    "일반/DRAFT-S-income: '기준표 income_standard_sh_public 금액 3,432,027원 등 15개가 원문에 없음(다른 기준 연도)'"
+  ],
+  "missing": [
+    "일반/DRAFT-S-adult: '미성년자'",
+    "일반/DRAFT-S-income: '소득기준가산요건'",
+    "일반/DRAFT-S-income: '가구원수에따른가산항목및비율'",
+    "일반/DRAFT-S-assets: '부동산,자동차,금융자산,기타자산을합산한금액에서부채를차감하여'",
+    "일반/DRAFT-S-assets: '기본34,5004,542'",
+    "일반/DRAFT-S-car: '기본34,5004,542'",
+    "table:sh_national_terms: '기본34,5004,542'",
+    "table:sh_national_terms: '10%p가산37,9004,996'",
+    "table:sh_national_terms: '20%p가산41,3005,451'",
+    "일반/DRAFT-S-adult: '(근거 문장 없음)'",
+    "일반/DRAFT-S-assets: '(근거 문장 없음)'",
+    "일반/DRAFT-S-car: '(근거 문장 없음)'",
+    "일반/DRAFT-S-income: '기준표 income_standard_sh_public 금액 3,432,027원 등 15개가 원문에 없음(다른 기준 연도)'"
+  ],
+  "doc": {
+    "notice_id": "DRAFT",
+    "title": "",
+    "announcement_date": "2026-10-28",
+    "issuer": "SH",
+    "program": "국민임대주택",
+    "version": 1,
+    "valid_from": "2026-10-28",
+    "supersedes": null,
+    "source": {
+      "document": "upload.pdf",
+      "sha256": "4f790eb1089cfe2d566c9d117ff5f56cc7a6eda23ea3b5fa4947ba918afefaef",
+      "pages": 29
+    },
+    "review": {
+      "status": "DRAFT",
+      "note": "G2 생성(tools/gen_c6_public.py). 원문 표 수치는 손으로 옮김. 독립 검토 전.",
+      "log": []
+    },
+    "notes": [],
+    "unsupported_layers": [],
+    "tables": {
+      "sh_national_terms": {
+        "label": "SH 국민임대 소득 비율·자산·자동차 한도: 가구원수 × 출생자녀수(가구원수 가산과 출생자녀 가산을 더함)",
+        "columns": [
+          "size",
+          "child"
+        ],
+        "inputs": {
+          "size": {
+            "var": "household_size"
+          },
+          "child": {
+            "fn": "child_bonus_count"
+          }
+        },
+        "outputs": [
+          "ratio",
+          "asset_limit",
+          "car_limit"
+        ],
+        "rows": [
+          {
+            "when": {
+              "size": 1,
+              "child": 0
+            },
+            "out": [
+              90,
+              345000000,
+              45420000
+            ]
+          },
+          {
+            "when": {
+              "size": 1,
+              "child": "1+"
+            },
+            "result": "NO_ROW",
+            "no_row": {
+              "code": "INPUT_INCONSISTENT",
+              "detail": "가구원수가 1인인데 출생자녀 가산 대상 자녀가 있습니다(자녀도 가구원). 가구원수 또는 자녀 입력을 확인해 주세요."
+            }
+          },
+          {
+            "when": {
+              "size": 2,
+              "child": 0
+            },
+            "out": [
+              80,
+              345000000,
+              45420000
+            ]
+          },
+          {
+            "when": {
+              "size": 2,
+              "child": 1
+            },
+            "out": [
+              90,
+              379000000,
+              49960000
+            ]
+          },
+          {
+            "when": {
+              "size": 2,
+              "child": "2+"
+            },
+            "result": "NO_ROW",
+            "no_row": {
+              "code": "INPUT_INCONSISTENT",
+              "detail": "가구원수가 2인인데 출생자녀 가산 대상 자녀가 2명 이상입니다. 가구원수 또는 자녀 입력을 확인해 주세요."
+            }
+          },
+          {
+            "when": {
+              "size": "3+",
+              "child": 0
+            },
+            "out": [
+              70,
+              345000000,
+              45420000
+            ]
+          },
+          {
+            "when": {
+              "size": "3+",
+              "child": 1
+            },
+            "out": [
+              80,
+              379000000,
+              49960000
+            ]
+          },
+          {
+            "when": {
+              "size": "3+",
+              "child": "2+"
+            },
+            "out": [
+              90,
+              413000000,
+              54510000
+            ]
+          }
+        ],
+        "source": {
+          "quote": [],
+          "page": 22
+        }
+      }
+    },
+    "layers": {
+      "일반": {
+        "conditions": [
+          {
+            "id": "DRAFT-S-home",
+            "field": "home_ownership",
+            "required": true,
+            "source": {
+              "quote": [
+                "무주택세대구성원"
+              ],
+              "page": 26
+            },
+            "note": "무주택세대구성원인지(세대 전원 무주택, 분양권 등 포함)",
+            "check": {
+              "eq": [
+                {
+                  "var": "home_ownership"
+                },
+                "무주택"
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-S-region",
+            "field": "residence_area",
+            "required": true,
+            "source": {
+              "quote": [
+                "무주택세대구성원"
+              ],
+              "page": 26
+            },
+            "note": "공고일 현재 서울특별시에 주민등록이 되어 있는지",
+            "check": {
+              "in": [
+                {
+                  "var": "residence_area"
+                },
+                [
+                  "서울특별시"
+                ]
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-S-adult",
+            "field": "age",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 22
+            },
+            "note": "성년(만 19세 이상)인지 — 미성년자는 자녀가 있는 미성년 세대주 등 예외에 해당할 때만 신청 가능",
+            "check": {
+              "any": [
+                {
+                  "gte": [
+                    {
+                      "var": "age"
+                    },
+                    19
+                  ]
+                },
+                {
+                  "lte": [
+                    {
+                      "var": "age"
+                    },
+                    18
+                  ],
+                  "review_if_true": {
+                    "code": "AMBIGUOUS_SOURCE",
+                    "detail": "미성년자는 자녀가 있는 미성년 세대주·형제자매를 부양하는 미성년 세대주 등 예외에 해당할 때만 신청할 수 있습니다. 예외 해당 여부는 이 화면이 묻지 않습니다."
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "DRAFT-S-income",
+            "field": "monthly_income",
+            "required": true,
+            "source": {
+              "quote": [
+                "월평균소득"
+              ],
+              "page": 26
+            },
+            "note": "세대 전원의 월평균소득 합계가 70%(1인 +20%p·2인 +10%p, 2023.3.28. 이후 출생자녀 1명 +10%p·2명 이상 +20%p) 기준 이내인지",
+            "check": {
+              "lte": [
+                {
+                  "var": "monthly_income"
+                },
+                {
+                  "lookup": [
+                    "income_standard_sh_public",
+                    {
+                      "var": "household_size"
+                    },
+                    {
+                      "term": "ratio"
+                    }
+                  ]
+                }
+              ]
+            },
+            "table": "sh_national_terms"
+          },
+          {
+            "id": "DRAFT-S-assets",
+            "field": "total_assets",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 22
+            },
+            "note": "세대 전원의 총자산이 3억4,500만원(출생자녀 1명 3억7,900만원·2명 이상 4억1,300만원) 이하인지",
+            "check": {
+              "lte": [
+                {
+                  "var": "total_assets"
+                },
+                {
+                  "term": "asset_limit"
+                }
+              ]
+            },
+            "table": "sh_national_terms"
+          },
+          {
+            "id": "DRAFT-S-car",
+            "field": "car_value",
+            "required": true,
+            "source": {
+              "quote": [],
+              "page": 22
+            },
+            "note": "자동차가액(여러 대면 가장 높은 차량가액)이 4,542만원(출생자녀 1명 4,996만원·2명 이상 5,451만원) 이하인지",
+            "check": {
+              "lte": [
+                {
+                  "var": "car_value",
+                  "unknown_values": [
+                    "확인불가"
+                  ]
+                },
+                {
+                  "term": "car_limit"
+                }
+              ]
+            },
+            "table": "sh_national_terms"
+          }
+        ]
+      }
+    }
+  },
+  "unclassified": [
+    [
+      6,
+      "※수도권소재대학교재학생:(,,)(),수도권서울경기인천소재대학교전문대포함혹은대학원에재학중이거나다음학기년학기에입학또는복학예정인사람(20271)"
+    ],
+    [
+      6,
+      "※서울특별시소재대학교재학생:()서울특별시소재대학교전문대포함에재학중이거나다음학기(20271)년학기에입학또는복학예정인사람"
+    ],
+    [
+      22,
+      "·주택의공급가능여부를확인하기위해관리자가임대주택에출입할수있으며입주자는,이에협조하여야합니다."
+    ],
+    [
+      26,
+      "*,「」「」국가유공자등예우및지원에관한법률및보훈보상대상자지원에관한법률에의한간호수당「」대일항쟁기강제동원피해조사및국외강제동원희생자등지원에관한특별법에의한의료지원금은제외총자산부동산"
+    ],
+    [
+      27,
+      "금융자산조회안내「」공공주택입주자보유자산관련업무처리지침의시행에따라입주신청자의(2016.12.30.)가구원전원은금융자산을포함한총자산가액을조회하기위하여입주자신청시'금융정보등제공동의서를반드시'제출하여야하며제출하지아니할경우신청이불가합니다,.구분안내사항동의서수집사유사회보장정보시스템을통해금융자산정보조회시금융기관제출용동의서서명대상소득재산조사대상가구원전원순위본인및부모순위본인서명(2:/3:)서명정보제공동의금융기관에조사대상가구원전원이각각금융정보제공을동의정보제공사실미통보금융기관의금융정보제공사실을통보하지아니하는것을동의동의서유효기간등제출일로부터개월이내금융정보조회시유효6"
+    ],
+    [
+      27,
+      "-건물이완성되는때에그건물과이에부수되는토지를취득할수있는권리위조합원입주권은제외조사일():현재까지납부한금액부채"
+    ]
+  ]
+}
