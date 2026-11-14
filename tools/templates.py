@@ -163,6 +163,10 @@ TEMPLATES: Dict[str, Dict] = {
         Param("child", "date", "한부모 6세 이하 자녀 출생 기준일 리터럴('2019. 5. 29. 이후 출생')"),
         Param("money", "money", "소득표 연도(2025/2024)와 자산·자동차 한도(만원: 기준·출생자녀 1명·2명 이상)"),
     ]),
+    "sh.youth_rental": dict(module=PUB, builder="sh_youth_rental", issuer="SH", program="청년매입임대", params=[
+        Param("money", "money", "소득표 연도(2025/2024)와 2·3순위 총자산·자동차 한도(만원 — 2순위 본인+부모, 3순위 본인)"),
+        Param("age_quote", "text", "청년 유형 나이 문구 원문('청년만19세이상~(만)39세이하인자')"),
+    ]),
     "lh.elderly_welfare": dict(module=PUB, builder="elderly_welfare", issuer="LH", program="고령자복지주택(영구임대형)", params=[
         Param("kind", "choice", "영구임대형인지(제목 '고령자복지주택(영구임대)') — 아니면 자동 판정하지 않는다"),
         Param("eligibility_quote", "text", "공통 신청자격 문장('현재 만65세 이상 … 무주택세대구성원 요건을 만족하고')"),
@@ -214,7 +218,7 @@ _PLAN_TEMPLATE = {(LH, "youth_rental"): "lh.youth_rental", (LH, "newlywed_rental
                   (PUB, "sh_permanent_rental"): "sh.permanent_rental", (PUB, "elderly_welfare"): "lh.elderly_welfare",
                   (PUB, "lh_share_sale"): "lh.share_sale", (PUB, "lh_select_rental"): "lh.select_rental",
                   (PUB, "sh_multichild_rental"): "sh.multichild_rental", (PUB, "integrated_job_rental"): "lh.integrated_job",
-                  (PUB, "sh_happy_housing"): "sh.happy_housing"}
+                  (PUB, "sh_happy_housing"): "sh.happy_housing", (PUB, "sh_youth_rental"): "sh.youth_rental"}
 BASE_NOTICES = ("N1", "N2", "N3")      # 시트 없음(템플릿 원본·손으로 만든 공고)
 
 

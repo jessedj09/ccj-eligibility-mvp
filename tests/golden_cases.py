@@ -107,6 +107,11 @@ DATES = {
                 grad=date(2023, 4, 25), adult=date(2006, 4, 25)),
     "N70": dict(ann=date(2025, 12, 31), marriage=date(2018, 12, 31), child=date(2019, 1, 1),
                 grad=date(2023, 12, 31), adult=date(2006, 12, 31)),
+    # SH 청년 매입임대 2026년 1차(N71 2026.06.26.)·2025년 2차(N72 2025.12.26.) — 취업준비생 졸업·중퇴 2년 이내
+    "N71": dict(ann=date(2026, 6, 26), marriage=date(2019, 6, 26), child=date(2019, 6, 27),
+                grad=date(2024, 6, 26), adult=date(2007, 6, 26)),
+    "N72": dict(ann=date(2025, 12, 26), marriage=date(2018, 12, 26), child=date(2018, 12, 27),
+                grad=date(2023, 12, 26), adult=date(2006, 12, 26)),
     # G5 SH 국민임대(N53 2026.08.20) — 공고일만 쓴다(출생자녀 가산 기준일 2023.3.28. 고정, 미성년 = 공고일−19년).
     "N53": dict(ann=date(2026, 8, 20), marriage=date(2019, 8, 20), child=date(2019, 8, 21),
                 grad=date(2024, 8, 20), adult=date(2007, 8, 20)),
@@ -206,7 +211,7 @@ PROGRAM_OF = {"N11": "youth_rental", "N12": "youth_rental", "N13": "newlywed_ren
               "N57": "select_rental", "N58": "national_rental", "N59": "integrated_rental", "N60": "sh_national_rental",
               "N61": "elderly_welfare", "N62": "elderly_welfare", "N63": "share_sale_2026", "N64": "select_rental_2026",
               "N65": "sh_multichild", "N66": "integrated_job", "N67": "integrated_job",
-              "N69": "sh_happy_2024", "N70": "sh_happy_2024"}
+              "N69": "sh_happy_2024", "N70": "sh_happy_2024", "N71": "sh_youth_rental", "N72": "sh_youth_rental"}
 CITY_OF = {"N33": "양주시", "N34": "부천시"}     # 영구임대 거주 요건 시(통과 쪽 기본값)
 J2_INCOME = [None, 0, 1] + [v + d for v in (7_039_524, 9_802_115, 14_703_172, 8_799_405, 12_252_644, 18_653_970)
                             for d in (-1, 0, 1)] + [40_000_000]
@@ -482,6 +487,7 @@ GROUPS: List[Tuple[str, str]] = [
     *[("N68", layer) for layer in ("대학생", "청년", "신혼부부", "한부모", "고령자", "주거급여수급자")],
     *[("N69", layer) for layer in ("청년", "신혼부부", "한부모", "고령자")],
     *[("N70", layer) for layer in ("대학생", "청년", "신혼부부", "한부모", "고령자", "주거급여수급자")],
+    *[(nid, layer) for nid in ("N71", "N72") for layer in ("청년", "대학생", "취업준비생")],
 ]
 WEAK = [None, "해당없음", "장애인", "국가유공자(상이 1~7급)", "고엽제후유의증환자(경도 이상)"]
 
@@ -521,6 +527,24 @@ SH24_INCOME = [0, 1, 1_000_000, 3_000_000] + [v + d for v in (
 SH24_ASSETS = [None, 0] + [v * 10_000 + d for v in (10_400, 11_400, 12_500, 25_400, 27_900, 30_500, 33_700, 37_100, 40_500)
                            for d in (-1, 0, 1)]
 SH24_CARS = [0, 1, "확인불가"] + [v * 10_000 + d for v in (3_803, 4_183, 4_563, 5_020, 5_476) for d in (-1, 0, 1)]
+# SH 청년 매입임대(N71 2026년 1차·N72 2025년 2차): 1·2·3인 소득 기준(1인 120%·2인 110%·3인 100%) 경계 ±1원 — 부모 소득은
+# 본인 기본값(1,000,000원)을 뺀 값, 2순위 본인+부모 총자산·3순위 본인 총자산·자동차 한도 경계(원문 p.28 / p.25)
+SHY_MONEY = {"N71": ((4_576_036, 6_452_897, 8_168_429), 345_000_000, 251_000_000, 45_420_000),
+             "N72": ((4_317_797, 6_024_703, 7_626_973), 337_000_000, 254_000_000, 45_630_000)}
+
+
+def _sh_youth_pools(nid: str) -> Dict[str, list]:
+    (i1, i2, i3), a2, a3, car = SHY_MONEY[nid]
+    return {
+        "income": [None, 0, 1, 1_000_000] + [i1 + d for d in (-1, 0, 1)] + [9_000_000],
+        "parents_income": [None, 0] + [v - 1_000_000 + d for v in (i1, i2, i3) for d in (0, 1)] + [20_000_000],
+        "assets": [None, 0, 1] + [v + d for v in (a3, a2) for d in (-1, 0, 1)],
+        "parents_assets": [None, 0, a2 - 1, a2, 300_000_000],
+        "car": [0, 1, "확인불가"] + [car + d for d in (-1, 0, 1)],
+        "parents_car": [None, 0, car, car + 1],
+    }
+
+
 STATUSES = [None, "재학중", "입학예정", "복학예정", "취업준비생", "해당없음"]
 HEADS = [None, "세대주", "세대원", "기타"]
 ROOKIES = [None, True, False]
@@ -571,6 +595,17 @@ def _pools(nid: str) -> Dict[str, list]:
 
 def _attributes(layer: str, pools, nid: str = "") -> Dict[str, Tuple[list, object]]:
     """계층별 (값 풀, 기준 프로필의 기본값). 기본값은 '모든 조건이 통과'하는 쪽."""
+    if PROGRAM_OF.get(nid) == "sh_youth_rental":            # SH 청년 매입임대: LH 청년매입 풀 + 서울 소재 대학·현재 혼인 상태 + 공고별 금액 경계
+        attrs = _program_attributes("youth_rental", layer, pools)
+        m = _sh_youth_pools(nid)
+        attrs.update(marital=(MARITALS, "미혼"), income=(m["income"], 1), parents_income=(m["parents_income"], 1_000_000),
+                     assets=(m["assets"], 1), parents_assets=(m["parents_assets"], 0), car=(m["car"], 0),
+                     parents_car=(m["parents_car"], 0))
+        if layer == "청년":
+            attrs["age"] = ([18, 19, 39, 40], 25)
+        if layer == "대학생":
+            attrs["school_area"] = ([None, "서울특별시", "고양시", "해당없음"], "서울특별시")
+        return attrs
     if PROGRAM_OF.get(nid) == "sh_happy_2024":              # SH 행복주택 2025년 공고: 행복주택 계층 풀 + 2024년도 소득·2025년 한도 경계
         attrs = _layer_attributes(layer, pools)
         attrs["income"] = (SH24_INCOME, 1)

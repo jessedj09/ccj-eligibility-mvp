@@ -1,0 +1,20 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "b531845243c9294bb77554b0db32cbead105b67668849ace1a824f404468ce94",
+  "file": "1_ [공고문] 2025년 2차 청년 매입임대주택 입주자모집공고문_수정.pdf",
+  "created": "2026-11-14",
+  "status": "blocked",
+  "reason": "판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다: 소득표 연도(2025)와 2·3순위 총자산·자동차 한도(만원",
+  "template": "sh.youth_rental",
+  "program": "청년매입임대",
+  "announcement_date": "2025-12-26",
+  "held_fields": [
+    "money"
+  ],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

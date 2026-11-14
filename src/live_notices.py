@@ -377,6 +377,7 @@ SH_TITLE_PROGRAM = (
     (re.compile(r"신혼\s*[·ㆍ]?\s*신생아\s*매입임대\s*주택\s*(Ⅱ|2|II)|미리내집\s*\(\s*신혼"), "SH 신혼·신생아 매입임대Ⅱ"),
     (re.compile(r"신혼\s*[·ㆍ]?\s*신생아\s*매입임대"), "SH 신혼·신생아 매입임대Ⅰ"),
     (re.compile(r"다자녀\s*매입임대"), "다자녀 매입임대"),
+    (re.compile(r"청년\s*매입임대"), "청년매입임대"),        # SH 청년 매입임대(2026-11-14 판정 틀) — 자립준비청년·기숙사형·위국헌신은 아래에서 뺀다
     (re.compile(r"토지임대부\s*분양"), "토지임대부 분양주택"),
     (re.compile(r"국민임대"), "국민임대주택"),
     (re.compile(r"영구임대"), "영구임대주택"),
@@ -389,7 +390,7 @@ class SeoulFormatError(ValueError):
 
 def sh_title_program(title: str, kind: str = "") -> Optional[str]:
     t = clean_title(title)
-    if re.search(r"청년\s*매입임대|기숙사형|공공한옥", t):        # SH 청년 매입임대·공공한옥은 판정 틀 없음
+    if re.search(r"자립준비청년|기숙사형|위국헌신|공공한옥|이공계", t):   # 판정 틀 없는 SH 변형 사업
         return None
     return next((p for rx, p in SH_TITLE_PROGRAM if rx.search(t)), None)
 

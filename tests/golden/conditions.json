@@ -11298,5 +11298,241 @@
    "note": "「주거급여법」에 따른 주거급여 수급권자 또는 수급자인지(공고에 별도 소득·자산 기준 조항 없음)",
    "timing": "NOW"
   }
+ ],
+ "N71/청년": [
+  {
+   "id": "N71-Y-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-Y-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-Y-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "공고일 현재 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-Y-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N71/대학생": [
+  {
+   "id": "N71-U-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-U-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-U-student",
+   "field": "student_status",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "대학에 재학 중이거나 입학·복학 예정인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-U-school",
+   "field": "school_area",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "다니는(입학·복학 예정 포함) 대학이 서울특별시에 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-U-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N71/취업준비생": [
+  {
+   "id": "N71-J-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-J-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-J-grad",
+   "field": "grad_or_dropout_date",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "고등학교·대학교 등을 졸업·중퇴한 지 2년 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-J-unemployed",
+   "field": "is_employed",
+   "required": true,
+   "source_ref": "공고문 p.22",
+   "note": "현재 직장에 재직 중이지 않은지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N71-J-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.25",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N72/청년": [
+  {
+   "id": "N72-Y-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-Y-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-Y-age",
+   "field": "age",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "공고일 현재 19세 이상 39세 이하인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-Y-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N72/대학생": [
+  {
+   "id": "N72-U-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-U-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-U-student",
+   "field": "student_status",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "대학에 재학 중이거나 입학·복학 예정인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-U-school",
+   "field": "school_area",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "다니는(입학·복학 예정 포함) 대학이 서울특별시에 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-U-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
+ ],
+ "N72/취업준비생": [
+  {
+   "id": "N72-J-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-J-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-J-grad",
+   "field": "grad_or_dropout_date",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "고등학교·대학교 등을 졸업·중퇴한 지 2년 이내인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-J-unemployed",
+   "field": "is_employed",
+   "required": true,
+   "source_ref": "공고문 p.18",
+   "note": "현재 직장에 재직 중이지 않은지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N72-J-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.20",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
  ]
 }

@@ -1850,6 +1850,135 @@ JOB_NOTES = [
     "34,500만·자동차 4,542만(출산자녀 가산)이다 — 일반형과 같다.",
 ]
 
+
+# ------------------------------------------------------------------------------------------------
+# SH 청년 매입임대(2026-11-14 묶음 D — 2026년 1차로 만든 판정 틀). 조건 구성은 LH 청년매입(gen_c4_lh.youth_rental — 청년·대학생·
+# 취업준비생 × 1·2·3순위 묶음)과 같고, SH 원문이 다른 곳:
+# - 대학생은 서울특별시 소재 대학(school_area), 19~39세라도 대학생·취업준비생으로 신청할 수 있다(유형 한 가지 선택 — LH의 '①에 해당되지
+#   않는 사람만 ② 또는 ③' 문장 없음).
+# - 미혼 = '현재 혼인 상태가 아님'(한부모·예비신혼 포함 — 기혼자만 신청 불가).
+# - 1순위 부모 수급·차상위는 신청자와 같은 주민등록등본에 등재된 부모만(LH의 30세 미만 분리 거주 예외 없음).
+# - 이공계인재(서울 소재 대학 이공계 전일제 대학원생·박사후연구원, 이공계인재 성장주택만)는 판정하지 않는 계층으로 안내.
+# 소득은 LH 청년매입과 같은 2025년도 표(income_standard, 1인 +20%p·2인 +10%p). 자산·자동차 한도와 소득표 연도는 money로(원문에서 읽음).
+SH_YOUTH_MONEY_2026 = {"income": "2025", "assets2": 34500, "assets3": 25100, "car": 4542}
+SH_YOUTH_INCOME = {"2025": ("income_standard", ["4,576,036", "6,452,897", "8,168,429"]),
+                   # 2024년도 표(2025년 공고 — SH 행복주택 2025년 공고와 같은 금액, 2026-11-14 N72로 확인)
+                   "2024": ("income_standard_sh_happy_2024", ["4,317,797", "6,024,703", "7,626,973"])}
+WELFARE_1ST_SH = ["생계·의료·주거급여 수급자", "차상위계층"]
+
+
+def sh_youth_rental(nid, money=None, age_quote=None):
+    """money: {"income": 소득표 연도, "assets2": 2순위 본인+부모 총자산(만원), "assets3": 3순위 본인 총자산, "car": 자동차(만원)},
+    age_quote: 청년 유형 나이 문구 원문(2026년 1차 '청년만19세이상~만39세이하인자', 2025년 2차 '청년만19세이상~39세이하인자')."""
+    money = money or SH_YOUTH_MONEY_2026
+    age_quote = age_quote or "청년만19세이상~만39세이하인자"
+    ref, amounts = SH_YOUTH_INCOME[money["income"]]
+    p = nid
+    a2, a3, car = money["assets2"], money["assets3"], money["car"]
+    q2 = f"총자산{a2:,}만원이하,개별자동차{car:,}만원이하"
+    q3 = f"총자산{a3:,}만원이하,개별자동차{car:,}만원이하"
+
+    def common(prefix):
+        return [
+            cond(f"{p}-{prefix}-home", "home_ownership", ["무주택자(본인)인미혼(현재혼인상태가아님)", "무주택요건충족은본인에한하며"],
+                 "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)", {"eq": [{"var": "home_ownership"}, "무주택"]}),
+            cond(f"{p}-{prefix}-marital", "marital_status", ["무주택자(본인)인미혼(현재혼인상태가아님)", "기혼자,외국인,재외국민은신청불가합니다"],
+                 "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
+                 {"in": [{"var": "marital_status"}, ["미혼", "한부모", "예비신혼"]]}),
+        ]
+
+    rank = {
+        "id": f"{p}-rank", "field": "순위", "required": True,
+        "source": {"quote": ["■신청순위순위자격상세요건"]},
+        "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+        "tracks": [
+            {"id": "1순위", "label": "수급자·차상위계층 가구 또는 지원대상 한부모가족(소득·자산 검증 없음)", "conditions": [
+                cond(f"{p}-T1-welfare", "welfare_status/parent_welfare_status/is_supported_single_parent",
+                     ["생계,의료,주거급여중어느하나에해당하는급여를받는수급자가구", "신청자와동일한주민등록등본표에등재된신청자의부모",
+                      "차상위계층가구", "지원대상한부모가족"],
+                     "본인이 생계·의료·주거급여 수급자·차상위계층이거나 지원대상 한부모가족인지, 또는 같은 주민등록등본에 등재된 "
+                     "부모가 수급자·차상위계층인지",
+                     {"any": [
+                         {"in": [{"var": "welfare_status"}, WELFARE_1ST_SH]},
+                         {"eq": [{"var": "is_supported_single_parent"}, True]},
+                         {"all": [{"in": [{"var": "parent_welfare_status"}, WELFARE_1ST_SH]},
+                                  {"eq": [{"var": "registered_with_parents"}, True]}]},
+                     ]})]},
+            {"id": "2순위", "label": f"본인+부모 소득 100%(1인 120%·2인 110%) 이하, 본인+부모 총자산 {a2:,}만원·자동차 {car:,}만원 이하",
+             "conditions": [
+                 cond(f"{p}-T2-income", "monthly_income/parents_monthly_income/parents_count",
+                      ["본인과부모의월평균소득이전년도도시근로자가구당월평균소득의100%이하"],
+                      f"본인과 부모의 월평균소득 합계가 가구원수(본인+부모) 기준 이내인지(1인 {amounts[0]} / 2인 {amounts[1]} / "
+                      f"3인 {amounts[2]}원)",
+                      {"lte": [{"fn": "add", "args": [{"var": "monthly_income"}, {"var": "parents_monthly_income"}]},
+                               {"lookup": [ref, {"fn": "add", "args": [1, {"var": "parents_count"}]}, {"term": "ratio"}]}]},
+                      table="sh_youth_rank2"),
+                 cond(f"{p}-T2-assets", "total_assets/parents_total_assets", [q2],
+                      f"본인과 부모의 총자산 합계가 {a2:,}만원 이하인지",
+                      {"lte": [{"fn": "add", "args": [{"var": "total_assets"}, {"var": "parents_total_assets"}]}, a2 * 10000]}),
+                 cond(f"{p}-T2-car", "car_value/parents_car_value", [q2],
+                      f"본인과 부모가 보유한 자동차 중 가장 높은 차량가액이 {car:,}만원 이하인지",
+                      {"lte": [{"fn": "max", "args": [{"var": "car_value", "unknown_values": ["확인불가"]},
+                                                      {"var": "parents_car_value"}]}, car * 10000]}),
+             ]},
+            {"id": "3순위", "label": f"본인 소득 1인 가구 기준(120%) 이하, 본인 총자산 {a3:,}만원·자동차 {car:,}만원 이하", "conditions": [
+                cond(f"{p}-T3-income", "monthly_income",
+                     ["본인의월평균소득이전년도도시근로자가구당월평균소득의100%이하", "1인가구기준으로본인소득과자산을심사"],
+                     f"본인 월평균소득이 {amounts[0]}원(1인 가구 100%+20%p) 이하인지",
+                     {"lte": [{"var": "monthly_income"}, {"lookup": [ref, 1, 120]}]}),
+                cond(f"{p}-T3-assets", "total_assets", [q3], f"본인 총자산이 {a3:,}만원 이하인지",
+                     {"lte": [{"var": "total_assets"}, a3 * 10000]}),
+                cond(f"{p}-T3-car", "car_value", [q3], f"본인 자동차가액이 {car:,}만원 이하인지",
+                     {"lte": [{"var": "car_value", "unknown_values": ["확인불가"]}, car * 10000]}),
+            ]},
+        ],
+    }
+    layers = {
+        "청년": common("Y") + [cond(f"{p}-Y-age", "age", [age_quote], "공고일 현재 19세 이상 39세 이하인지",
+                                     {"between": [{"var": "age"}, 19, 39]}),
+                             dict(copy.deepcopy(rank), id=f"{p}-Y-rank")],
+        "대학생": common("U") + [
+            cond(f"{p}-U-student", "student_status", ["대학생서울특별시소재대학에재학"], "대학에 재학 중이거나 입학·복학 예정인지",
+                 {"in": [{"var": "student_status"}, ["재학중", "입학예정", "복학예정"]]}),
+            cond(f"{p}-U-school", "school_area", ["서울특별시소재대학교재학생(복학및입학예정자포함)만대학생으로신청가능"],
+                 "다니는(입학·복학 예정 포함) 대학이 서울특별시에 있는지", {"eq": [{"var": "school_area"}, "서울특별시"]}),
+            dict(copy.deepcopy(rank), id=f"{p}-U-rank")],
+        "취업준비생": common("J") + [
+            cond(f"{p}-J-grad", "grad_or_dropout_date", ["중퇴후2년이내인사람으로서직장에재직중이지않은자"],
+                 "고등학교·대학교 등을 졸업·중퇴한 지 2년 이내인지",
+                 {"gte": [{"var": "grad_or_dropout_date"}, {"fn": "years_before", "args": [{"ctx": "announcement_date"}, 2]}]}),
+            cond(f"{p}-J-unemployed", "is_employed", ["중퇴후2년이내인사람으로서직장에재직중이지않은자"], "현재 직장에 재직 중이지 않은지",
+                 {"eq": [{"var": "is_employed"}, False]}),
+            dict(copy.deepcopy(rank), id=f"{p}-J-rank")],
+    }
+    tables = {"sh_youth_rank2": {
+        "label": "SH 청년 매입임대 2순위 소득 비율: 가구원수(본인+부모) → 비율(1인 +20%p, 2인 +10%p 가산)",
+        "columns": ["size"], "inputs": {"size": {"fn": "add", "args": [1, {"var": "parents_count"}]}},
+        "outputs": ["ratio"],
+        "rows": [r({"size": 1}, [120]), r({"size": 2}, [110]), r({"size": "3+"}, [100])],
+        "source": {"quote": amounts + ["1인가구는20%p가산,2인가구는10%p가산"]},
+    }}
+    return {name: {"conditions": conds} for name, conds in layers.items()}, tables
+
+
+def sh_youth_notes(type_page, money_page, bonus_page, scientist=True):
+    """쪽 번호는 공고마다 다르다(N71 p.22·28·27 / N72 p.18·23·22). 2025년 2차(N72)에는 이공계인재 유형이 없다."""
+    kinds = "대학생·취업준비생·청년·이공계인재" if scientist else "대학생·취업준비생·청년"
+    return [
+        f"신청 유형({kinds}) 중 공고일 현재 본인에 해당하는 한 가지를 골라 신청한다 — 세부 기준을 못 맞추면 서류 심사에서 "
+        f"부적격(p.{type_page}).",
+        "2순위 소득·자산은 주민등록 세대 구성과 상관없이 본인과 부모가 대상이다(부모 범위는 첨부 기준). 3순위는 1인 가구 기준 본인 "
+        f"소득·자산(p.{money_page}).",
+        f"가점(부모 무주택·장애·소득 50% 이하·청약통장 납입 횟수)은 순위 안의 선정 순서에만 쓰인다 — 이 판정과 무관(p.{bonus_page}).",
+    ]
+
+
+SH_YOUTH_NOTES = sh_youth_notes(22, 28, 27)
+SH_YOUTH_UNSUPPORTED = [{"name": "이공계인재", "page": 22,
+                         "note": "청년(19~39세)이면서 서울 소재 대학에서 연구 중인 이공계열 전일제 대학원생·박사후연구원 — 이공계인재 "
+                                 "성장주택만 신청할 수 있다. 연구 신분을 묻지 않아 판정하지 않는다."}]
+
+
 PLAN = [
     dict(nid="N30", key="LH30", title="남양주마석2단지 국민임대주택 예비입주자", ann="2026-09-07",
          program="국민임대주택", template="national_rental", params={"elderly_quote": None, "money": "million"},
@@ -2192,12 +2321,25 @@ PLAN = [
                  "money": {"income": "2024", "student": [10400, 11400, 12500], "youth": [25400, 27900, 30500],
                            "base": [33700, 37100, 40500], "car": [4563, 5020, 5476]}},
          notes=sh_happy_notes(26)),
+    # SH 청년 매입임대 — 판정 틀의 첫 공고(2026년 1차, 2026-11-14 묶음 D). 2025년 2차는 처음 보는 공고 검증용으로 틀을 만든 뒤 원문을
+    # 읽기 전에 초안을 얼림(docs/draft-checks/Z-sh-youth-2025-2.tpl.draft.json)
+    dict(nid="N71", key="SH71", title="SH 2026년 1차 청년 매입임대주택 입주자모집", ann="2026-06-26",
+         program="청년매입임대", template="sh_youth_rental",
+         params={"money": SH_YOUTH_MONEY_2026, "age_quote": "청년만19세이상~만39세이하인자"},
+         unsupported=SH_YOUTH_UNSUPPORTED, notes=SH_YOUTH_NOTES),
+    # 처음 보는 공고 검증(2026-11-14) — 판정 틀을 완성한 뒤 원문을 읽기 전에 초안을 얼림(docs/draft-checks/Z-sh-youth-2025-2.tpl.draft.json —
+    # 소득표 연도를 정하지 못해 보류). 2025년 공고라 2024년도 소득표·다른 자산·자동차 한도, 이공계인재 유형 없음
+    dict(nid="N72", key="SH72", title="SH 2025년 2차 청년 매입임대주택 입주자모집", ann="2025-12-26",
+         program="청년매입임대", template="sh_youth_rental",
+         params={"money": {"income": "2024", "assets2": 33700, "assets3": 25400, "car": 4563},
+                 "age_quote": "청년만19세이상~39세이하인자"},
+         notes=sh_youth_notes(18, 23, 22, scientist=False)),
 ]
 
 ANCHORS = {"일반": ("신청자격", 5), "일반(고령자 주택형)": ("신청자격", 5), "일반(주거약자용)": ("신청자격", 5)}
 # 통합공공임대는 계층 이름(일반 등)이 다른 사업과 겹치고, 같은 문구가 우선공급(p.15~16)·일반공급(p.16~18)에 다 있어
 # 일반공급 쪽을 가리키는 기준점을 템플릿별로 둔다(인용문·기준표 모두).
-TEMPLATE_ANCHOR = {"integrated_rental": ("신혼부부,한부모가족을제외한모든계층", 17), "public_rental": ("무주택세대구성원", 1),
+TEMPLATE_ANCHOR = {"sh_youth_rental": ("2입주자선정기준■신청자격", 22), "integrated_rental": ("신혼부부,한부모가족을제외한모든계층", 17), "public_rental": ("무주택세대구성원", 1),
                    "newlywed_town_sale": ("신혼부부신청자격", 11), "public_sale": ("다자녀가구특별공급■신청자격", 20),
                    "sh_land_sale": ("청년특별공급■신청자격", 28), "sh_national_rental": ("4.신청자격가.공통사항", 22),
                    "sh_permanent_rental": ("3신청자격", 7),
@@ -2233,10 +2375,11 @@ BUILDERS = {"national_rental": national_rental, "permanent_rental": permanent_re
             "elderly_welfare": elderly_welfare, "sh_multichild_rental": sh_multichild_rental,
             "integrated_job_rental": integrated_job_rental,
             "lh_share_sale": lh_share_sale,
-            "lh_select_rental": lh_select_rental, "sh_happy_housing": sh_happy_housing}
+            "lh_select_rental": lh_select_rental, "sh_happy_housing": sh_happy_housing, "sh_youth_rental": sh_youth_rental}
 ISSUER = {"national_rental": "LH", "permanent_rental": "LH", "integrated_rental": "LH", "public_rental": "LH",
           "newlywed_town_sale": "LH", "public_sale": "LH", "sh_land_sale": "SH", "sh_national_rental": "SH", "sh_permanent_rental": "SH", "elderly_welfare": "LH", "lh_share_sale": "LH", "lh_select_rental": "LH",
-          "sh_multichild_rental": "SH", "integrated_job_rental": "LH", "sh_happy_housing": "SH"}
+          "sh_multichild_rental": "SH", "integrated_job_rental": "LH", "sh_happy_housing": "SH",
+          "sh_youth_rental": "SH"}
 
 
 def make_doc(plan, pdf, pages):
