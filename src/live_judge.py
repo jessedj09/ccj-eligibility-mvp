@@ -43,6 +43,8 @@ VARIABLE_FIELDS = frozenset({
     "subscription_deposit", "rewin_restricted", "past_special_supply", "household_won_5y", "house_head_status",
     "job_criterion_met", "regional_industry_type", "industrial_workplace", "industrial_affiliation", "workplace_area",
     "supports_elderly_parent_1y", "supports_elderly_parent_3y", "veteran_priority_notified",
+    # 다니는 대학 소재지 — 같은 사업이어도 단지마다 다르다(2026-11-14 희망하우징 3차: 서울 소재 대학 / 수도권 대학·대학원)
+    "school_area",
 })
 
 

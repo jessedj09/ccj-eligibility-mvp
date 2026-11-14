@@ -1,0 +1,20 @@
+{
+  "format": "draft-snapshot/1",
+  "sha256": "4f790eb1089cfe2d566c9d117ff5f56cc7a6eda23ea3b5fa4947ba918afefaef",
+  "file": "2026년 3차 희망하우징(공공기숙사) 잔여세대 입주자 모집공고(2026_ 10_ 28_).pdf",
+  "created": "2026-11-14",
+  "status": "blocked",
+  "reason": "판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다: 소득표 연도(2025/2024)·2순위 총자산·자동차·3순위 총자산(만원, 3순위 자동차는 무소유)",
+  "template": "sh.hope_housing",
+  "program": "희망하우징",
+  "announcement_date": "2026-10-28",
+  "held_fields": [
+    "money"
+  ],
+  "held_conditions": {},
+  "restrictions": [],
+  "stale": [],
+  "missing": [],
+  "doc": null,
+  "unclassified": []
+}

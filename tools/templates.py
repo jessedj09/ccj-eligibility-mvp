@@ -167,6 +167,9 @@ TEMPLATES: Dict[str, Dict] = {
         Param("money", "money", "소득표 연도(2025/2024)와 2·3순위 총자산·자동차 한도(만원 — 2순위 본인+부모, 3순위 본인)"),
         Param("age_quote", "text", "청년 유형 나이 문구 원문('청년만19세이상~(만)39세이하인자')"),
     ]),
+    "sh.hope_housing": dict(module=PUB, builder="sh_hope_housing", issuer="SH", program="희망하우징", params=[
+        Param("money", "money", "소득표 연도(2025/2024)·2순위 총자산·자동차·3순위 총자산(만원, 3순위 자동차는 무소유)"),
+    ]),
     "sh.youth_safe": dict(module=PUB, builder="sh_youth_safe", issuer="SH", program="청년안심주택", params=[
         Param("money", "money", "청년(소득표 연도·2·3순위 자산·자동차)·신혼부부Ⅰ·Ⅱ(2~5인 소득 두 줄·1인당 금액·자산·자동차) 금액"),
         Param("dates", "dates", "기준일 리터럴: marriage(혼인 7년)·newborn(신생아 2년)·child6(6세 이하) — 미성년은 함수(minor_cutoff)"),
@@ -224,7 +227,7 @@ _PLAN_TEMPLATE = {(LH, "youth_rental"): "lh.youth_rental", (LH, "newlywed_rental
                   (PUB, "lh_share_sale"): "lh.share_sale", (PUB, "lh_select_rental"): "lh.select_rental",
                   (PUB, "sh_multichild_rental"): "sh.multichild_rental", (PUB, "integrated_job_rental"): "lh.integrated_job",
                   (PUB, "sh_happy_housing"): "sh.happy_housing", (PUB, "sh_youth_rental"): "sh.youth_rental",
-                  (PUB, "sh_youth_safe"): "sh.youth_safe"}
+                  (PUB, "sh_youth_safe"): "sh.youth_safe", (PUB, "sh_hope_housing"): "sh.hope_housing"}
 BASE_NOTICES = ("N1", "N2", "N3")      # 시트 없음(템플릿 원본·손으로 만든 공고)
 
 

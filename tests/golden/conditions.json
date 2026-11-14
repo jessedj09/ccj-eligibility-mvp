@@ -11744,5 +11744,47 @@
    "note": "자동차가액이 출생자녀 가산을 반영한 기준 이내인지 — 수급자 등은 검증 면제",
    "timing": "NOW"
   }
+ ],
+ "N75/대학생": [
+  {
+   "id": "N75-U-home",
+   "field": "home_ownership",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "무주택자인지(본인 기준 — 부모의 주택 소유는 묻지 않음)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N75-U-marital",
+   "field": "marital_status",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "현재 혼인 상태가 아닌지(기혼자는 신청 불가 — 한부모·예비신혼부부는 현재 혼인 상태가 아님)",
+   "timing": "NOW"
+  },
+  {
+   "id": "N75-U-student",
+   "field": "student_status",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "대학에 재학 중이거나 입학·복학 예정인지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N75-U-school",
+   "field": "school_area",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "다니는(입학·복학 예정 포함) 대학이 서울특별시에 있는지",
+   "timing": "NOW"
+  },
+  {
+   "id": "N75-U-rank",
+   "field": "순위",
+   "required": true,
+   "source_ref": "공고문 p.6",
+   "note": "1·2·3순위 중 하나 이상 충족하는지(소득·자산 기준은 순위마다 다름)",
+   "timing": "NOW"
+  }
  ]
 }

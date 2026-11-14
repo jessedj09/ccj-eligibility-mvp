@@ -516,5 +516,12 @@
     "file": "sample_sh/공공_251230_2025년 3차 청년안심주택 모집공고문.pdf",
     "pages": 60,
     "sha256": "8e59049e3cdc1a42cf68b6385f41365940a1e11f5c2335f98fd0d0aa241cd9eb"
+  },
+  {
+    "key": "SH75",
+    "org": "SH",
+    "file": "sample_sh/2026년 2차 희망하우징(공공기숙사) 입주자 모집공고(2026_ 9_ 17_).pdf",
+    "pages": 26,
+    "sha256": "a88248091eca3c66cf460c2db84d2ab8a2ebf1cab7daaafcbab058b092b5d41e"
   }
 ]

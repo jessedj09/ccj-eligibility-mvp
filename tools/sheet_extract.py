@@ -379,6 +379,8 @@ def choose_template(issuer: Optional[str], program: Optional[str]) -> Optional[s
         return "sh.happy_housing"
     if program == "청년매입임대" and issuer == "SH":   # SH 청년 매입임대(2026년 1차 기준, 2026-11-14) — LH 틀과 구성은 같고 서울 소재 대학 등이 다르다
         return "sh.youth_rental"
+    if program == "희망하우징" and issuer == "SH":     # SH 희망하우징(2026년 2차 기준, 2026-11-14) — 서울 소재 대학 재학생
+        return "sh.hope_housing"
     if program == "청년안심주택" and issuer == "SH":   # SH 청년안심주택 공공임대(2026년 1차 기준, 2026-11-14) — 민간임대는 VARIANT가 막는다
         return "sh.youth_safe"
     if program == "다자녀 매입임대":      # SH 다자녀 매입임대(2026.5.29.) — LH 다자녀 매입임대는 아직 검증 전
@@ -782,6 +784,32 @@ def _safe_newlywed(seg, kind, with_car):
           and all(b < d for b, d in zip(out["base"], out["dual"])) and out["base"] == sorted(out["base"])
           and (not with_car or (len(out["cars"]) == 3 and out["cars"] == sorted(out["cars"]))))
     return out if ok else None
+
+
+HOPE_OTHER_SCOPE = re.compile(r"수도권소재대학|대학원재학생|대학원에재학")
+SH_HOPE_ASSETS3 = re.compile(r"총자산([\d,]+)만원이하,(?:개별)?자동차무소유")
+
+
+def _sh_hope(pages):
+    """SH 희망하우징: 소득표 연도(1~3인 기준 금액), 2순위 '총자산 N만원 이하, 개별자동차 M만원 이하', 3순위 '총자산 K만원 이하, (개별)자동차
+    무소유'를 원문에서 읽는다. 하나라도 못 읽거나 서로 다른 금액이 나오면 보류."""
+    text = "".join(pages)
+    year = next((y for y, marks in SH_YOUTH_INCOME_MARK.items() if all(m in text for m in marks)), None)
+    two = {(int(m.group(1).replace(",", "")), int(m.group(2).replace(",", ""))) for m in SH_YOUTH_ASSETS.finditer(text)}
+    three = {int(m.group(1).replace(",", "")) for m in SH_HOPE_ASSETS3.finditer(text)}
+    lost = []
+    if year is None:
+        lost.append("소득표 연도(1인 4,576,036원 등 — 등록된 연도의 금액이 아님)")
+    if len(two) != 1:
+        lost.append(f"2순위 자산·자동차 한도({sorted(two)})")
+    if len(three) != 1:
+        lost.append(f"3순위 자산 한도·자동차 무소유({sorted(three)})")
+    if HOPE_OTHER_SCOPE.search(text):        # 2026년 3차 잔여세대(내발산): 서울 주민등록 + 수도권 대학·대학원생 — 틀은 서울 소재 대학만
+        lost.append("단지마다 다른 대학 요건(수도권 소재 대학·대학원생 — 판정 틀은 서울 소재 대학 재학생만)")
+    a2, car = next(iter(two)) if len(two) == 1 else (None, None)
+    money = {"income": year, "assets2": a2, "assets3": next(iter(three)) if len(three) == 1 else None, "car": car, "car3": 0}
+    return {"money": Field(HELD, money, how=f"읽지 못한 금액: {lost}") if lost else
+            Field(FILLED, money, how="소득표 연도(1~3인 금액)·2순위 총자산·자동차, 3순위 총자산(자동차 무소유)")}
 
 
 def _sh_safe(pages, ann):
@@ -1294,7 +1322,8 @@ def extract(pages: List[str], siblings_of=None, llm: Optional[LLM] = None) -> Di
           "lh.happy_housing": lambda: _happy_housing(pages, ann, sib, program, pages[0][:200], llm),
           "sh.happy_housing": lambda: _sh_happy(pages, ann),
           "sh.youth_rental": lambda: _sh_youth(pages),
-          "sh.youth_safe": lambda: _sh_safe(pages, ann)}[template]
+          "sh.youth_safe": lambda: _sh_safe(pages, ann),
+          "sh.hope_housing": lambda: _sh_hope(pages)}[template]
     out["fields"] = fn()
     return out
 
