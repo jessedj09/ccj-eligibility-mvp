@@ -226,3 +226,57 @@ def test_db_resolutions_round_trip(d):
     finally:
         s._run(lambda c: c.execute(f'DROP SCHEMA "{schema}" CASCADE'))
         s.close()
+
+
+# ------------------------------------------------------------------ 피드백 세션 권고(2026-11-15): 세션 판정 시험 전 제한·잠정 유효 기간·문장 사전 범위
+def test_session_judgment_before_bundle_e_needs_a_second_judge_for_required(d):
+    """Claude 세션 판정은 묶음 E 통과 전: 참고 문장은 바로 확정, 필수 문장은 초안 — 다른 판정자가 같은 판단이면 둘 다 확정."""
+    assert not CR.SESSION_TESTED
+    assert CR.initial_status("session", CR.NOT_CONDITION, CR.REFERENCE) == CR.ACTIVE
+    assert CR.initial_status("session", CR.NOT_CONDITION, CR.REQUIRED) == CR.PROPOSED
+    s = MemStore()
+    a = CR.record(s, d, SHA, *IN_AREA, CR.NOT_CONDITION, "session", "세션A")
+    assert a.status == CR.PROPOSED and CR.apply(d, SHA, s.resolutions_for(SHA, d.template)) is d
+    b = CR.record(s, d, SHA, *IN_AREA, CR.NOT_CONDITION, "session", "세션B")
+    assert b.status == CR.ACTIVE and next(r for r in s.rows if r.id == a.id).status == CR.ACTIVE
+    assert CR.apply(d, SHA, s.resolutions_for(SHA, d.template)).unclassified == [OUTSIDE]
+    # 두 번째 판정자가 '새 조건'이면 초안을 취소하고 보류 유지
+    s2 = MemStore()
+    a2 = CR.record(s2, d, SHA, *IN_AREA, CR.NOT_CONDITION, "session", "세션A")
+    CR.record(s2, d, SHA, *IN_AREA, CR.NEW_CONDITION, "session", "세션B")
+    assert next(r for r in s2.rows if r.id == a2.id).status == CR.REVOKED
+    assert CR.apply(d, SHA, s2.resolutions_for(SHA, d.template)) is d
+    # 시험 전 LLM 출처의 판정은 세션 초안을 확정시키지 못한다
+    s3 = MemStore()
+    a3 = CR.record(s3, d, SHA, *IN_AREA, CR.NOT_CONDITION, "session", "세션A")
+    CR.record(s3, d, SHA, *IN_AREA, CR.NOT_CONDITION, "sentence_check", "gemma4:e2b")
+    assert next(r for r in s3.rows if r.id == a3.id).status == CR.PROPOSED
+
+
+def test_provisional_without_cross_check_goes_first_then_expires(d):
+    from datetime import datetime, timedelta, timezone
+    now = datetime(2026, 12, 1, tzinfo=timezone.utc)
+    r = CR.make(d, SHA, *IN_AREA, CR.NOT_CONDITION, "operator", "운영자1")
+    fresh = dataclasses.replace(r, id=1, created_at=(now - timedelta(days=2)).isoformat())
+    late = dataclasses.replace(r, id=2, created_at=(now - timedelta(days=CR.PROVISIONAL_DUE_DAYS + 1)).isoformat())
+    old = dataclasses.replace(r, id=3, created_at=(now - timedelta(days=CR.PROVISIONAL_TTL_DAYS + 1)).isoformat())
+    assert [x.id for x in CR.due([fresh, late, old], now)] == [3, 2]          # 오래된 것부터 대기열 맨 앞
+    assert CR.apply(d, SHA, [late], now).unclassified == [OUTSIDE]            # 7~14일: 아직 반영
+    assert CR.apply(d, SHA, [old], now) is d                                  # 14일 넘김: 다시 보류
+    active_old = dataclasses.replace(old, status=CR.ACTIVE)
+    assert not CR.expired(active_old, now)                                    # 확정 기록은 만료 없음
+
+
+def test_dictionary_moves_only_active_and_skips_deictic_sentences(d):
+    there = CR.make(d, OTHER, 7, OUTSIDE[1], CR.NOT_CONDITION, "operator", "운영자1")
+    assert CR.apply(d, SHA, [dataclasses.replace(there, status=CR.PROVISIONAL)]) is d   # 잠정은 다른 공고로 옮기지 않음
+    pointing = "위 요건에 해당하는 분은 신청할 수 없습니다"
+    dd = dataclasses.replace(d, unclassified=[(12, pointing)])
+    there2 = dataclasses.replace(there, sentence=pointing, sentence_id=CR.sentence_id(OTHER, 7, pointing))
+    assert CR.apply(dd, SHA, [there2]) is dd                                  # 지시어 문장은 사전으로 옮기지 않음
+    direct = CR.make(dd, SHA, 12, pointing, CR.NOT_CONDITION, "operator", "운영자1")
+    assert CR.apply(dd, SHA, [direct]).unclassified == []                     # 그 공고의 직접 판정은 그대로 반영
+    for t in ("본 공고문에 따라", "아래 표의 기준", "다음 각 호"):
+        assert CR.DEICTIC.search(t)
+    for t in ("위반 시 계약 해지", "단위 면적", "위치는 단지 안내도", "해당없음"):
+        assert not CR.DEICTIC.search(t)
