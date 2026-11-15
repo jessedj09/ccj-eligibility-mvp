@@ -63,9 +63,11 @@ def test_link_routes_by_template_and_relaxed_titles():
     assert L.link(lh("원주시지역 영구임대주택 예비입주자 모집", "영구임대")).template == "lh.permanent_rental"
     n = L.link(lh("남원노암 공공임대 50년 예비입주자모집", "공공임대"))   # 제목에 '공공임대주택'이 없어 LH 유형 이름으로
     assert (n.program, n.template, n.route) == ("공공임대주택", "lh.public_rental", L.TEMPLATE)
-    for t in ("김제검산 영구임대주택 입주자격완화 예비입주자 모집", "파주시 중소기업체 기관공급(행복주택)"):
-        n = L.link(lh(t, "영구임대"))
-        assert n.template is None and n.route == L.UNSUPPORTED, t
+    assert L.link(lh("파주시 중소기업체 기관공급(행복주택)", "영구임대")).route == L.UNSUPPORTED
+    # 입주자격 완화(2026-11-15 사용자 결정): 판정 틀이 있으면 판정 안 함 대신 '확인 필요' 갈래(사유 RELAXED_NOTE)
+    for t in ("김제검산 영구임대주택 입주자격완화 예비입주자 모집", "화성시동탄지역 행복주택 입주자모집[입주자격완화, 선계약후검증]"):
+        n = L.link(lh(t, "영구임대" if "영구" in t else "행복주택"))
+        assert n.route == L.RELAXED_ROUTE and n.template, t
     sh = L.link(lh("2026년 2차 행복주택 입주자모집", "행복주택", issuer="SH"))
     assert sh.template == "sh.happy_housing"
     assert L.link(lh("[부산] 2026년 2차 일반 매입임대주택 입주자 모집 공고", "매입임대")).route == L.UNSUPPORTED
@@ -297,3 +299,26 @@ def _n12_draft():
     import draft
     import source_verify as sv
     return draft.make_draft(sv.pdf_path("N12").read_bytes(), pages=sv.pdf_pages("N12"), exclude="N12")
+
+
+def test_relaxed_title_card_and_relaxed_upload_are_verify_with_reason():
+    """입주자격 완화 — 흥신소 카드는 '실제 공고문 확인필요'와 사유, 공고문의 완화 문구는 어떤 결론도 확정하지 않고 같은 사유(2026-11-15)."""
+    import dataclasses
+    from datetime import date as _date
+    import coverage as V
+    import find as F
+    import grading
+    from display_status import HOLD_GROUP, display_result
+    from matcher import MasterProfile
+    from rule_engine import HouseholdProfile
+    row = dict(L.link(lh("김제검산 영구임대주택 입주자격완화 예비입주자 모집", "영구임대")).as_dict(), related=[])
+    card, _ = F.judge_row(MasterProfile(), row, _date(2026, 11, 15))
+    assert card["result"] == F.VERIFY and card["basis_note"] == L.RELAXED_NOTE
+    assert V.verify_rows([row]) == [(row["title"], "제목: 입주자격 완화·선계약 후 검증")]
+    d = dataclasses.replace(_n12_draft(), relaxed=L.RELAXED_NOTE + " — p.1 '소득요건적용배제'")
+    p = HouseholdProfile(profile_id="T", age=45, marital_status="미혼", household_size=1, monthly_income=1, total_assets=1,
+                         car_value=0, home_ownership="무주택")
+    r, checks = grading.judge(d, p, "청년")
+    assert r.verdict == "MANUAL_REVIEW" and [(c.kind, c.page) for c in checks] == [("relaxed", 1)]
+    shown = display_result(r.verdict, r.review_reasons, len(checks), {c.kind for c in checks})
+    assert shown.group == HOLD_GROUP and "완화" in shown.title and shown.todo == L.RELAXED_NOTE

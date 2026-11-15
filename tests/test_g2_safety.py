@@ -41,11 +41,17 @@ def test_missing_table_quote_holds_conditions_using_it():
     assert X.held_condition_ids(DOC, ["주거약자(26A1/B1형)/DRAFT-T1: '…'"]) == {"DRAFT-T1"}
 
 
-def test_relaxed_notice_is_not_judged():
+def test_relaxed_notice_is_detected_with_reason():
     pages = ["안내", "•[입주자격완화](금회모집에한하여한시적적용)구분완화내용소득요건적용배제"]
     reason = X.relaxed_notice(pages)
-    assert reason and "p.2" in reason and "자동 판정하지 않습니다" in reason
+    assert reason and "p.2" in reason and reason.startswith(X.RELAXED_NOTE)
     assert X.relaxed_notice(["순자산평균값에서자녀1인15%완화(최대2자녀25%p)"]) is None   # 평상시 공고의 '완화' 표현
+    # 2026-11-15 넓힌 표현(같은 뜻의 다른 말) — 정규 공고의 '불문'·'출산가구 자산기준 완화'는 잡지 않는다
+    for p in ("금회공고는입주자격요건을아래와같이완화하여모집합니다", "소득요건적용배제", "신청자격과임대조건이완화되어",
+              "자격을완화하여모집합니다"):
+        assert X.relaxed_notice([p]), p
+    for p in ("소득및자산요건을불문", "20%p가산하여자산기준완화되며"):
+        assert X.relaxed_notice([p]) is None, p
 
 
 def test_no_registered_notice_looks_relaxed():

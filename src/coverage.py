@@ -40,8 +40,8 @@ def coverage(rows: Iterable[Dict], analyzed: List[Dict]) -> Dict[str, int]:
             c["registered"] += 1
         elif r.get("route") == LN.TEMPLATE:
             c["analyzed" if _analyzed_sha(r, analyzed, rows) else "pending"] += 1
-        elif r.get("route") == LN.FIRST_COME_ROUTE:
-            c["first_come"] += 1          # 판정 대상 아님(선착순 — 확인 필요)
+        elif r.get("route") in (LN.FIRST_COME_ROUTE, LN.RELAXED_ROUTE):
+            c[r["route"]] += 1            # 판정 대상 아님(선착순·입주자격 완화 — 확인 필요)
         else:
             c["unsupported"] += 1
     target = c["registered"] + c["analyzed"] + c["pending"]
@@ -87,12 +87,30 @@ def check_preview(row: Dict, d, limit: int = CHECK_LIMIT) -> Optional[Tuple[str,
     return rep.template, c
 
 
+def verify_rows(rows: Iterable[Dict], autos=()) -> List[Tuple[str, str]]:
+    """완화·변형 의심 공고(D, 2026-11-15) — 제목이 선착순·입주자격 완화인 수집 공고와, 이번 자동 분석에서 공고문에 완화 문구가 나온 공고.
+    운영자가 한눈에 보도록 요약에 남긴다(화면은 '실제 공고문 확인필요' 묶음에 사유와 함께)."""
+    out = []
+    for r in rows:
+        if r.get("route") == LN.FIRST_COME_ROUTE:
+            out.append((r["title"], "제목: 선착순 모집"))
+        elif r.get("route") == LN.RELAXED_ROUTE:
+            out.append((r["title"], "제목: 입주자격 완화·선계약 후 검증"))
+    for r, rec in autos:
+        if rec.get("relaxed"):
+            out.append((r["title"], "공고문: " + rec["relaxed"].split(" — ")[-1]))
+    return out
+
+
 def summary_markdown(cov: Dict[str, int], waiting: List[Dict], checks: List[Tuple[str, str, Counter]],
-                     stopped: Iterable[str], today: date, autos=()) -> str:
+                     stopped: Iterable[str], today: date, autos=(), verify=()) -> str:
     """수집 예약 작업 요약(GitHub 작업 요약 — $GITHUB_STEP_SUMMARY)."""
     lines = [f"## 공고 수집 {today.isoformat()}", "",
              f"**확정 판정 범위 {cov['pct']}%** — 등록 {cov.get('registered', 0)} + 분석 {cov.get('analyzed', 0)} / "
              f"판정 대상 {cov['target']}(분석 대기 {cov.get('pending', 0)}, 판정 안 하는 사업 {cov.get('unsupported', 0)})", ""]
+    if verify:
+        lines += ["### 확인 필요 공고 — 선착순·입주자격 완화(판정하지 않고 사유 표시)", "", "| 공고 | 근거 |", "|---|---|"]
+        lines += [f"| {LN.clean_title(t)[:60]} | {why} |" for t, why in verify] + [""]
     if autos:
         lines += ["### LH 공고문 자동 분석(이번 수집)", "", "| 공고 | 결과 | 등급 | 크기 | 걸린 시간 |", "|---|---|---|---|---|"]
         for r, rec in autos:

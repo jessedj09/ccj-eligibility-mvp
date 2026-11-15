@@ -83,6 +83,9 @@ def display_result(verdict: str, review_reasons=None, checks: int = 0, check_kin
     if "first_come" in check_kinds:          # 선착순 모집(2026-11-15 사용자 결정) — 결론을 확정하지 않고 공고문·현황 확인
         from live_notices import FIRST_COME_NOTE
         return Display(HOLD_GROUP, "🔍", "확인 필요 — 선착순 모집", FIRST_COME_NOTE, kind=SOURCE)
+    if "relaxed" in check_kinds:             # 입주자격 완화 공고(같은 날 사용자 결정) — 같은 방식
+        from live_notices import RELAXED_NOTE
+        return Display(HOLD_GROUP, "🔍", "확인 필요 — 입주자격 완화 공고", RELAXED_NOTE, kind=SOURCE)
     if checks:
         return display_checks(checks)
     if verdict == "NEEDS_INFO":

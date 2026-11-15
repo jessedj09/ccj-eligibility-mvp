@@ -98,6 +98,7 @@ class Draft:
     doc: Optional[Dict] = None                              # 초안 규칙 문서(JSON) — 만들 수 있었을 때
     unclassified: List[tuple] = field(default_factory=list)  # 조항 장부의 미분류 문장 (쪽, 문장) — 규칙이 모르는 조건일 수 있음(v3 ②)
     first_come: bool = False                                 # 표지에 '선착순' — 판정하지 않고 확인 필요(2026-11-15, grading.judge)
+    relaxed: str = ""                                        # 입주자격 완화 공고의 사유(쪽·문구) — 확인 필요(2026-11-15, grading.judge)
 
 
 FIELD_KEYS = {"status", "value", "page", "quote", "how"}
@@ -155,8 +156,9 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
         os.remove(tmp)
     base.update(held_fields=g["held"], missing=g["missing"], stale=g["stale"], restrictions=g["restrictions"],
                 sheet=X.to_sheet(ext, DRAFT_ID), doc=g["doc"], unclassified=unclassified)
+    base["relaxed"] = g.get("relaxed") or ""
     if g["blocked"] or g["critical_held"]:
-        reason = g["blocked"] or "판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다: " + \
+        reason = g["blocked"] or base["relaxed"] or "판정에 꼭 필요한 값을 원문에서 확인하지 못했습니다: " + \
             ", ".join(X.field_label(ext["template"], p) for p in g["critical_held"])
         return Draft(BLOCKED, reason, **base)
     base["doc"] = dict(g["doc"], title=f"{ext['program']} (검증 전 초안)")
@@ -217,7 +219,7 @@ def to_snapshot(d: Draft, sha256: str, source: str = "", created: str = "") -> D
             "announcement_date": d.announcement_date, "held_fields": d.held_fields,
             "held_conditions": {layer: sorted(ids) for layer, ids in d.held_conditions.items()},
             "restrictions": [list(r) for r in d.restrictions], "stale": d.stale, "missing": d.missing, "doc": d.doc,
-            "unclassified": [list(u) for u in d.unclassified], "first_come": d.first_come}
+            "unclassified": [list(u) for u in d.unclassified], "first_come": d.first_come, "relaxed": d.relaxed}
 
 
 def from_snapshot(s: Dict) -> Draft:
@@ -229,4 +231,4 @@ def from_snapshot(s: Dict) -> Draft:
                  held_conditions={layer: set(ids) for layer, ids in s["held_conditions"].items()},
                  stale=s["stale"], restrictions=[tuple(r) for r in s["restrictions"]], held_fields=s["held_fields"],
                  missing=s["missing"], doc=s["doc"], unclassified=[tuple(u) for u in s.get("unclassified", [])],
-                 first_come=bool(s.get("first_come")))
+                 first_come=bool(s.get("first_come")), relaxed=s.get("relaxed") or "")

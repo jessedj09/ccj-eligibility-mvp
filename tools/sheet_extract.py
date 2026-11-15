@@ -1530,10 +1530,12 @@ def gate(ext: Dict, pdf, pages: List[str], nid: str = "NEW", llm: Optional[LLM] 
     if not ext["template"]:
         out["blocked"] = "사업 유형(템플릿)을 정하지 못함"
         return out
-    relaxed = relaxed_notice(pages) or variant_notice(ext["template"], pages)
-    if relaxed:
-        out["blocked"] = relaxed
+    variant = variant_notice(ext["template"], pages)
+    if variant:                      # 다른 사업(일자리연계형·자립준비청년·민간임대 등) — 이 틀로 판정하지 않음
+        out["blocked"] = variant
         return out
+    # 입주자격 완화 공고(2026-11-15 사용자 결정): 차단 대신 규칙은 만들되 어떤 결론도 확정하지 않고 '확인 필요 + 사유'(grading.judge)
+    out["relaxed"] = relaxed_notice(pages)
     try:
         out["doc"], out["missing"] = _build(ext, nid, pdf, pages)
     except (KeyError, TypeError, ValueError) as e:     # 필수 빈칸이 보류라 규칙을 만들 수 없음
@@ -1711,7 +1713,15 @@ def new_restrictions(doc: Dict, pages: List[str]) -> List[tuple]:
 
 # 입주자격 완화 공고(G2 2026-11-01 — 화성동탄 행복주택·화성서부권 국민임대): 이번 공고에 한해 소득·자산 요건을 빼거나 기간 요건을
 # 넓힌다. 템플릿은 평상시 요건이라 '지원 불가'가 틀릴 수 있으므로 자동 판정하지 않는다(등록 28건에는 이 표현이 없다).
-RELAXED = re.compile(r"입주자격완화|【완화조건】|완화기준은해당공고에한하여")
+# 입주자격 완화 공고(2026-11-15 넓힘 — 같은 뜻의 다른 표현. 등록 75건 오탐 0. '불문'은 정규 공고의 일반공급 문장에도 있어 쓰지 않음,
+# '완화'만으로도 쓰지 않음 — '출산가구 자산기준 완화' 같은 정규 문장)
+RELAXED = re.compile(r"입주자격완화|【완화조건】|완화기준은해당공고에한하여"
+                     r"|(?:소득|자산|총자산|자동차|거주|주택)\s*요건\s*(?:은|을)?\s*적용\s*배제"
+                     r"|자격\s*요건\s*(?:을|이)?\s*(?:아래와\s*같이\s*)?완화"
+                     r"|신청\s*자격과\s*임대\s*조건이\s*완화"
+                     r"|자격\s*(?:을|이)?\s*완화(?:하여|되어|된)\s*(?:모집|공급)")
+RELAXED_NOTE = ("입주자격 완화 공고라 완화 내용과 실제 공고문 확인이 필요합니다(이번 공고에 한해 소득·자산·기간 요건이 일반 모집과 "
+                "달라 판정을 확정하지 않았습니다)")
 
 
 # 변형 공고: 통합공공임대 일자리연계형 지원주택은 직업·근무지 요건과 거주기간이 일반형과 달라 일반형 틀로 판정하지 않는다(G2).
@@ -1744,8 +1754,7 @@ def relaxed_notice(pages: List[str]) -> Optional[str]:
     for i, p in enumerate(pages):
         m = RELAXED.search(p)
         if m:
-            return (f"입주자격 완화 공고(p.{i + 1} '{m.group()}') — 이번 공고에 한해 소득·자산·기간 요건이 평상시와 달라 "
-                    "자동 판정하지 않습니다")
+            return f"{RELAXED_NOTE} — p.{i + 1} '{m.group()}'"
     return None
 
 

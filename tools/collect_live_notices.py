@@ -150,6 +150,8 @@ def auto_analyze(store, grouped, analyzed, today: date, limit: int = AUTO_MAX, r
             else:
                 d = analysis.analyze(data, ident, store, title=r["title"], origin="collect", source_url=r.get("url"))
                 rec.update(result=d.status, grade=analysis.overall_grade(d), sha=hashlib.sha256(data).hexdigest())
+                if getattr(d, "relaxed", ""):
+                    rec["relaxed"] = d.relaxed[:160]          # 공고문에서 입주자격 완화 문구 — 확인 필요(요약에 표시)
         except SourceError as e:
             rec.update(result="download_error", error=str(e)[:200])
         except Exception as e:      # noqa: BLE001 — 분석 실패가 수집을 막지 않는다
@@ -249,6 +251,9 @@ def report_coverage(store, grouped, today: date, autos=()) -> None:
     cov, waiting = V.coverage(grouped, analyzed), V.pending(grouped, analyzed)
     print(f"확정 판정 범위 {cov['pct']}% — 등록 {cov.get('registered', 0)} + 분석 {cov.get('analyzed', 0)} / 판정 대상 {cov['target']}"
           f" · 분석 대기 {len(waiting)}건")
+    verify = V.verify_rows(grouped, autos)
+    for title, why in verify:
+        print(f"  [확인 필요] {L.clean_title(title)[:50]} | {why}")
     for r in waiting:
         print(f"  [분석 대기] {r.get('window_start') or '?'}~{r.get('window_end') or '?'} | {r.get('issuer')} {r.get('program')} | "
               f"{L.clean_title(r['title'])[:50]} | 요청 {r.get('request_count') or 0}")
@@ -280,7 +285,7 @@ def report_coverage(store, grouped, today: date, autos=()) -> None:
     path = os.environ.get("GITHUB_STEP_SUMMARY")
     if path:
         with open(path, "a", encoding="utf-8") as f:
-            f.write(V.summary_markdown(cov, waiting, checks, stopped, today, autos) + "\n")
+            f.write(V.summary_markdown(cov, waiting, checks, stopped, today, autos, verify) + "\n")
 
 
 def main(argv=None) -> int:

@@ -28,7 +28,11 @@ ISSUER_NAMES = (("한국토지주택공사", "LH"), ("서울주택도시공사",
 KIND_PROGRAM = {"영구임대": "영구임대주택", "국민임대": "국민임대주택", "공공임대": "공공임대주택", "행복주택": "행복주택"}
 # 판정 틀이 있어도 자동 판정하지 않는 공고 — 입주자격 완화(공고 업로드 때도 차단: sheet_extract.RELAXED),
 # 기업·기관에 주는 물량(기관공급 — 개인 모집이 아님)
-NOT_JUDGED = re.compile(r"자격완화|선계약\s*후\s*검증|기관공급|대상기업|고령자복지형|민간임대")
+NOT_JUDGED = re.compile(r"기관공급|대상기업|고령자복지형|민간임대")
+# 입주자격 완화(제목 '자격완화'·'선계약 후 검증' — 2026-11-15 사용자 결정): 판정 틀이 있는 사업이면 판정하지 않음 대신 '확인 필요' + 사유
+RELAXED_TITLE = re.compile(r"자격\s*완화|선계약\s*후\s*검증")
+RELAXED_NOTE = ("입주자격 완화 공고라 완화 내용과 실제 공고문 확인이 필요합니다(이번 공고에 한해 소득·자산·기간 요건이 일반 모집과 "
+                "달라 판정을 확정하지 않았습니다)")
 # '선착순' 모집(2026-11-15 사용자 결정): 남은 집을 현장 접수 순서대로 주며 자격·임대 조건을 완화하는 경우가 있다(사례: LH 대구 동구
 # 신혼·신생아Ⅱ 선착순 2024 — "신청 자격과 임대 조건이 완화되어"). 판정 틀이 있는 사업이어도 일반 모집 기준으로 판정하지 않고
 # '확인 필요'(흥신소 '실제 공고문 확인필요' 묶음)로 두고 사유를 보인다. 공고문 업로드(재판소)도 같다(draft.first_come → grading).
@@ -42,6 +46,7 @@ TITLE_TAG = re.compile(r"^\s*(?:\[[^\]]{1,12}\]\s*)+")      # '[정정공고]', 
 # 판정 갈래(흥신소 '지금 모집 중' — docs/12 설계 3)
 REGISTERED, TEMPLATE, UNSUPPORTED = "registered", "template", "unsupported"
 FIRST_COME_ROUTE = "first_come"     # 판정 틀이 있는 사업의 선착순 모집 — 판정하지 않고 '확인 필요'(자동 분석·확정 판정 범위 대상 아님)
+RELAXED_ROUTE = "relaxed"           # 판정 틀이 있는 사업의 입주자격 완화 공고(제목) — 같은 처리
 
 
 @dataclass(frozen=True)
@@ -279,6 +284,8 @@ def link(n: LiveNotice, index=None) -> LiveNotice:
     route = REGISTERED if reg else TEMPLATE if template else UNSUPPORTED
     if route == TEMPLATE and FIRST_COME.search(n.title):
         route = FIRST_COME_ROUTE
+    elif route == TEMPLATE and RELAXED_TITLE.search(n.title):
+        route = RELAXED_ROUTE
     return replace(n, program=program, template=template, registered_id=reg, route=route)
 
 

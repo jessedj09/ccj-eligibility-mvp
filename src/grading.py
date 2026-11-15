@@ -122,6 +122,11 @@ def judge(d, profile, layer: str):
         # 선착순 모집(2026-11-15 사용자 결정) — 자격·임대 조건이 일반 모집과 다를 수 있어 어떤 결론도 확정하지 않는다
         from live_notices import FIRST_COME_NOTE
         return dataclasses.replace(r, verdict="MANUAL_REVIEW"), [Check("first_come", 1, FIRST_COME_NOTE)]
+    if getattr(d, "relaxed", "") and r.verdict != "NOT_OFFERED":
+        # 입주자격 완화 공고(2026-11-15 사용자 결정) — 완화 내용이 결론을 바꿀 수 있어 확정하지 않는다(정규 기준 결과는 참고로만)
+        import re
+        m = re.search(r"p\.(\d+)", d.relaxed)
+        return dataclasses.replace(r, verdict="MANUAL_REVIEW"), [Check("relaxed", int(m.group(1)) if m else None, d.relaxed)]
     g = grades(d)[layer]
     if r.verdict == "ELIGIBLE" and (g.held or g.clauses):
         checks = checks_for(d, layer, g.held)
