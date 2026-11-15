@@ -344,6 +344,11 @@ def match_analyzed(row: Dict, candidates: List[Dict], peers: Optional[List[Dict]
     """수집 공고와 같은 공고로 보이는 분석 공고의 sha256 — 기관·공고일·사업 키가 같고 제목이 비슷(0.7 이상)할 때.
     제목을 모를 수 있는 업로드(PDF 첫 쪽에서 읽은 제목은 부정확 — 2026-11-14)를 위해: 같은 기관·공고일·사업의 수집 공고(peers)와
     분석 공고가 **각각 하나뿐**이면 제목이 달라도 잇는다. 같은 날 같은 사업 공고가 여럿이면 제목이 비슷해야만."""
+    # 수집 작업이 그 공고의 공고문을 직접 내려받아 분석했으면(detail_key.auto — 2026-11-14 A안) 원문 지문으로 바로 잇는다.
+    # 공고일·사업 이름이 목록과 공고문에서 조금 달라도(정정·표기) 같은 PDF다(2026-11-15: 분석된 2건이 '분석 대기'에 남던 결함)
+    auto = ((row.get("detail_key") or {}).get("auto") or {}).get("sha")
+    if auto and any(c.get("sha256") == auto for c in candidates):
+        return auto
     title = LN._norm_short(row.get("title") or "")     # 꼬리말을 뗀 단지·사업 부분(LN.registered_match와 같은 기준)
     same = [c for c in candidates if _same_slot(c.get("issuer"), c.get("announcement_date"), c.get("program"),
                                                  row.get("issuer"), row.get("announced"), row.get("program"))]

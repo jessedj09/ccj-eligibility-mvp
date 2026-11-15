@@ -554,7 +554,8 @@ class Store(NullStore):
         """올려서 판정할 수 있게 분석된 공고(최근 공고일) — 수집 공고와 잇는 데 쓴다(find.match_analyzed)."""
         rows = self._run(lambda c: c.execute(
             """SELECT n.sha256, n.issuer, n.program, n.title, n.announcement_date FROM notices n
-               WHERE n.origin IN ('upload', 'collect') AND n.announcement_date >= (now() - make_interval(days => %s))::date
+               WHERE (n.origin = 'collect'          -- 수집 작업이 지금 공고에서 내려받아 분석 — 공고문에서 공고일을 못 읽어도(2026-11-15)
+                      OR (n.origin = 'upload' AND n.announcement_date >= (now() - make_interval(days => %s))::date))
                  AND EXISTS (SELECT 1 FROM analyses a WHERE a.sha256 = n.sha256 AND a.status = 'ok')""", (days,)).fetchall())
         return [dict(zip(("sha256", "issuer", "program", "title", "announcement_date"), r)) for r in rows]
 

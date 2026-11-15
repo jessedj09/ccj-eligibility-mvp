@@ -162,3 +162,26 @@ def test_db_collect_origin_is_analyzed_and_detail_merge(db):
                                         registered_id=None, route=None)).as_dict()])     # 상세 없이 다시 수집
     dk = db.live_notices(open_only=False)[0]["detail_key"]
     assert dk["pdf"] == "https://p/1" and dk["auto"]["result"] == "ok"
+
+
+def test_auto_analyzed_notice_links_by_pdf_fingerprint_even_if_dates_differ():
+    """수집 작업이 내려받아 분석한 공고문은 지문(detail_key.auto.sha)으로 잇는다 — 목록 공고일·사업 이름이 공고문과 달라도(2026-11-15)."""
+    import find as F
+    sha = "d" * 64
+    cand = [{"sha256": sha, "issuer": "LH", "program": "공공분양주택", "title": "입주자모집공고",
+             "announcement_date": date(2026, 10, 30)}]
+    row = lh_row("S1", "시흥거모 S-1블록 공공분양주택 입주자모집공고", announced="2026-11-02", program="공공분양주택",
+                 pdf="https://p/s1", auto={"pdf": "https://p/s1", "result": "ok", "sha": sha})
+    assert F.match_analyzed(row, cand) == sha
+    other = lh_row("S2", "다른 공고", pdf="https://p/s2", auto={"pdf": "https://p/s2", "result": "ok", "sha": "e" * 64})
+    assert F.match_analyzed(other, cand) is None              # 분석 목록에 없는 지문이면 잇지 않음(예전 규칙대로)
+
+
+@needs_db
+def test_db_collect_analysis_without_announcement_date_is_still_listed(db):
+    """수집 작업이 분석한 공고는 공고문에서 공고일을 못 읽었어도 잇기 후보에 든다(2026-11-15). 업로드는 최근 120일만."""
+    db.save_notice("f" * 64, issuer="LH", program="공공분양주택", title="시흥거모 S-1", announcement_date=None, origin="collect")
+    db.save_analysis("f" * 64, "v", {"status": "ok"})
+    db.save_notice("0" * 64, issuer="LH", program="국민임대주택", title="옛 업로드", announcement_date=date(2020, 1, 1), origin="upload")
+    db.save_analysis("0" * 64, "v", {"status": "ok"})
+    assert [r["sha256"] for r in db.analyzed_notices()] == ["f" * 64]
