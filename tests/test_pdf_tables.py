@@ -107,3 +107,73 @@ def test_registered_notices_have_no_wrong_cells(nid, fams):
     assert (r["wrong"], r["cross_fail"], r["conflicts"]) == (0, 0, 0) and wrong == []
     assert r["ref_located"] == r["ref_expected"]          # N26(장기전세)은 기준표를 인용하지 않고 결정표에 금액을 적는다
     assert r["ref_expected"] > 0 or nid == "N26"
+
+
+def _cells(t):
+    return sorted((c.size, c.ratio, c.amount) for c in P.income_cells(t).cells)
+
+
+def test_ratio_on_neighbor_row_and_share_percent_ignored():
+    """여러 줄 머리 칸: 비율 글자가 금액 줄 아래 줄에 따로 있다(N70·N57 words). '우선공급(70%)'의 70%는 공급 물량 비율이라 쓰지 않는다."""
+    t = P.Table(1, (0, 0, 1, 1), "words", [
+        ["구분", "3인", "4인"],
+        ["도시근로자가구당", "", ""],
+        ["일반공급", "6,718,198", "7,622,056"],
+        ["월평균소득액의100%", "", ""],
+        ["(70%)도시근로자가구당", "", ""],
+        ["우선공급(70%)", "8,733,657", "9,908,673"],
+        ["월평균소득액의130%", "", ""],
+        ["※ 참고: 120% 이하는 별도", "1", "2"],          # 금액 열에 글자가 있는 설명 줄은 보지 않는다
+    ])
+    assert _cells(t) == [(3, 100, 6718198), (3, 130, 8733657), (4, 100, 7622056), (4, 130, 9908673)]
+
+
+def test_neighbor_ratio_ambiguous_is_not_used():
+    """위아래 같은 거리에 다른 비율이 있으면 정하지 않는다."""
+    t = P.Table(1, (0, 0, 1, 1), "words", [
+        ["구분", "3인", "4인"],
+        ["100%", "", ""],
+        ["일반", "6,718,198", "7,622,056"],
+        ["130%", "", ""],
+    ])
+    assert _cells(t) == []
+
+
+def test_split_row_inherits_head_and_prefixed_size_header():
+    """한 칸이 두 줄로 나뉜 줄(앞 줄이 비운 열에만 금액)은 앞 줄 머리를 잇는다(N57 lines p.10). 머리글 '소득기준3인가구'도 3인."""
+    t = P.Table(1, (0, 0, 1, 1), "lines", [
+        ["공급유형", "소득기준3인가구", "4인"],
+        ["일반공급 월평균소득액의100%", "", "7,622,056"],
+        ["", "6,718,198", ""],
+        ["다자녀 월평균소득액의120%", "8,061,838", "9,146,467"],
+    ])
+    assert _cells(t) == [(3, 100, 6718198), (3, 120, 8061838), (4, 100, 7622056), (4, 120, 9146467)]
+
+
+def test_single_size_column_table():
+    """가구원수 열이 하나뿐인 표(선택형 임대 '2인' 표, N57 p.10) — 머리 비율로 읽고 가산 폭은 두 칸 이상으로 푼다."""
+    t = P.Table(1, (0, 0, 1, 1), "lines", [
+        ["공급유형", "가구원수별가구당월평균소득비율", "2인"],
+        ["일반공급", "도시근로자가구원수별가구당월평균소득액의110%", "5,505,914"],
+        ["노부모부양", "도시근로자가구원수별가구당월평균소득액의130%", "6,506,989"],
+    ])
+    assert _cells(t) == [(2, 110, 5505914), (2, 130, 6506989)]
+
+
+@pytest.mark.parametrize("nid", ["N57", "N70"])
+def test_multiline_head_tables_restored(nid, fams):
+    """2026-11-14 보강 전 복원율 N57 70.8%·N70 38.9% — 지금은 인용 기준표 칸을 모두 찾고 틀린 칸 0."""
+    import sys
+    sys.path.insert(0, str(sv.PROJECT / "tools"))
+    import eval_tables as E
+    refs = P.load_references()
+    r, _, wrong = E.evaluate_pdf(sv.pdf_path(nid), E.registered_truth(refs)[nid], refs, fams)
+    assert (r["wrong"], r["cross_fail"], r["conflicts"], r["grid_bad"]) == (0, 0, 0, 0) and wrong == []
+    assert r["ref_expected"] > 0 and r["ref_located"] == r["ref_expected"]
+
+
+def test_seven_plus_rows_explained_by_their_own_table(fams):
+    """7·8인 행은 표마다 기준액을 따로 둔다 — 통합공공임대 7인 30~130% 열(등록은 150~200%만)도 같은 표로 설명된다(N59)."""
+    med = next(f for f in fams if f.name.startswith("기준중위소득"))
+    assert P.predicts(med, 7, 100, 9515150) and P.predicts(med, 8, 30, 3142304)
+    assert not P.predicts(med, 7, 100, 9515150 + 5000)

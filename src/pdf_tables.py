@@ -31,6 +31,9 @@ RATIO = re.compile(r"(\d{2,3})%(?!p)")
 HEAD_RATIO = re.compile(r"[가-힣]*~?(\d{2,3})%(?:이하)?")                 # '70%' · '~30%' · '50%이하' · '월평균소득50%'
 PER_SIZE = re.compile(r"(\d{2,3})%\(([^()]*\d인가구\d{2,3}%[^()]*)\)")       # '월평균소득50%(1인가구70%,2인가구60%)'
 SIZE_RATIO = re.compile(r"(\d)인가구(\d{2,3})%")
+SIZE_ANY = re.compile(r"(\d)인가구")                                          # 머리글 앞에 다른 글자: '소득기준1인가구'(N70)
+SHARE = re.compile(r"\(\d{1,3}%\)")                                          # '우선공급(70%)' — 공급 물량 비율(소득 비율 아님, N57)
+NEAR_ROWS = 2           # 비율 글자가 금액 줄 위아래 줄에 따로 있는 표(여러 줄 머리 칸, N70·N57): 이만큼 떨어진 줄까지 본다
 ADDER = re.compile(r"\+(\d{1,2})(?:%p|p%|%포인트)")
 COL_GAP = 18.0          # words: 금액 글자 가운데 x가 이만큼 넘게 떨어지면 다른 열(pt)
 LINE_GAP = 3.0          # words: 글자 윗변 y가 이만큼 안이면 같은 줄(pt)
@@ -136,8 +139,39 @@ def _first_money(row: List[str]) -> Optional[int]:
 
 
 def _one_ratio(text: str) -> Optional[int]:
-    found = set(RATIO.findall(text))
+    found = set(RATIO.findall(SHARE.sub("", text)))
     return int(found.pop()) if len(found) == 1 else None
+
+
+def _head_size(head: str) -> Optional[int]:
+    m = SIZE.match(head)
+    if m:
+        return int(m.group(1))
+    found = set(SIZE_ANY.findall(head))
+    return int(found.pop()) if len(found) == 1 else None
+
+
+def _near_ratio(rows: List[List[str]], i: int, k0: int) -> Optional[int]:
+    """금액 줄 i의 머리에 비율이 없을 때 — 바로 위아래의 '머리만 있는 줄'(금액 열이 비거나 '-')에서 비율을 찾는다.
+    가장 가까운 거리에서 비율이 하나로 정해질 때만 쓴다(위아래가 다르면 None). 다른 금액 줄이나 금액 열에 글자가 있는 줄
+    (표 아래 설명문)을 만나면 그쪽으로는 더 보지 않는다. 잘못 붙은 비율은 격자 일관성(consistent)이 걸러 낸다."""
+    open_dirs = {-1, 1}
+    for d in range(1, NEAR_ROWS + 1):
+        found = set()
+        for sign in sorted(open_dirs):
+            j = i + sign * d
+            if not 0 <= j < len(rows) or any(money(c) for c in rows[j]) or \
+                    any(c not in ("", "-") for c in rows[j][k0:]):
+                open_dirs.discard(sign)
+                continue
+            r = _one_ratio("".join(rows[j][:k0]))
+            if r is not None:
+                found.add(r)
+        if found:
+            return found.pop() if len(found) == 1 else None
+        if not open_dirs:
+            return None
+    return None
 
 
 def _raw_cells(t: Table) -> List[Tuple[int, int, int, Optional[int]]]:
@@ -154,8 +188,8 @@ def _raw_cells(t: Table) -> List[Tuple[int, int, int, Optional[int]]]:
     for j in range(max(len(r) for r in rows)):
         cells = [r[j] for r in rows[:first] if j < len(r)]
         head = "".join(cells)                  # 머리글이 여러 줄로 나뉜 표: '2인가구' / '(+10p%)'
-        if SIZE.match(head):
-            col_size[j] = int(SIZE.match(head).group(1))
+        if _head_size(head) is not None:
+            col_size[j] = _head_size(head)
             if ADDER.search(head):
                 col_adder[j] = int(ADDER.search(head).group(1))
         ratio = [m.group(1) for m in map(HEAD_RATIO.fullmatch, cells) if m]
@@ -165,17 +199,26 @@ def _raw_cells(t: Table) -> List[Tuple[int, int, int, Optional[int]]]:
             col_size_ratio[j] = {int(a): int(b) for a, b in SIZE_RATIO.findall(per.group(2))}
         elif len(ratio) == 1:
             col_ratio[j] = int(ratio[0])
-    by_size = len(col_size) >= 3
+    # 가구원수가 열인 표. 가구원수 열이 하나뿐인 표(선택형 임대 '1인'·'2인' 표, N57)도 비율 열이 없으면 이 방식으로 읽는다
+    by_size = len(col_size) >= 3 or (len(col_size) >= 1 and not col_ratio)
     by_ratio = len(col_ratio) >= 2 and not by_size
+    k0 = min(_first_money(r) for r in rows[first:] if _first_money(r) is not None)
     out = []
-    for r in rows[first:]:
-        k = _first_money(r)
+    last = None                                # (줄 번호, 머리, 금액 열) — 직전 금액 줄
+    for i, r in enumerate(rows):
+        k = _first_money(r) if i >= first else None
         if k is None:
             continue
         head = r[:k]
+        cols = {j for j, c in enumerate(r) if money(c)}
+        if last and not "".join(head) and i - last[0] <= 2 and not cols & last[2]:
+            head = last[1]                      # 한 칸이 두 줄로 나뉜 줄(머리 없이 앞 줄이 비운 열에만 금액, N57 p.10 3인)
+        last = (i, head, cols)
         size = next((int(SIZE.match(c).group(1)) for c in head if SIZE.match(c)), None)
         if by_size:
             ratio = _one_ratio("".join(head))
+            if ratio is None and not RATIO.search(SHARE.sub("", "".join(head))):
+                ratio = _near_ratio(rows, i, k0)     # 머리에 비율 글자가 아예 없을 때만(둘 이상이면 모호 — 그대로 버림)
             if ratio is not None:
                 out += [(col_size[j], ratio, money(c), col_adder.get(j)) for j, c in enumerate(r)
                         if j in col_size and money(c)]
@@ -280,20 +323,26 @@ class Family:
     base: Dict[int, Tuple[float, float]] = field(default_factory=dict)     # 1~6인 100% 기준액 구간
     rows: Dict[Tuple[int, int], int] = field(default_factory=dict)          # 7인 이상: 원문 표 행 그대로
     adder7: int = 0                                                         # 7인 이상 = 6인 + 1인당 가산(그 규칙의 공고)
+    base7: Dict[int, List[Tuple[float, float]]] = field(default_factory=dict)   # 7인 이상: 기준표마다 그 행들로 정한 100% 기준액 구간
 
 
 def _ref_family(rid: str, ref: dict) -> Family:
+    """7인 이상 행은 표마다 규칙이 달라(분양 = 6인 + 가산, 국민임대 = 원문 행) 묶음 기준액에 섞지 않고, 표마다 따로 기준액
+    구간을 둔다 — 같은 표의 등록 안 된 비율 열(통합공공임대 7인 30~130%, N59)도 그 구간으로 설명된다."""
     name = f"{'기준중위소득' if '중위' in ref.get('label', '') else '도시근로자'} {ref.get('year_basis')}"
     f = Family(name, adder7=int(ref.get("per_person_adder_7plus") or 0))
     for size, row in ref["table"].items():
         for ratio, v in row.items():
             s, r = int(size), int(ratio)
+            lo, hi = _interval(v, r)
             if s >= 7:
                 f.rows[(s, r)] = v
+                old = f.base7.get(s, [(lo, hi)])[0]
+                f.base7[s] = [(max(old[0], lo), min(old[1], hi))]
                 continue
-            lo, hi = _interval(v, r)
             old = f.base.get(s, (lo, hi))
             f.base[s] = (max(old[0], lo), min(old[1], hi))
+    f.base7 = {s: v for s, v in f.base7.items() if v[0][0] <= v[0][1]}     # 행끼리 한 기준액으로 안 맞는 표는 행 그대로만
     return f
 
 
@@ -313,6 +362,8 @@ def families(refs: Dict[str, dict]) -> List[Family]:
             old = home.base.get(s, (lo, hi))
             home.base[s] = (max(old[0], lo), min(old[1], hi))
         home.rows.update(f.rows)
+        for s, ivs in f.base7.items():
+            home.base7.setdefault(s, []).extend(ivs)
         home.adder7 = max(home.adder7, f.adder7)
     return out
 
@@ -323,6 +374,8 @@ def predicts(f: Family, size: int, ratio: int, amount: int) -> bool:
         blo, bhi = f.base[size]
         return max(lo, blo) <= min(hi, bhi)
     if f.rows.get((size, ratio)) == amount:
+        return True
+    if any(max(lo, blo) <= min(hi, bhi) for blo, bhi in f.base7.get(size, [])):
         return True
     if f.adder7 and 6 in f.base:                 # 7인 이상 = 6인 기준액 + 1인당 가산 × 추가 인원
         blo, bhi = (x + f.adder7 * (size - 6) for x in f.base[6])
