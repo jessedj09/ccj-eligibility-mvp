@@ -182,7 +182,7 @@ class NullStore:
     def preview_stopped(self): return frozenset()
     def resume_preview(self, template): return False
     def preview_health(self): return []
-    def analyzed_notices(self, days=120): return []
+    def analyzed_notices(self, days=120, version=None): return []
     def merge_live_detail(self, source, external_id, data): return False
 
 
@@ -550,13 +550,15 @@ class Store(NullStore):
         return row is not None
 
     @_safe([])
-    def analyzed_notices(self, days=120) -> list:
-        """올려서 판정할 수 있게 분석된 공고(최근 공고일) — 수집 공고와 잇는 데 쓴다(find.match_analyzed)."""
+    def analyzed_notices(self, days=120, version=None) -> list:
+        """올려서 판정할 수 있게 분석된 공고(최근 공고일) — 수집 공고와 잇는 데 쓴다(find.match_analyzed). version을 주면 그 엔진 판의
+        분석이 있는 공고만 — 흥신소는 지금 판의 분석만 읽으므로(api _draft_for) 잇기·확정 범위 집계도 같은 기준(2026-11-15)."""
         rows = self._run(lambda c: c.execute(
             """SELECT n.sha256, n.issuer, n.program, n.title, n.announcement_date FROM notices n
                WHERE (n.origin = 'collect'          -- 수집 작업이 지금 공고에서 내려받아 분석 — 공고문에서 공고일을 못 읽어도(2026-11-15)
                       OR (n.origin = 'upload' AND n.announcement_date >= (now() - make_interval(days => %s))::date))
-                 AND EXISTS (SELECT 1 FROM analyses a WHERE a.sha256 = n.sha256 AND a.status = 'ok')""", (days,)).fetchall())
+                 AND EXISTS (SELECT 1 FROM analyses a WHERE a.sha256 = n.sha256 AND a.status = 'ok'
+                             AND (%s::text IS NULL OR a.engine_version = %s))""", (days, version, version)).fetchall())
         return [dict(zip(("sha256", "issuer", "program", "title", "announcement_date"), r)) for r in rows]
 
     @_safe(None)

@@ -558,7 +558,8 @@ def _live_rows():
         for r in rows:
             r["last_seen"] = datetime.fromisoformat(r["last_seen"]) if r.get("last_seen") else None
         rows, ok = find.relink(rows), True
-    analyzed = store.analyzed_notices() if ok else []
+    import analysis
+    analyzed = store.analyzed_notices(version=analysis.analysis_version()) if ok else []   # 지금 판의 분석만(_draft_for와 같은 기준)
     stopped = store.preview_stopped() if ok else frozenset()      # 예비 판정 감시가 '어려움'을 멈춘 판정 틀
     with _live_lock:
         _live.update(t=now, rows=rows, analyzed=analyzed, ok=ok and bool(rows), stopped=stopped)

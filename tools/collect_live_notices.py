@@ -109,26 +109,33 @@ def _get_bytes(url: str) -> bytes:
             time.sleep(RETRY_WAIT)
 
 
+def _engine_version() -> str:
+    import analysis
+    return analysis.analysis_version()
+
+
 def auto_analyze(store, grouped, analyzed, today: date, limit: int = AUTO_MAX) -> list:
     """분석 대기 LH 공고의 공고문을 공식 API 주소로 내려받아 재판소와 같은 자동 분석으로 저장한다(2026-11-14 사용자 결정 A안 —
-    robots가 /lhapply/lhFile.do를 막지만 공식 API가 주는 주소, 비영리·공익 목적). 같은 공고문(주소)은 한 번만 시도하고
-    결과를 수집 공고의 detail_key.auto에 남긴다. PDF는 분석 뒤 보관하지 않는다(후속 작업이 있을 때만 저장소 정책대로 잠시).
+    robots가 /lhapply/lhFile.do를 막지만 공식 API가 주는 주소, 비영리·공익 목적). 같은 공고문(주소)은 **같은 분석 엔진 판에서**
+    한 번만 시도하고 결과를 수집 공고의 detail_key.auto에 남긴다(ver). 엔진 판이 바뀌면(판정 코드·추출기·장부·표 읽기 수정) 흥신소는
+    지금 판의 분석만 읽으므로 다시 분석한다(2026-11-15 — 판이 바뀐 뒤 확정 판정이 예비로 돌아가던 결함). PDF는 분석 뒤 보관하지 않는다(후속 작업이 있을 때만 저장소 정책대로 잠시).
     → [(행, 기록)]"""
     import hashlib
     import analysis
     import coverage as V
     import notice_identify as ni
+    ver = analysis.analysis_version()
     todo = []
     for r in V.pending(grouped, analyzed):
         dk = r.get("detail_key") or {}
-        pdf = dk.get("pdf")
-        if r.get("source") != L.LH_SOURCE or not pdf or (dk.get("auto") or {}).get("pdf") == pdf:
+        pdf, auto = dk.get("pdf"), dk.get("auto") or {}
+        if r.get("source") != L.LH_SOURCE or not pdf or (auto.get("pdf") == pdf and auto.get("ver") == ver):
             continue
         todo.append((r, pdf))
     out = []
     for r, pdf in todo[:limit]:
         t0 = time.time()
-        rec = {"pdf": pdf, "at": today.isoformat()}
+        rec = {"pdf": pdf, "at": today.isoformat(), "ver": ver}
         try:
             data = _get_bytes(pdf)
             rec["kb"] = len(data) // 1024
@@ -233,7 +240,7 @@ def report_coverage(store, grouped, today: date, autos=()) -> None:
     """확정 판정 범위·분석 대기 공고·예비 판정 감시(묶음 A, 2026-11-13). 새로 분석된 공고는 예비 ↔ 확정을 비교해 기록한다.
     GitHub 작업에서는 요약($GITHUB_STEP_SUMMARY)에도 쓴다."""
     import coverage as V
-    analyzed = store.analyzed_notices() if store else []
+    analyzed = store.analyzed_notices(version=_engine_version()) if store else []
     cov, waiting = V.coverage(grouped, analyzed), V.pending(grouped, analyzed)
     print(f"확정 판정 범위 {cov['pct']}% — 등록 {cov.get('registered', 0)} + 분석 {cov.get('analyzed', 0)} / 판정 대상 {cov['target']}"
           f" · 분석 대기 {len(waiting)}건")
@@ -338,7 +345,7 @@ def main(argv=None) -> int:
           f"판정 안 하는 사업 {routes[L.UNSUPPORTED]}")
     autos = []
     if live:
-        autos = auto_analyze(store, grouped, store.analyzed_notices(), today)
+        autos = auto_analyze(store, grouped, store.analyzed_notices(version=_engine_version()), today)
         if autos:
             print(f"자동 분석 {len(autos)}건: " + ", ".join(f"{k} {v}" for k, v in Counter(x['result'] for _, x in autos).items()))
     report_coverage(store if live else None, grouped, today, autos)

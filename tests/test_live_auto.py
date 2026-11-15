@@ -99,7 +99,8 @@ def test_auto_analyze_once_per_pdf_and_records(monkeypatch):
     monkeypatch.setattr(analysis, "overall_grade", lambda d: "auto")
     rows = [lh_row("A", "인천논현2단지 국민임대주택", pdf="https://apply.lh.or.kr/lhapply/lhFile.do?fileid=1"),
             lh_row("B", "화성동탄 국민임대주택", pdf="https://apply.lh.or.kr/lhapply/lhFile.do?fileid=2",
-                   auto={"pdf": "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=2", "result": "ok"}),     # 이미 시도 — 건너뜀
+                   auto={"pdf": "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=2", "result": "ok",
+                         "ver": analysis.analysis_version()}),     # 같은 엔진 판에서 이미 시도 — 건너뜀
             lh_row("C", "수원광교 국민임대주택"),                                                          # PDF 주소 없음
             dict(lh_row("D", "SH 행복주택", pdf="https://x/pdf"), source="seoul_housing")]               # LH만
     store = Rec()
@@ -107,6 +108,11 @@ def test_auto_analyze_once_per_pdf_and_records(monkeypatch):
     assert [r["external_id"] for r, _ in out] == ["A"] and got == {"인천논현2단지 국민임대주택": "collect"}
     ext, rec = store.merged[0]
     assert ext == "A" and rec["auto"]["result"] == draft.OK and rec["auto"]["pdf"].endswith("fileid=1") and len(rec["auto"]["sha"]) == 64
+    assert rec["auto"]["ver"] == analysis.analysis_version()
+    # 엔진 판이 바뀌면(판정 코드·추출기 수정) 같은 공고문이어도 다시 분석 — 흥신소는 지금 판의 분석만 읽는다(2026-11-15)
+    rows[1]["detail_key"]["auto"]["ver"] = "v3-옛판"
+    assert {r["external_id"] for r, _ in C.auto_analyze(Rec(), rows[:2], [], date(2026, 11, 15))} == {"A", "B"}
+    rows[1]["detail_key"]["auto"]["ver"] = analysis.analysis_version()
     # 정정공고로 주소가 바뀌면 다시 시도
     rows[1]["detail_key"]["pdf"] = "https://apply.lh.or.kr/lhapply/lhFile.do?fileid=3"
     out = C.auto_analyze(Rec(), rows, [], date(2026, 11, 14), limit=8)
@@ -185,3 +191,14 @@ def test_db_collect_analysis_without_announcement_date_is_still_listed(db):
     db.save_notice("0" * 64, issuer="LH", program="국민임대주택", title="옛 업로드", announcement_date=date(2020, 1, 1), origin="upload")
     db.save_analysis("0" * 64, "v", {"status": "ok"})
     assert [r["sha256"] for r in db.analyzed_notices()] == ["f" * 64]
+
+
+@needs_db
+def test_db_analyzed_notices_can_be_limited_to_the_current_engine_version(db):
+    """흥신소는 지금 판의 분석만 읽으므로 잇기·확정 범위도 지금 판 기준 — 판이 바뀐 공고는 '분석 대기'로 돌아가 다시 분석된다."""
+    db.save_notice("a" * 64, issuer="LH", program="국민임대주택", title="옛 판 분석", announcement_date=None, origin="collect")
+    db.save_analysis("a" * 64, "v3-old", {"status": "ok"})
+    db.save_notice("b" * 64, issuer="LH", program="국민임대주택", title="지금 판 분석", announcement_date=None, origin="collect")
+    db.save_analysis("b" * 64, "v3-new", {"status": "ok"})
+    assert {r["sha256"] for r in db.analyzed_notices()} == {"a" * 64, "b" * 64}
+    assert [r["sha256"] for r in db.analyzed_notices(version="v3-new")] == ["b" * 64]
