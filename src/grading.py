@@ -84,6 +84,8 @@ def offered(d, layer: str) -> Optional[bool]:
     """초안 기준으로 그 계층이 공급되는가 — True / False(해당 없음 확정) / None(모름: 판정 불가)."""
     if d.notice is not None and layer in d.notice.layers:
         return True
+    if getattr(d, "first_come", False) or getattr(d, "relaxed", ""):
+        return None        # 선착순·입주자격 완화 공고는 계층 구성도 일반 모집과 다를 수 있다 — '해당 없음'으로 단정하지 않음(2026-11-15)
     return None if (d.notice is None or layers_may_be_missing(d)) else False
 
 
@@ -118,11 +120,12 @@ def judge(d, profile, layer: str):
     if d.notice is None:
         raise ValueError("판정할 수 있는 초안이 아닙니다")
     r = evaluate(profile, d.notice, layer)
-    if getattr(d, "first_come", False) and r.verdict != "NOT_OFFERED":
+    # 선착순·완화 공고는 '해당 없음'(초안에 없는 계층)도 확정하지 않는다 — 계층 구성까지 일반 모집과 다를 수 있음(2026-11-15 피드백 세션 권고)
+    if getattr(d, "first_come", False):
         # 선착순 모집(2026-11-15 사용자 결정) — 자격·임대 조건이 일반 모집과 다를 수 있어 어떤 결론도 확정하지 않는다
         from live_notices import FIRST_COME_NOTE
         return dataclasses.replace(r, verdict="MANUAL_REVIEW"), [Check("first_come", 1, FIRST_COME_NOTE)]
-    if getattr(d, "relaxed", "") and r.verdict != "NOT_OFFERED":
+    if getattr(d, "relaxed", ""):
         # 입주자격 완화 공고(2026-11-15 사용자 결정) — 완화 내용이 결론을 바꿀 수 있어 확정하지 않는다(정규 기준 결과는 참고로만)
         import re
         m = re.search(r"p\.(\d+)", d.relaxed)

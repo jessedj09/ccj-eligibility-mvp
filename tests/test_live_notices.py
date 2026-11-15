@@ -291,6 +291,10 @@ def test_first_come_card_is_verify_with_reason_and_upload_is_held():
                          car_value=0, home_ownership="무주택")
     r, checks = grading.judge(d, p, "청년")
     assert r.verdict == "MANUAL_REVIEW" and [c.kind for c in checks] == ["first_come"]
+    # 초안에 없는 계층도 '해당 없음'으로 확정하지 않는다(계층 구성까지 다를 수 있음 — 피드백 세션 권고)
+    assert grading.offered(d, "신혼부부") is None
+    r2, c2 = grading.judge(d, p, "신혼부부")
+    assert r2.verdict == "MANUAL_REVIEW" and [c.kind for c in c2] == ["first_come"]
     shown = display_result(r.verdict, r.review_reasons, len(checks), {c.kind for c in checks})
     assert shown.group == HOLD_GROUP and "선착순" in shown.title and shown.todo == L.FIRST_COME_NOTE
 
@@ -320,5 +324,10 @@ def test_relaxed_title_card_and_relaxed_upload_are_verify_with_reason():
                          car_value=0, home_ownership="무주택")
     r, checks = grading.judge(d, p, "청년")
     assert r.verdict == "MANUAL_REVIEW" and [(c.kind, c.page) for c in checks] == [("relaxed", 1)]
+    assert grading.offered(d, "신혼부부") is None
+    r2, c2 = grading.judge(d, p, "신혼부부")
+    assert r2.verdict == "MANUAL_REVIEW" and [(c.kind, c.page) for c in c2] == [("relaxed", 1)]
+    plain = _n12_draft()
+    assert grading.offered(plain, "신혼부부") is False      # 일반 공고는 그대로 '해당 없음'
     shown = display_result(r.verdict, r.review_reasons, len(checks), {c.kind for c in checks})
     assert shown.group == HOLD_GROUP and "완화" in shown.title and shown.todo == L.RELAXED_NOTE
