@@ -44,7 +44,8 @@ RETRIES = 1                    # 접속 실패·시간 초과면 이만큼 더 �
 RETRY_WAIT = 3                 # 다시 시도하기 전 쉼(초)
 USER_AGENT = "ccj-collector/0.1"
 SEOUL_PAUSE = 1.0              # 주택포털은 화면 — 공공데이터 API보다 천천히
-AUTO_MAX = 8                   # 한 번 수집에 자동 분석할 LH 공고문 수(2026-11-14 A안 — 접수 시작 가까운 순)
+AUTO_MAX = 8                   # 한 번 수집에 자동 분석할 새 LH 공고문 수(2026-11-14 A안 — 접수 시작 가까운 순)
+REANALYZE_MAX = 16             # 엔진 판이 바뀌어 다시 분석할 공고문 수(새 공고와 따로 — 2026-11-15, 건당 3~8초)
 AUTO_PAUSE = 2.0               # 공고문 내려받기 사이 쉼(초)
 PDF_TIMEOUT = 60
 PDF_MAX = 25 * 1024 * 1024
@@ -114,7 +115,7 @@ def _engine_version() -> str:
     return analysis.analysis_version()
 
 
-def auto_analyze(store, grouped, analyzed, today: date, limit: int = AUTO_MAX) -> list:
+def auto_analyze(store, grouped, analyzed, today: date, limit: int = AUTO_MAX, redo_limit: int = REANALYZE_MAX) -> list:
     """분석 대기 LH 공고의 공고문을 공식 API 주소로 내려받아 재판소와 같은 자동 분석으로 저장한다(2026-11-14 사용자 결정 A안 —
     robots가 /lhapply/lhFile.do를 막지만 공식 API가 주는 주소, 비영리·공익 목적). 같은 공고문(주소)은 **같은 분석 엔진 판에서**
     한 번만 시도하고 결과를 수집 공고의 detail_key.auto에 남긴다(ver). 엔진 판이 바뀌면(판정 코드·추출기·장부·표 읽기 수정) 흥신소는
@@ -125,15 +126,19 @@ def auto_analyze(store, grouped, analyzed, today: date, limit: int = AUTO_MAX) -
     import coverage as V
     import notice_identify as ni
     ver = analysis.analysis_version()
-    todo = []
+    fresh, redo = [], []
     for r in V.pending(grouped, analyzed):
         dk = r.get("detail_key") or {}
         pdf, auto = dk.get("pdf"), dk.get("auto") or {}
         if r.get("source") != L.LH_SOURCE or not pdf or (auto.get("pdf") == pdf and auto.get("ver") == ver):
             continue
-        todo.append((r, pdf))
+        # 같은 공고문을 옛 판으로 분석했던 것 = 다시 분석(별도 몫). 예전에 판정했던 것(ok)을 먼저 — 흥신소 확정으로 빨리 돌아오게,
+        # 막혔던 것은 그다음(판정 틀·추출 보강으로 풀렸을 수 있다)
+        (redo if auto.get("pdf") == pdf else fresh).append((r, pdf, auto.get("result") == "ok"))
+    redo.sort(key=lambda x: not x[2])                       # 안정 정렬 — 같은 쪽 안에서는 접수 시작 가까운 순 유지
+    todo = [(r, pdf) for r, pdf, _ in redo[:redo_limit] + fresh[:limit]]
     out = []
-    for r, pdf in todo[:limit]:
+    for r, pdf in todo:
         t0 = time.time()
         rec = {"pdf": pdf, "at": today.isoformat(), "ver": ver}
         try:

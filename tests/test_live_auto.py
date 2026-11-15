@@ -202,3 +202,23 @@ def test_db_analyzed_notices_can_be_limited_to_the_current_engine_version(db):
     db.save_analysis("b" * 64, "v3-new", {"status": "ok"})
     assert {r["sha256"] for r in db.analyzed_notices()} == {"a" * 64, "b" * 64}
     assert [r["sha256"] for r in db.analyzed_notices(version="v3-new")] == ["b" * 64]
+
+
+def test_reanalysis_has_its_own_budget_and_previously_judged_go_first(monkeypatch):
+    """엔진 판이 바뀐 공고는 새 공고와 따로 다시 분석하고, 예전에 판정했던(ok) 공고를 막혔던 공고보다 먼저(2026-11-15)."""
+    import analysis
+    import collect_live_notices as C
+    import draft
+    import notice_identify as ni
+    monkeypatch.setattr(C, "AUTO_PAUSE", 0)
+    monkeypatch.setattr(C, "_get_bytes", lambda url: b"%PDF-1.4 " + url.encode())
+    monkeypatch.setattr(ni, "identify_pdf", lambda data: SimpleNamespace(status=ni.UNREGISTERED, issuer="LH", program="국민임대주택",
+                                                                         announcement="2026-11-05"))
+    monkeypatch.setattr(analysis, "analyze", lambda *a, **k: draft.Draft(status=draft.OK, template="lh.national_rental"))
+    monkeypatch.setattr(analysis, "overall_grade", lambda d: "auto")
+    old = "v3-옛판"
+    rows = [lh_row("B1", "막혔던 공고", pdf="https://p/b1", auto={"pdf": "https://p/b1", "result": "blocked", "ver": old}),
+            lh_row("K1", "판정했던 공고", pdf="https://p/k1", auto={"pdf": "https://p/k1", "result": "ok", "ver": old}),
+            lh_row("N1", "새 공고 1", pdf="https://p/n1"), lh_row("N2", "새 공고 2", pdf="https://p/n2")]
+    out = C.auto_analyze(Rec(), rows, [], date(2026, 11, 15), limit=1, redo_limit=1)
+    assert [r["external_id"] for r, _ in out] == ["K1", "N1"]       # 다시 분석 몫 1(판정했던 것 먼저) + 새 공고 몫 1
