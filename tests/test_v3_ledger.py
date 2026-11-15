@@ -140,3 +140,44 @@ def test_sale_selection_common_and_table_refs_are_not_new_conditions():
     assert all(rows[p].startswith("무관") for p in (2, 26, 46, 14))
     assert rows[11].startswith("근거") and rows[22].startswith("근거")
     assert rows[12] == CL.UNCLASSIFIED and rows[30] == CL.UNCLASSIFIED      # 소득 조건이 없는 규칙 / 새 거주 제한
+
+
+# 2026-11-15 (가)(나) — 피드백 검토 세션이 패턴을 보지 않고 쓴 독립 새 조건 30개 중 일부(이 묶음은 고칠 때 봤으므로 이제 '본 문장' —
+# 합격 판정에는 새 묶음을 쓴다, docs/09 §23). 예전 장부는 아예 고르지 않거나(CONDLIKE 밖) 근거·무관으로 보냈다.
+SOFT_NEW_CONDITIONS = [
+    "※ 주민등록표등본상 세대주와의 관계가 '동거인'으로 등재된 분은 신청 대상에서 빠집니다.",          # 서류로 새던 것
+    "※ 혼인신고일 이후 배우자와 동일 세대를 구성하고 있어야 합니다.",                                  # CONDLIKE 밖
+    "- 부모와 세대를 분리한 경우라도 부모의 주택 소유 여부를 함께 확인합니다.",                        # 주택 범위 넓힘
+    "• 직계존속을 부양하는 경우 그 직계존속도 무주택자여야 합니다.",                                    # 근거로 숨던 것
+    "- 기존 임대주택 계약자로서 아직 퇴거하지 않은 분은 이번 공고에 신청하실 수 없습니다.",            # 계약·임대로 새던 것
+    "• 분양권 또는 입주권을 보유한 경우 주택을 소유한 것으로 봅니다.",
+    "※ 대학원생은 이번 모집의 대학생 계층에 포함되지 않습니다.",
+    "- 한부모가족 증명서를 발급받은 분에 한하여 한부모가족으로 인정합니다.",                            # 서류로 새던 것
+    "- 주택청약종합저축 납입 인정 횟수가 24회 미만인 분은 1순위에서 제외됩니다.",                      # 선정·순위로 새던 것
+    "※ 미성년 자녀가 다른 세대에 등재되어 있는 경우 그 자녀는 가구원수에 넣지 않습니다.",
+]
+
+
+@pytest.mark.parametrize("nid", ["N12", "N30", "N49"])
+def test_soft_new_conditions_are_unclassified(nid):
+    rows = _with(nid, SOFT_NEW_CONDITIONS)
+    label = {u: lab for _, u, lab in rows}
+    for line in SOFT_NEW_CONDITIONS:
+        assert label.get(sv.normalize(line)) == CL.UNCLASSIFIED, (line, label.get(sv.normalize(line)))
+
+
+def test_evidence_needs_no_extra_restriction():
+    """(나) 짧은 인용·값이 문장 안에 있어도, 그것을 지운 나머지에 새 제한 표현이 있으면 근거가 아니다. 나머지가 비교 표현뿐이면 근거."""
+    quotes, values = ["무주택세대구성원"], ["무주택자"]
+    assert CL._is_evidence("•입주자모집공고일현재무주택세대구성원", quotes, values)
+    assert CL._is_evidence('4해당세대의총자산합계액이"<표3>총자산보유기준"이하인자', ['해당세대의총자산합계액이"<표3>총자산보유기준"'], [])
+    assert not CL._is_evidence("•직계존속을부양하는경우그직계존속도무주택자여야합니다.", quotes, values)
+    assert not CL._is_evidence("•무주택세대구성원으로서해당시에2년이상거주한자에한하여신청가능", quotes, values)
+
+
+def test_procedural_and_boilerplate_are_not_new_conditions():
+    """넓힌 표현이 절차·상투 문구를 미분류로 만들지 않는다(서류 미제출 제외·이의 제기 불가·대행접수·분양 공통 안내)."""
+    rows = _with("N12", ["• 기한 내 서류를 미제출 시 입주자 선정에서 제외됩니다.",
+                         "- 현장 여건 미확인으로 발생하는 사항에 대하여는 추후 이의를 제기할 수 없음",
+                         "• 신청접수 시 신청자격을 확인(검증)하지 않고 신청자의 입력(기재)사항만으로 당첨자를 결정하므로 유의하시기 바랍니다."])
+    assert all(lab != CL.UNCLASSIFIED for _, u, lab in rows if "미제출" in u or "이의를제기" in u or "검증)하지않고" in u)

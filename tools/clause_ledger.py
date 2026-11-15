@@ -36,9 +36,32 @@ CACHE = ROOT / ".cache" / "ledger_units_v4"     # v2(2026-11-03): 쪽 번호 줄
 MARK = re.compile(r"^\s*([•■①-⑳*※○□▶◆◇·ㆍ\-–]|\d+[.)]|[가-하][.)]|\(\d+\)|\d+순위)")
 # '~인 자·~한 자'는 띄어쓰기를 지운 원문에서 '출생한자녀'·'있는자녀'와 겹친다 — 뒤에 '녀'가 오면 조건 표현이 아니다(G1 2026-11-01)
 CONDLIKE = re.compile(r"((?:인|한|된|는)자(?!녀)|인사람|한사람|는사람|일것|이어야|여야|신청불가|신청할수없|신청이불가|신청제한|제외|"
-                      r"에한하여|에한함|만신청|만해당|거주하는자|거주자에|소유하지않|무주택세대구성원|무주택자)")
+                      r"에한하여|에한함|만신청|만해당|거주하는자|거주자에|소유하지않|무주택세대구성원|무주택자|"
+                      # 2026-11-15 (가): 자격을 바꾸는 부드러운 말투 — 독립 새 조건 30개 중 20개가 위 표현에 안 걸려 장부가 아예 보지 않았다
+                      # (docs/09 §23). '대상에서 빠짐'·'…것으로 봄'·'…경우에만 인정'·'대상이 아님'·'보지 않음'·'포함하여 판단'·'넣지 않음'
+                      r"대상에서|빠집|빠지며|빠짐|(?:으|이)?로봅|(?:으|이)?로본다|(?:으|이)?로봄|경우에만|경우에한|에한해|한하여|"
+                      r"인정합니다|인정됩니다|인정하지|(?<!감점|가점|배점)대상이아|대상이될수없|자격이없|보지아니|보지않|포함하여판단|넣지않|넣지아니|"
+                      r"수없습니다|수없으며|수없음|불가합니다|불가하며|불가함|제한됩|제한될수|제한합|접수가불가|해당되지않|아니합니다|"
+                      r"을대상으로모집|를대상으로모집|구성하고있어야|분에한|분만|포함되지않|포함하지않|함께확인|무효로처리|무효처리)")
+PROCEDURAL = re.compile(r"(미제출|제출하지않|제출하지아니|소명|서류제출|기한내|기간내|대행접수|방문예약|전매|반입|식재|설치|탈착|투기의대상)")   # '미제출 시 선정에서 제외' 같은 절차
+COMPARE = re.compile(r"(이내인자|이하인자|이상인자|미만인자|초과인자)")   # 금액·기간 비교 — 숫자는 규칙 값이 따로 확인한다
+
+
+def _limited(u: str) -> bool:
+    """무관 범주로 넘기지 않을 제한 표현이 있는가 — 절차 낱말만 있고 강한 표현이 없으면 아니다."""
+    return bool(LIMIT.search(u)) and not (PROCEDURAL.search(u) and not STRONG.search(u))
+
+
+EVIDENCE_COVER = 0.6    # (나) 규칙 인용문·값이 문장의 이만큼 이상을 덮어야 '근거' — 짧은 인용·값이 문장 안에 있기만 해도 근거로 보던 것을 좁힘
 STRONG = re.compile(r"(만신청|에한하여신청|신청할수없|신청불가|신청이불가|신청제한|거주하는자|거주자만|이상거주|이내인자|이하인자|"
                     r"이상인자|미만인자|소유하지않은자|해당하지않는자)")
+# (가) 무관 범주(서류·절차·계약·순위·정의)로 넘기지 않을 제한 표현 — STRONG에 더해 부드러운 제한('…에 한하여 인정'·'…이어야'·
+# '제한됩니다'·'대상에서 빠짐'). '서류'·'계약' 같은 낱말이 든 새 조건이 무관으로 새지 않게(2026-11-15, docs/09 §23)
+ELIG_TAIL = r"[가-힣]{0,12}(?:신청|입주|인정|공급)"     # '…에 한하여 [~] 신청/인정' — 서류심사·문자알림 같은 절차와 가르기
+LIMIT = re.compile(STRONG.pattern[:-1] + r"|신청하실수없|접수가불가|접수할수없|대상에서|빠집|(?<!감점|가점|배점)대상이아|대상이될수없|자격이없|"
+                   r"인정하지|보지않|보지아니|포함되지않|포함하지않|넣지않|넣지아니|이어야|(?<!하)여야합|(?<!하)여야하며|"
+                   r"경우에만" + ELIG_TAIL + r"|(?:에|분에)한(?:하여|해|함)" + ELIG_TAIL + r"|"
+                   r"(?:신청|청약|계약|입주|공급|당첨)[가-힣]{0,6}제한(?:됩|합|될)|에서제외됩|대상에서제외)")
 COMMON = re.compile(r"(외국인|재외국민|중복신청|중복당첨|중복으로|말소|거주불명|행방불명|가출|무효처리|부정당첨|불법전대|"
                     r"1세대1주택|1주택만|1주택형만|1주택단지만|1개주택단지만|타[가-힣]{0,8}공고|다른공고|동일유형|동일한유형|"
                     # 사전청약 당첨자(그 세대)의 신청 제한·부적격 — 공통 결격사유처럼 안내만 한다(PRD 4.2, 2026-11-09 N56·N57)
@@ -53,7 +76,7 @@ DEFINITION = re.compile(r"(이란|란,|말함|말한다|의미|산정|산출|가
                         r"생계및주거를달리한다고|자격검증대상\(세대구성원\)|차량기준가액|높은차량가액을기준)")
 # 주택을 소유하지 않은 것으로 보는 경우(주택공급에 관한 규칙 제53조 — 선착순 분양권, 비도시지역 주택, 경매·공매로 산 임차주택 등).
 # 무주택으로 인정해 주는 예외라 신청을 막지 않는다 — 정의로 본다(2026-11-09 N22·N51·N56·N57)
-OWNERSHIP_EXCEPTION = re.compile(r"(소유하지아니한것으로인정|소유하지않은것으로인정|선착순의방법으로공급받아|"
+OWNERSHIP_EXCEPTION = re.compile(r"(주택으로보지않|주택으로보지아니|소유하지아니한것으로인정|소유하지않은것으로인정|선착순의방법으로공급받아|"
                                  r"도시지역이아닌지역또는면의행정구역|경매또는공매로매수|"
                                  # 소형 주택·60세 이상 직계존속 소유·생애최초 취득 임차주택(분양 공고, 2026-11-10)
                                  r"20m2이하의주택|20㎡이하의주택|60세이상의직계존속|생애최초로취득한경우로한정|"
@@ -62,7 +85,7 @@ OWNERSHIP_EXCEPTION = re.compile(r"(소유하지아니한것으로인정|소유�
 HOUSE_LIST = re.compile(r"주택목록|공급주택현황|연번자치구주택형|주택명주소")
 RANK = re.compile(r"\d순위")
 # 모든 공고에 붙는 일반 안내(자격 요건 전반·개인정보) — 강한 제한 표현이 들어 있어도 새 조건이 아니다
-BOILERPLATE = re.compile(r"(관계법령등에서정한|입주자격을유지|민감정보|본인정보제공|개인정보수집|"
+BOILERPLATE = re.compile(r"(신청자격을확인\(검증\)하지않고|입력\(기재\)사항만으로|이의를제기할수없|이의제기할수없|이의를제기하지|관계법령등에서정한|입주자격을유지|민감정보|본인정보제공|개인정보수집|"
                          # 공고 첫머리의 공급 계층 소개("…은 공고일 현재 다음 중 하나에 해당하는 사람에게 공급") — 계층마다 조건이 따로 있다
                          r"다음중하나(?:의계층)?에해당하는(?:사람|자)에게공급|"
                          # 신청 절차의 '신청 불가'(서류 미비·시스템 장애·변경 마감·특례 선택·옵션·본청약 포기) — 자격이 아니다(2026-11-10)
@@ -247,6 +270,32 @@ def _flat(conds):
             yield from _flat(t["conditions"])
 
 
+def _is_evidence(u: str, quotes: Sequence[str], values: Sequence[str]) -> bool:
+    """문장이 규칙 근거인가(2026-11-15 (나), docs/09 §23) — 문장이 인용문 안에 있거나, 인용문(조건 값)이 문장의 대부분
+    (EVIDENCE_COVER)을 덮거나, 문장에서 인용문·값을 지운 나머지에 제한 표현(LIMIT)이 없을 때만.
+    예전에는 짧은 인용('무주택세대구성원')·값('무주택')이 긴 문장 안에 있기만 해도 근거로 봐서, 같은 낱말에 새 제한을 붙인 문장
+    ('직계존속을 부양하는 경우 그 직계존속도 무주택자여야 합니다')이 근거로 숨었다."""
+    core = Known.LEAD.sub("", u)
+    n = max(len(core), 1)
+    hits = []
+    for q in quotes:
+        if u in q or core in q:
+            return True
+        if q in u:
+            if len(q) >= EVIDENCE_COVER * n:
+                return True
+            hits.append(q)
+    hits += [v for v in values if v in u]
+    if not hits:
+        return False
+    if any(len(h) >= EVIDENCE_COVER * n for h in hits):
+        return True
+    rest = u
+    for h in sorted(hits, key=len, reverse=True):
+        rest = rest.replace(h, "")
+    return not _limited(COMPARE.sub("", rest))
+
+
 def classify(units: Sequence[Tuple[int, str]], doc: Dict, known: Known) -> List[Tuple[int, str, str]]:
     """→ [(쪽, 문장, 분류)] — 조건처럼 보이지 않는 문장은 뺀다."""
     quotes, values = evidence_of(doc)
@@ -257,7 +306,7 @@ def classify(units: Sequence[Tuple[int, str]], doc: Dict, known: Known) -> List[
     for page, u in units:
         if u.startswith("■"):                 # 절이 바뀐다 — 우선공급 절인지
             priority = bool(PRIORITY_HEAD.match(u))
-        is_evidence = any(q in u or u in q for q in quotes) or any(v in u for v in values)
+        is_evidence = _is_evidence(u, quotes, values)
         if is_evidence:
             parent = page
         elif not ENUM.match(u):
@@ -281,12 +330,12 @@ def classify(units: Sequence[Tuple[int, str]], doc: Dict, known: Known) -> List[
             label = "무관:안내"
         elif ALLOCATION.search(u) and not ALLOCATION_GUARD.search(u):
             label = "무관:선정·순위"
-        elif RANK.search(u) and "모집하지않" not in u:     # 순위 정의(경쟁 순서 — 자격 아님). '그 순위만 모집'은 제한 문구 점검이 잡는다
+        elif RANK.search(u) and "모집하지않" not in u and not _limited(u):     # 순위 정의(경쟁 순서 — 자격 아님). '그 순위만 모집'은 제한 문구 점검이 잡는다
             label = "무관:선정·순위"
-        elif (DEFINITION.search(u) and not STRONG.search(u)) or OWNERSHIP_EXCEPTION.search(u):
+        elif (DEFINITION.search(u) and not _limited(u)) or OWNERSHIP_EXCEPTION.search(u):
             label = "무관:정의"
         else:
-            cat = None if STRONG.search(VISIT_ONLY.sub("", u)) else next((k for k, rx in UNRELATED.items() if rx.search(u)), None)
+            cat = None if _limited(VISIT_ONLY.sub("", u)) else next((k for k, rx in UNRELATED.items() if rx.search(u)), None)
             label = f"무관:{cat}" if cat else UNCLASSIFIED
             if label == UNCLASSIFIED and priority and "모집하지않" not in u:
                 label = "무관:우선공급"
