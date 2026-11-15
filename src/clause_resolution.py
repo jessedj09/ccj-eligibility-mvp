@@ -14,14 +14,21 @@
   취소하면 사전 적용도 함께 풀린다.
 - '새 조건' 판정이 하나라도 있는 문장은 빼지 않는다(애매하면 보류 유지). 판정자 단위로 되돌릴 수 있다(revoke_judge).
 - 문장 단위 LLM 판정(sentence_check)·위치 자동 해소(auto_position)는 묶음 C 시험을 통과하기 전까지 '초안'(proposed)으로만 받고
-  판정에 쓰지 않는다. 정식 등록(registered)·운영자(operator)·두 판정 일치(r2_agree)는 바로 쓴다.
+  판정에 쓰지 않는다. 정식 등록(registered)·운영자(operator — 사람)·두 판정 일치(r2_agree)는 바로 쓴다.
+- Claude 세션 판정(session — 피드백 세션 권고 11-15)은 판정 지침·세션을 묶음 E로 시험하기 전(SESSION_TESTED False)에는: 참고 문장은
+  바로 확정, 필수 문장은 초안 — 다른 판정자가 같은 판단을 내리면 그때 둘 다 확정('새 조건'이면 취소). 시험 통과 뒤에는 운영자와 같다.
+- 잠정 기록은 PROVISIONAL_DUE_DAYS(7일) 안에 교차 확인이 없으면 대기열 맨 앞, PROVISIONAL_TTL_DAYS(14일)가 지나면 반영하지 않는다(보류로
+  돌아감) — 교차 확인이 밀려 '먼저 반영'이 사실상 확정이 되지 않게.
+- 문장 사전은 확정 기록만 옮기고, 지시어('위'·'아래'·'다음'·'해당'·'상기'·'이/본 공고')가 든 문장은 옮기지 않는다(가리키는 내용이 공고마다 다름).
 - 해소 기록은 그 사업의 '독립 검증 완료' 근거가 아니다(src/verification.py와 무관). 멈춘 사업은 해소와 관계없이 판정하지 않는다(api _paused).
 - 개인정보 없음 — 공고 원문 문장과 판정자 이름만.
 """
 import hashlib
+import re
 import sys
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 _TOOLS = str(Path(__file__).resolve().parent.parent / "tools")
@@ -34,11 +41,15 @@ NOT_CONDITION, NEW_CONDITION = "not_condition", "new_condition"
 REQUIRED, REFERENCE = "required", "reference"
 PROPOSED, PROVISIONAL, ACTIVE, REVOKED = "proposed", "provisional", "active", "revoked"
 APPLIED = (PROVISIONAL, ACTIVE)
-SOURCES = ("registered", "operator", "r2_agree", "sentence_check", "auto_position")
+SOURCES = ("registered", "operator", "session", "r2_agree", "sentence_check", "auto_position")
 NORMALIZE_VERSION = 1            # sv.normalize를 바꾸면 올린다 — 문장 id가 달라져 기록을 다시 계산해야 함
 
 # 묶음 C 시험(숨긴 새 조건을 '조건 아님'으로 보낸 경우 0)을 통과한 출처만 켠다 — 통과 전에는 초안으로만 받는다
 GATED = {"sentence_check": False, "auto_position": False}
+SESSION_TESTED = False           # Claude 세션 판정이 묶음 E(판정 지침·세션 독립 시험)를 통과했는가 — 통과 전에는 필수 문장에 교차 확인이 먼저
+PROVISIONAL_DUE_DAYS, PROVISIONAL_TTL_DAYS = 7, 14
+# 지시어 — 앞이 한글 글자가 아니고(낱말 시작) 뒤가 조사·띄어쓰기·요건류인 것만('위반'·'단위'·'위치'·'해당없음' 같은 낱말은 아님)
+DEICTIC = re.compile(r"(?<![가-힣])(?:위|아래|다음|상기|해당|이\s*공고|본\s*공고)(?=\s|의|에|와|과|를|을|은|는|요건|조건|사항|표|기준|하는|하지|되는|자|각|공고|문|$)")
 
 LABEL = {ACTIVE: "운영 검토로 조건 아님 확인", PROVISIONAL: "운영 검토로 조건 아님 판단(교차 확인 중)"}
 
@@ -93,7 +104,31 @@ def initial_status(source: str, verdict: str, tier_: str) -> str:
         return PROPOSED
     if verdict == NEW_CONDITION or tier_ == REFERENCE:
         return ACTIVE
+    if source == "session" and not SESSION_TESTED:
+        return PROPOSED              # 시험 전 세션의 필수 문장 판정 — 다른 판정자가 같은 판단을 내려야 반영(record)
     return PROVISIONAL
+
+
+def _age(r: "Resolution", now: datetime) -> Optional[timedelta]:
+    if not r.created_at:
+        return None
+    t = datetime.fromisoformat(r.created_at)
+    return now - (t if t.tzinfo else t.replace(tzinfo=timezone.utc))
+
+
+def expired(r: "Resolution", now: Optional[datetime] = None) -> bool:
+    """잠정 기록이 교차 확인 없이 PROVISIONAL_TTL_DAYS를 넘겼는가 — 그러면 반영하지 않는다."""
+    if r.status != PROVISIONAL:
+        return False
+    age = _age(r, now or datetime.now(timezone.utc))
+    return age is not None and age > timedelta(days=PROVISIONAL_TTL_DAYS)
+
+
+def due(rows: Iterable["Resolution"], now: Optional[datetime] = None) -> List["Resolution"]:
+    """교차 확인이 급한 잠정 기록 — PROVISIONAL_DUE_DAYS를 넘긴 것(만료된 것 포함), 오래된 것부터."""
+    now = now or datetime.now(timezone.utc)
+    out = [r for r in rows if r.status == PROVISIONAL and (_age(r, now) or timedelta(0)) >= timedelta(days=PROVISIONAL_DUE_DAYS)]
+    return sorted(out, key=lambda r: r.created_at or "")
 
 
 def make(d, sha256: str, page: int, sentence: str, verdict: str, source: str, judge: str, reason: str = "") -> Resolution:
@@ -117,9 +152,10 @@ class Resolved:
         return LABEL[self.status] + (" — 같은 사업의 다른 공고에서 판정한 같은 문장" if self.via == "dictionary" else "")
 
 
-def apply(d, sha256: str, rows: Iterable[Resolution]):
-    """해소 기록을 초안에 반영한 복사본 — '조건 아님'(확정·잠정) 문장을 미분류에서 빼고 d.resolved에 남긴다. 기록이 없으면 그대로."""
-    rows = [r for r in rows if r.status in APPLIED]
+def apply(d, sha256: str, rows: Iterable[Resolution], now: Optional[datetime] = None):
+    """해소 기록을 초안에 반영한 복사본 — '조건 아님'(확정·잠정) 문장을 미분류에서 빼고 d.resolved에 남긴다. 기록이 없으면 그대로.
+    만료된 잠정 기록은 반영하지 않는다."""
+    rows = [r for r in rows if r.status in APPLIED and not expired(r, now)]
     if not rows or not getattr(d, "unclassified", None):
         return d
     template = getattr(d, "template", "") or ""
@@ -128,10 +164,9 @@ def apply(d, sha256: str, rows: Iterable[Resolution]):
     direct = {r.sentence_id: r for r in rows if r.verdict == NOT_CONDITION and r.sha256 == sha256}
     by_key = {}
     for r in rows:
-        if r.verdict == NOT_CONDITION and r.sha256 != sha256 and template and r.template == template:
-            k = sentence_key(r.sentence)
-            if by_key.get(k) is None or by_key[k].status != ACTIVE:      # 확정이 있으면 확정으로
-                by_key[k] = r
+        if (r.verdict == NOT_CONDITION and r.status == ACTIVE and r.sha256 != sha256 and template and r.template == template
+                and not DEICTIC.search(r.sentence)):
+            by_key[sentence_key(r.sentence)] = r
     keep, resolved = [], []
     for page, text in d.unclassified:
         sid, key = sentence_id(sha256, page, text), sentence_key(text)
@@ -139,7 +174,7 @@ def apply(d, sha256: str, rows: Iterable[Resolution]):
             keep.append((page, text))
         elif sid in direct:
             resolved.append(Resolved(page, text, direct[sid].status, "direct"))
-        elif key in by_key:
+        elif key in by_key and not DEICTIC.search(text):
             resolved.append(Resolved(page, text, by_key[key].status, "dictionary"))
         else:
             keep.append((page, text))
@@ -149,12 +184,14 @@ def apply(d, sha256: str, rows: Iterable[Resolution]):
 
 
 def record(store, d, sha256: str, page: int, sentence: str, verdict: str, source: str, judge: str, reason: str = ""):
-    """판정 하나를 기록한다. 같은 문장에 잠정(필수) 기록이 있고 다른 판정자가 판정하면 교차 확인 —
-    '조건 아님'이면 잠정을 확정으로 올리고, '새 조건'이면 잠정을 취소한다(새 조건 기록이 남아 보류 유지). → 새 기록."""
+    """판정 하나를 기록한다. 같은 문장에 다른 판정자의 잠정 기록(또는 시험 전 세션의 필수 문장 초안)이 있으면 교차 확인 —
+    '조건 아님'이면 둘 다 확정, '새 조건'이면 그 기록을 취소한다(새 조건 기록이 남아 보류 유지). → 새 기록.
+    시험 전 출처(LLM·위치 자동)의 초안은 교차 확인 대상이 아니고, 그 출처의 판정으로 교차 확인하지도 않는다."""
     r = make(d, sha256, page, sentence, verdict, source, judge, reason)
-    if r.status != PROPOSED:
+    if GATED.get(source) is not False:
         for old in store.resolutions_for(sha256, r.template):
-            if old.sentence_id != r.sentence_id or old.status != PROVISIONAL or old.judge == judge:
+            pending = old.status == PROVISIONAL or (old.status == PROPOSED and old.source == "session")
+            if old.sentence_id != r.sentence_id or not pending or old.judge == judge or old.verdict != NOT_CONDITION:
                 continue
             store.set_resolution_status(old.id, ACTIVE if verdict == NOT_CONDITION else REVOKED)
             if verdict == NOT_CONDITION:

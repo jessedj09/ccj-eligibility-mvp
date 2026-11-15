@@ -2,7 +2,7 @@
 """resolve_clauses.py — R-③ 공고 단위 해소 운영 도구(src/clause_resolution.py, 2026-11-15 사용자 승인).
 
     python tools/resolve_clauses.py queue [--limit 30]           # 아직 해소 안 된 미분류 문장 — 보류 계층 수 × 최근 공고 × 필수 먼저
-    python tools/resolve_clauses.py record <sha256> <쪽> <문장 id 끝 12자 또는 문장> not|new --judge 이름 [--reason 사유] [--source operator]
+    python tools/resolve_clauses.py record <sha256> <쪽> <문장 id 끝 12자 또는 문장> not|new --source operator|session --judge 이름 [--reason 사유]
     python tools/resolve_clauses.py import <후보.json> --judge 이름    # 파싱 세션 판정 후보 — '초안'으로(묶음 C 통과 전 판정에 안 씀)
     python tools/resolve_clauses.py list [--status provisional]
     python tools/resolve_clauses.py revoke --judge 이름             # 판정자 단위 되돌리기(되돌린 문장은 다시 보류)
@@ -38,6 +38,9 @@ def _drafts(s):
 
 
 def cmd_queue(s, a):
+    for r in CR.due(s.list_resolutions(status=CR.PROVISIONAL, limit=1000)):   # 교차 확인이 밀린 잠정 기록이 맨 앞(14일 지나면 다시 보류)
+        print(f"[교차 확인 필요{' · 만료' if CR.expired(r) else ''}] #{r.id} {r.judge} {(r.created_at or '')[:10]} — {r.sha256} p.{r.page}\n"
+              f"    \"{r.sentence}\"")
     recent = date.today() - timedelta(days=RECENT_DAYS)
     entries = [(row["sha256"], row.get("title") or row["sha256"][:12], d,
                 bool(row.get("announcement_date") and row["announcement_date"] >= recent)) for row, d in _drafts(s)]
@@ -94,7 +97,8 @@ def main(argv=None):
     r.add_argument("verdict", choices=("not", "new"))
     r.add_argument("--judge", required=True)
     r.add_argument("--reason", default="")
-    r.add_argument("--source", default="operator", choices=CR.SOURCES)
+    r.add_argument("--source", required=True, choices=CR.SOURCES,
+                   help="operator = 사람(사용자), session = Claude 세션(묶음 E 통과 전에는 필수 문장에 다른 판정자의 같은 판단이 있어야 반영)")
     i = sub.add_parser("import")
     i.add_argument("file")
     i.add_argument("--judge", required=True)
