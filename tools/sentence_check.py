@@ -124,11 +124,10 @@ REQUIRED, REFERENCE = "required", "reference"
 
 
 def tier_of(d, page: int, text: str) -> str:
-    """필수/참고 — 필수 = 자격 영역(계층마다 조건 근거 쪽 범위, grading.layer_pages) 안에 있거나 결정론 표지(guard 'c': 강한·부드러운
-    제한 표현·기준값)가 있음. ProjectCCJ_work clause_resolution과 같은 정의(guard·sentence_id 이름 유지). 질문·해소 순서에만 쓴다."""
-    import grading
-    inside = any(a <= page <= b for a, b in grading.layer_pages(d.doc).values()) if d.doc else False
-    return REQUIRED if inside or guard(text, "c") else REFERENCE
+    """필수/참고 — R-③ 저장소와 한 곳에서 정한다(src/clause_resolution.tier: 자격 영역 안 또는 guard 'c'면 필수).
+    질문·해소 순서에만 쓴다(보류는 그대로 — 영역 밖에 쓰인 새 조건을 놓치지 않게, docs/09 §23)."""
+    import clause_resolution as CR
+    return CR.tier(getattr(d, "doc", None), page, text)
 
 
 def candidates(d, raw_pages: List[str], sha256: str, slot=None) -> List[dict]:
