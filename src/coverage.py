@@ -40,6 +40,8 @@ def coverage(rows: Iterable[Dict], analyzed: List[Dict]) -> Dict[str, int]:
             c["registered"] += 1
         elif r.get("route") == LN.TEMPLATE:
             c["analyzed" if _analyzed_sha(r, analyzed, rows) else "pending"] += 1
+        elif r.get("route") == LN.FIRST_COME_ROUTE:
+            c["first_come"] += 1          # 판정 대상 아님(선착순 — 확인 필요)
         else:
             c["unsupported"] += 1
     target = c["registered"] + c["analyzed"] + c["pending"]

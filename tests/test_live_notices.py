@@ -86,7 +86,11 @@ def test_lh_rental_titles_with_spaces_or_dot_variants_reach_templates():
         n = L.link(lh(t, "매입임대"))
         assert (n.program, n.template, n.route) == (prog, tpl, L.TEMPLATE), t
     # 선착순(자격 완화 가능)·판정 틀 없는 매입임대(기존주택·다자녀·장애인 자립특화형·자립준비청년)는 판정 안 함
-    for t in ("[경기북부] 청년 매입임대주택 선착순 예비입주자 모집공고 (김포시, 포천시)", "청주 다자녀 매입임대주택 입주자 모집",
+    # 선착순(2026-11-15 사용자 결정): 판정 틀이 있어도 판정하지 않고 '확인 필요'(별도 갈래 — 자동 분석·확정 범위 대상 아님)
+    fc = L.link(lh("[경기북부] 청년 매입임대주택 선착순 예비입주자 모집공고 (김포시, 포천시)", "매입임대"))
+    assert (fc.program, fc.template, fc.route) == ("청년매입임대", "lh.youth_rental", L.FIRST_COME_ROUTE)
+    assert L.link(lh("청주 다자녀 매입임대주택 선착순 모집", "매입임대")).route == L.UNSUPPORTED   # 판정 틀 없는 사업은 그대로
+    for t in ("청주 다자녀 매입임대주택 입주자 모집",
               "장애인 자립특화형 매입임대 입주자 모집", "[경남] 자립준비청년 매입임대 예비입주자 모집",
               "[광주전남지역본부] 기숙사형 청년주택 예비입주자 모집공고", "[인천지역본부] 26년 2차 고령자 매입임대주택 예비입주자 모집"):
         assert L.link(lh(t, "매입임대")).route == L.UNSUPPORTED, t
@@ -261,3 +265,35 @@ def test_db_detail_key_merges_and_is_read_back(db):
     db.upsert_live([n.as_dict()])                                          # 다음 수집 — 상세 없이
     got = [r for r in db.live_notices(open_only=False) if r["source"] == L.SEOUL_SOURCE][0]
     assert got["detail_key"]["house_no"] == "2026000373" and got["detail_key"]["view"] == "/v?seq=4"
+
+
+def test_first_come_card_is_verify_with_reason_and_upload_is_held():
+    """선착순 모집 — 흥신소 카드는 '실제 공고문 확인필요'와 사유, 재판소(올린 공고문)는 어떤 결론도 확정하지 않고 같은 사유(2026-11-15)."""
+    import dataclasses
+    from datetime import date as _date
+    import find as F
+    import grading
+    from display_status import HOLD_GROUP, display_result
+    from matcher import MasterProfile
+    row = dict(L.link(lh("[경기북부] 청년 매입임대주택 선착순 예비입주자 모집공고", "매입임대")).as_dict(), related=[])
+    card, matches = F.judge_row(MasterProfile(), row, _date(2026, 11, 15))
+    assert card["result"] == F.VERIFY and card["basis_note"] == L.FIRST_COME_NOTE and matches == []
+    # 재판소: 표지에 '선착순'이 있는 초안은 엔진 결론과 관계없이 확인 필요
+    import source_verify as sv
+    import draft
+    assert draft._first_come(["2026년 청년 매입임대주택 선착순 예비입주자 모집공고 ..."])
+    assert not draft._first_come(["(단, 청약미달로 인해 선착순의 방법으로 공급한 주택을 최초로 취득한 경우)"])
+    d = draft.from_snapshot(draft.to_snapshot(dataclasses.replace(_n12_draft(), first_come=True), "x" * 64))
+    from rule_engine import HouseholdProfile
+    p = HouseholdProfile(profile_id="T", age=45, marital_status="미혼", household_size=1, monthly_income=1, total_assets=1,
+                         car_value=0, home_ownership="무주택")
+    r, checks = grading.judge(d, p, "청년")
+    assert r.verdict == "MANUAL_REVIEW" and [c.kind for c in checks] == ["first_come"]
+    shown = display_result(r.verdict, r.review_reasons, len(checks), {c.kind for c in checks})
+    assert shown.group == HOLD_GROUP and "선착순" in shown.title and shown.todo == L.FIRST_COME_NOTE
+
+
+def _n12_draft():
+    import draft
+    import source_verify as sv
+    return draft.make_draft(sv.pdf_path("N12").read_bytes(), pages=sv.pdf_pages("N12"), exclude="N12")

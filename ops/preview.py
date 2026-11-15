@@ -404,7 +404,7 @@ if st.session_state.get("judged"):
 
         # 화면은 지원 가능 / 보류(원인) / 지원 불가 3상태로 보인다(PRD v2.1 F18). 엔진 판정은 5상태 그대로.
         icon, style = VERDICT_STYLE[exp.verdict]
-        shown = display_result(result.verdict, result.review_reasons, len(checks))
+        shown = display_result(result.verdict, result.review_reasons, len(checks), {c.kind for c in checks}, result.unknown)
         getattr(st, style)(f"{icon} {shown.title} · {exp.headline}")
         st.caption(shown.todo)
         for c in checks:

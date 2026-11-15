@@ -315,7 +315,7 @@ def _profile(raw: Dict[str, Any], notice=None):
 
 def _result_json(result, notice, checks=()) -> Dict[str, Any]:
     """엔진 설명(5상태) + 화면 3상태 표시 + 원문에서 확인할 곳 + 공통 문구."""
-    shown = display_result(result.verdict, result.review_reasons, len(checks))
+    shown = display_result(result.verdict, result.review_reasons, len(checks), {c.kind for c in checks}, result.unknown)
     out = _explanation_json(explain(result, notice))
     out.update(display={"group": shown.group, "title": shown.title, "icon": shown.icon, "todo": shown.todo, "kind": shown.kind},
                checks=[{"kind": c.kind, "page": c.page, "text": c.text} for c in checks], common_note=COMMON_NOTE)
@@ -481,7 +481,7 @@ def _window_json(w) -> Dict[str, Any]:
 
 def _match_json(x, stat, sched) -> Dict[str, Any]:
     n, nid = x.notice, x.notice.notice_id
-    shown = display_result(x.verdict, x.result.review_reasons)
+    shown = display_result(x.verdict, x.result.review_reasons, unknown=x.result.unknown)
     s = sched.get(nid)
     return {"notice_id": nid, "title": n.title, "layer": x.layer, "verdict": x.verdict,
             "issuer": n.meta.get("issuer"), "program": n.meta.get("program"),

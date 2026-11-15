@@ -185,7 +185,10 @@ def judge_row(m: MasterProfile, row: Dict, today: date, analyzed: Optional[Calla
     announced = _d(row.get("announced"))
     basis, rep, layers, matches = NONE, None, [], []
     rid = row.get("registered_id")
-    if rid and rid in ALL_NOTICES:
+    first_come = row.get("route") == LN.FIRST_COME_ROUTE
+    if first_come:
+        pass                                   # 선착순 모집 — 판정하지 않고 '실제 공고문 확인필요'(사유 FIRST_COME_NOTE)
+    elif rid and rid in ALL_NOTICES:
         basis = CONFIRMED
         layers, matches = _confirmed_layers(m, ALL_NOTICES[rid])
     elif row.get("template"):
@@ -204,6 +207,8 @@ def judge_row(m: MasterProfile, row: Dict, today: date, analyzed: Optional[Calla
     if basis != NONE and not layers:
         result = UNJUDGED if basis == PREVIEW else VERIFY
     note = BASIS_NOTE[basis]
+    if first_come:
+        result, note = VERIFY, LN.FIRST_COME_NOTE
     if basis == PREVIEW:
         note = note.format(title=ALL_NOTICES[rep.notice_id].title, date=rep.announcement_date.isoformat())
     card = {

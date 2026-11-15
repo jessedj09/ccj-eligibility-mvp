@@ -19,6 +19,11 @@ def test_each_cause_gets_its_own_kind_and_todo():
     both = {"a": R("SELF_REPORT_UNVERIFIED", "x"), "b": R("INPUT_INCONSISTENT", "y")}
     assert display_result("MANUAL_REVIEW", both).kind == INPUT_CHECK          # 사용자가 먼저 고칠 수 있는 것부터
     assert display_result("ELIGIBLE").kind is None and display_result("INELIGIBLE").kind is None
+    # 정보 부족이 함께 있으면 '해당하면 지원 가능' 단정 대신 입력도 하라고(점검 세션 권고 2026-11-15)
+    sr = display_result("MANUAL_REVIEW", {"a": R("SELF_REPORT_UNVERIFIED", "x")}, unknown=["N1-R1"])
+    assert "지원 가능, 아니면" not in sr.todo and "추가로 입력하면" in sr.todo
+    amb2 = display_result("MANUAL_REVIEW", {"a": R("AMBIGUOUS_SOURCE", "y [a=충족, b=불충족]")}, unknown=["N1-R1"])
+    assert "추가로 입력하면" in amb2.todo
 
 
 def test_no_hold_without_a_kind_across_golden_inputs():
@@ -29,7 +34,7 @@ def test_no_hold_without_a_kind_across_golden_inputs():
     for nid, layer, p in gc.cases(only=groups):
         n = notices.setdefault(nid, load_notice(nid))
         r = evaluate(p, n, layer)
-        d = display_result(r.verdict, r.review_reasons)
+        d = display_result(r.verdict, r.review_reasons, unknown=r.unknown)
         if d.group == HOLD_GROUP:
             assert d.kind in HOLD_KINDS and d.todo, (nid, layer, r.verdict, r.review_reasons)
             seen[d.kind] += 1

@@ -97,6 +97,7 @@ class Draft:
     missing: List[str] = field(default_factory=list)        # 원문에서 찾지 못한 인용문(기준표 연도 포함) — 그 조건은 보류
     doc: Optional[Dict] = None                              # 초안 규칙 문서(JSON) — 만들 수 있었을 때
     unclassified: List[tuple] = field(default_factory=list)  # 조항 장부의 미분류 문장 (쪽, 문장) — 규칙이 모르는 조건일 수 있음(v3 ②)
+    first_come: bool = False                                 # 표지에 '선착순' — 판정하지 않고 확인 필요(2026-11-15, grading.judge)
 
 
 FIELD_KEYS = {"status", "value", "page", "quote", "how"}
@@ -162,7 +163,13 @@ def make_draft(data: bytes, only=PASSING, pages: Optional[List[str]] = None, exc
     notice = build_notice(base["doc"])
     ids = X.held_condition_ids(base["doc"], g["missing"])
     held = {layer: X.affected_conditions(ls.conditions, ids) for layer, ls in notice.layers.items()}
-    return Draft(OK, "", notice=notice, held_conditions=held, **base)
+    return Draft(OK, "", notice=notice, held_conditions=held, first_come=_first_come(pages), **base)
+
+
+def _first_come(pages: List[str]) -> bool:
+    """표지 제목 영역에 '선착순' 모집 — 흥신소와 같은 기준(live_notices.FIRST_COME, 2026-11-15)."""
+    from live_notices import FIRST_COME, FIRST_COME_HEAD
+    return bool(pages) and bool(FIRST_COME.search(pages[0][:FIRST_COME_HEAD]))
 
 
 def _raw_pages(data: bytes) -> List[str]:
@@ -210,7 +217,7 @@ def to_snapshot(d: Draft, sha256: str, source: str = "", created: str = "") -> D
             "announcement_date": d.announcement_date, "held_fields": d.held_fields,
             "held_conditions": {layer: sorted(ids) for layer, ids in d.held_conditions.items()},
             "restrictions": [list(r) for r in d.restrictions], "stale": d.stale, "missing": d.missing, "doc": d.doc,
-            "unclassified": [list(u) for u in d.unclassified]}
+            "unclassified": [list(u) for u in d.unclassified], "first_come": d.first_come}
 
 
 def from_snapshot(s: Dict) -> Draft:
@@ -221,4 +228,5 @@ def from_snapshot(s: Dict) -> Draft:
                  notice=build_notice(s["doc"]) if s["status"] == OK else None,
                  held_conditions={layer: set(ids) for layer, ids in s["held_conditions"].items()},
                  stale=s["stale"], restrictions=[tuple(r) for r in s["restrictions"]], held_fields=s["held_fields"],
-                 missing=s["missing"], doc=s["doc"], unclassified=[tuple(u) for u in s.get("unclassified", [])])
+                 missing=s["missing"], doc=s["doc"], unclassified=[tuple(u) for u in s.get("unclassified", [])],
+                 first_come=bool(s.get("first_come")))

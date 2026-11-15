@@ -118,6 +118,10 @@ def judge(d, profile, layer: str):
     if d.notice is None:
         raise ValueError("판정할 수 있는 초안이 아닙니다")
     r = evaluate(profile, d.notice, layer)
+    if getattr(d, "first_come", False) and r.verdict != "NOT_OFFERED":
+        # 선착순 모집(2026-11-15 사용자 결정) — 자격·임대 조건이 일반 모집과 다를 수 있어 어떤 결론도 확정하지 않는다
+        from live_notices import FIRST_COME_NOTE
+        return dataclasses.replace(r, verdict="MANUAL_REVIEW"), [Check("first_come", 1, FIRST_COME_NOTE)]
     g = grades(d)[layer]
     if r.verdict == "ELIGIBLE" and (g.held or g.clauses):
         checks = checks_for(d, layer, g.held)

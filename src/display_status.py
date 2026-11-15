@@ -75,9 +75,14 @@ def _ambiguous_todo(details) -> str:
             f". 어느 해석이 맞는지는 공고 기관({CONTACT})에 문의하세요 — 문의할 때 아래 조건과 원문 쪽을 알려 주세요.")
 
 
-def display_result(verdict: str, review_reasons=None, checks: int = 0) -> Display:
+def display_result(verdict: str, review_reasons=None, checks: int = 0, check_kinds=(), unknown=()) -> Display:
     """엔진 결과 → 화면 표시. 보류는 갈래를 정해 할 일을 붙인다(갈래 없는 보류 없음 — tests/test_hold_kinds.py).
-    갈래 우선순위(사용자가 먼저 할 수 있는 것부터): 입력 확인 > 원문 확인(자동 분석 공고) > 해석이 갈림 > 자기신고 > 입력하면 판정."""
+    갈래 순서: 원문 확인(자동 분석 공고 — 엔진이 '지원 가능'일 때만 생겨 입력 확인과 함께 나오지 않음) > 입력 확인 > 해석이 갈림 >
+    자기신고 > 입력하면 판정. unknown(정보 부족 조건)이 함께 있으면 해석·자기신고 문구에 '입력도 하라'를 덧붙인다
+    (수동 확인이 정보 부족보다 우선이라 '입력하면 판정'이 가려지므로 — 점검 세션 권고 2026-11-15)."""
+    if "first_come" in check_kinds:          # 선착순 모집(2026-11-15 사용자 결정) — 결론을 확정하지 않고 공고문·현황 확인
+        from live_notices import FIRST_COME_NOTE
+        return Display(HOLD_GROUP, "🔍", "확인 필요 — 선착순 모집", FIRST_COME_NOTE, kind=SOURCE)
     if checks:
         return display_checks(checks)
     if verdict == "NEEDS_INFO":
@@ -93,8 +98,17 @@ def display_result(verdict: str, review_reasons=None, checks: int = 0) -> Displa
                        kind=INPUT_CHECK)
     if "AMBIGUOUS_SOURCE" in codes or "SELF_REPORT_UNVERIFIED" not in codes:   # 사유를 모르는 수동 확인도 해석 갈림 쪽(문의처 안내)
         return Display(HOLD_GROUP, "⚖️", "해석이 갈림",
-                       _ambiguous_todo(r.detail for r in reasons if getattr(r, "code", None) == "AMBIGUOUS_SOURCE"),
+                       _ambiguous_todo(r.detail for r in reasons if getattr(r, "code", None) == "AMBIGUOUS_SOURCE") + _also_input(unknown),
                        kind=AMBIGUOUS)
+    if unknown:
+        return Display(HOLD_GROUP, "🙋", "자기신고",
+                       "서류로만 확인되는 요건이 있어 자동으로 확정하지 않았습니다. 아래 조건의 원문을 확인하세요." + _also_input(unknown),
+                       kind=SELF_REPORT)
     return Display(HOLD_GROUP, "🙋", "자기신고",
                    "서류로만 확인되는 요건이 있어 자동으로 확정하지 않았습니다. 본인이 그 요건에 해당하면 지원 가능, 아니면 지원 불가입니다 — "
                    "아래 조건의 원문을 확인하세요.", kind=SELF_REPORT)
+
+
+def _also_input(unknown) -> str:
+    return (" 그리고 비어 있는 정보가 있어 판정이 끝나지 않았습니다 — 아래 '추가로 입력하면 판정할 수 있는 조건'도 입력하세요."
+            if unknown else "")
