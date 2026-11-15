@@ -99,6 +99,7 @@ class Draft:
     unclassified: List[tuple] = field(default_factory=list)  # 조항 장부의 미분류 문장 (쪽, 문장) — 규칙이 모르는 조건일 수 있음(v3 ②)
     first_come: bool = False                                 # 표지에 '선착순' — 판정하지 않고 확인 필요(2026-11-15, grading.judge)
     relaxed: str = ""                                        # 입주자격 완화 공고의 사유(쪽·문구) — 확인 필요(2026-11-15, grading.judge)
+    resolved: List = field(default_factory=list)             # R-③ 해소로 미분류에서 뺀 문장(clause_resolution.Resolved) — 스냅샷에 넣지 않음(읽을 때 반영)
 
 
 FIELD_KEYS = {"status", "value", "page", "quote", "how"}

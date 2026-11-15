@@ -107,6 +107,19 @@ def _held_check(d, layer: str, cid: str) -> Check:
     return Check("held", page, f"{'p.' + str(page) + ' ' if page else ''}{what} — 이 조건의 원문 문장을 자동으로 확인하지 못했습니다")
 
 
+def resolved_for(d, layer: str) -> List[Dict]:
+    """R-③ 해소로 확인할 곳에서 뺀 문장 중 그 계층에 걸리던 것 — 화면에 '운영 검토로 조건 아님 확인/판단(교차 확인 중)'으로 보인다."""
+    if not getattr(d, "resolved", None) or d.doc is None:
+        return []
+    ranges = layer_pages(d.doc)
+    out = []
+    for r in d.resolved:
+        inside = [lay for lay, (a, b) in ranges.items() if a <= r.page <= b]
+        if layer in inside or not inside:
+            out.append({"page": r.page, "sentence": r.sentence, "status": r.status, "label": r.label})
+    return out
+
+
 def checks_for(d, layer: str, held_ids) -> List[Check]:
     out = [_held_check(d, layer, cid) for cid in sorted(held_ids)]
     out += [Check("unclassified", p, f"p.{p} \"{t[:60]}{'…' if len(t) > 60 else ''}\" — 규칙에 없는 조건일 수 있습니다")

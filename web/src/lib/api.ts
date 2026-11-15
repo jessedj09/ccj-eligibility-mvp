@@ -90,6 +90,8 @@ export type Result = {
   questions?: { rule_id: string; description: string; source_ref: string; fields: string[] }[];
   /** 이 판정에 쓴 사업(판정 틀)의 검증 상태(R-⑤) — 독립 검증 완료 / 검증 중 / 정확도 점검 중. 판정은 바꾸지 않는다. */
   verification?: { template: string; status: "verified" | "in_progress" | "paused"; label: string; note: string } | null;
+  /** R-③ 공고 단위 해소 — 운영 검토로 '조건 아님'이라 확인할 곳에서 뺀 문장(active 확정 / provisional 교차 확인 중). 올린 공고만. */
+  resolved?: { page: number; sentence: string; status: "active" | "provisional"; label: string }[];
 };
 
 export type NoticeSummary = {

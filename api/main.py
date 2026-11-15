@@ -28,6 +28,7 @@ import hashlib
 import os
 import sys
 import threading
+import time
 from collections import OrderedDict
 from functools import lru_cache
 from datetime import date, datetime
@@ -148,7 +149,12 @@ def _remember(sha: str, d) -> None:
 
 
 def _draft_for(sha: str):
-    """올린 공고의 분석 결과 — 이 프로세스에 있으면 그것, 없으면 공유 저장소(같은 엔진 판)."""
+    """올린 공고의 분석 결과(R-③ 공고 단위 해소를 반영한 것) — 분석은 이 프로세스에 있으면 그것, 없으면 공유 저장소(같은 엔진 판)."""
+    d = _analysis_for(sha)
+    return None if d is None else _with_resolutions(d, sha)
+
+
+def _analysis_for(sha: str):
     with _drafts_lock:
         if sha in _drafts:
             return _drafts[sha]
@@ -160,6 +166,23 @@ def _draft_for(sha: str):
     d = draft.from_snapshot(snap)
     _remember(sha, d)
     return d
+
+
+RESOLUTION_TTL = 60          # 해소 기록을 다시 읽는 간격(초) — 새 판정·취소가 늦어도 1분 안에 모든 사용자에게 반영
+_resolutions: Dict[str, Any] = {}
+
+
+def _with_resolutions(d, sha: str):
+    """R-③: 그 공고(와 같은 사업의 같은 문장)의 해소 기록을 초안에 반영 — 기록이 없거나 DB가 없으면 그대로(판정은 DB 없이도 같다)."""
+    if not getattr(d, "unclassified", None):
+        return d
+    import clause_resolution as CR
+    key, now = (sha, d.template or ""), time.monotonic()
+    hit = _resolutions.get(key)
+    if hit is None or now - hit[0] > RESOLUTION_TTL:
+        hit = (now, get_store().resolutions_for(sha, d.template or ""))
+        _resolutions[key] = hit
+    return CR.apply(d, sha, hit[1])
 
 
 def _ident_json(ident) -> Dict[str, Any]:
@@ -286,7 +309,7 @@ def upload(request: Request, file: UploadFile = File(...)):
     _remember(ident.sha256, d)
     body["judge"] = {"by": "analysis", "program": d.program, "announcement_date": d.announcement_date,
                      "layers": list(d.notice.layers),
-                     "grades": {k: g.grade for k, g in grading.grades(d).items()}}
+                     "grades": {k: g.grade for k, g in grading.grades(_with_resolutions(d, ident.sha256)).items()}}
     return body
 
 
@@ -423,14 +446,16 @@ def _questions(result, notice, layer: str) -> list:
 def evaluate_one(req: EvaluateRequest):
     notice, d = _target(req.notice_id, req.sha256, req.layer)
     profile = _profile(req.profile, notice)
+    resolved = []
     if d is not None:
         import grading
         result, checks = grading.judge(d, profile, req.layer)
+        resolved = grading.resolved_for(d, req.layer)      # R-③: 운영 검토로 확인할 곳에서 뺀 문장(확정 / 교차 확인 중)
     else:
         result, checks = evaluate(profile, notice, req.layer), []
     get_store().count("judged")
     return dict(_result_json(result, notice, checks), basis=_basis(req, notice, d),
-                questions=_questions(result, notice, req.layer), verification=_verification(notice, d))
+                questions=_questions(result, notice, req.layer), verification=_verification(notice, d), resolved=resolved)
 
 
 def _demoted() -> frozenset:

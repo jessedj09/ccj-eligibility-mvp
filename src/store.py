@@ -110,6 +110,19 @@ CREATE TABLE IF NOT EXISTS preview_checks (                -- 예비 판정 감�
 CREATE TABLE IF NOT EXISTS preview_resumed (               -- 놓침으로 멈춘 판정 틀의 '어려움'을 운영자가 다시 켠 시각
     template text PRIMARY KEY, resumed_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS clause_resolutions (            -- R-③ 공고 단위 해소(src/clause_resolution.py) — 공고 원문 문장만, 개인정보 없음
+    id bigserial PRIMARY KEY,
+    sha256 text NOT NULL, sentence_id text NOT NULL, page int NOT NULL, sentence text NOT NULL,
+    template text NOT NULL DEFAULT '', sentence_key text NOT NULL,
+    verdict text NOT NULL,                           -- not_condition / new_condition
+    tier text NOT NULL,                              -- required / reference
+    source text NOT NULL, judge text NOT NULL, reason text NOT NULL DEFAULT '',
+    status text NOT NULL,                            -- proposed / provisional / active / revoked
+    normalize_version int NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS clause_resolutions_sha ON clause_resolutions (sha256);
+CREATE INDEX IF NOT EXISTS clause_resolutions_key ON clause_resolutions (template, sentence_key);
 """
 
 
@@ -184,6 +197,11 @@ class NullStore:
     def preview_health(self): return []
     def analyzed_notices(self, days=120, version=None): return []
     def merge_live_detail(self, source, external_id, data): return False
+    def save_resolution(self, r): return None
+    def resolutions_for(self, sha, template=""): return []
+    def list_resolutions(self, status=None, limit=500): return []
+    def set_resolution_status(self, rid, status): return False
+    def revoke_judge(self, judge): return 0
 
 
 def _safe(default):
@@ -560,6 +578,61 @@ class Store(NullStore):
                  AND EXISTS (SELECT 1 FROM analyses a WHERE a.sha256 = n.sha256 AND a.status = 'ok'
                              AND (%s::text IS NULL OR a.engine_version = %s))""", (days, version, version)).fetchall())
         return [dict(zip(("sha256", "issuer", "program", "title", "announcement_date"), r)) for r in rows]
+
+    # ---- R-③ 공고 단위 해소(src/clause_resolution.py) ----
+    @_safe(None)
+    def save_resolution(self, r) -> Optional[int]:
+        import clause_resolution as CR
+        row = self._run(lambda c: c.execute(
+            """INSERT INTO clause_resolutions (sha256, sentence_id, page, sentence, template, sentence_key, verdict, tier, source,
+                                               judge, reason, status, normalize_version)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+            (r.sha256, r.sentence_id, r.page, r.sentence, r.template, CR.sentence_key(r.sentence), r.verdict, r.tier, r.source,
+             r.judge, r.reason, r.status, r.normalize_version)).fetchone())
+        return row[0]
+
+    _RES_COLS = ("id", "sha256", "sentence_id", "page", "sentence", "template", "verdict", "tier", "source", "judge", "reason",
+                 "status", "normalize_version", "created_at")
+
+    def _resolutions(self, rows):
+        import clause_resolution as CR
+        out = []
+        for r in rows:
+            d = dict(zip(self._RES_COLS, r))
+            d["created_at"] = d["created_at"].isoformat() if d["created_at"] else None
+            out.append(CR.Resolution(**d))
+        return out
+
+    @_safe([])
+    def resolutions_for(self, sha, template="") -> list:
+        """그 공고의 기록 + 같은 사업(판정 틀)의 다른 공고 기록(문장 사전). 취소된 것과 정규화 판이 다른 것은 빼고 돌려준다."""
+        import clause_resolution as CR
+        rows = self._run(lambda c: c.execute(
+            f"""SELECT {', '.join(self._RES_COLS)} FROM clause_resolutions
+                WHERE (sha256 = %s OR (%s <> '' AND template = %s)) AND status <> 'revoked' AND normalize_version = %s
+                ORDER BY id""", (sha, template, template, CR.NORMALIZE_VERSION)).fetchall())
+        return self._resolutions(rows)
+
+    @_safe([])
+    def list_resolutions(self, status=None, limit=500) -> list:
+        rows = self._run(lambda c: c.execute(
+            f"""SELECT {', '.join(self._RES_COLS)} FROM clause_resolutions WHERE (%s::text IS NULL OR status = %s)
+                ORDER BY id DESC LIMIT %s""", (status, status, limit)).fetchall())
+        return self._resolutions(rows)
+
+    @_safe(False)
+    def set_resolution_status(self, rid, status) -> bool:
+        import clause_resolution as CR
+        assert status in (CR.PROPOSED, CR.PROVISIONAL, CR.ACTIVE, CR.REVOKED), status
+        self._run(lambda c: c.execute("UPDATE clause_resolutions SET status = %s, updated_at = now() WHERE id = %s", (status, rid)))
+        return True
+
+    @_safe(0)
+    def revoke_judge(self, judge) -> int:
+        """판정자 단위 되돌리기 — 그 판정자의 기록을 모두 취소(되돌린 문장은 다시 보류)."""
+        cur = self._run(lambda c: c.execute(
+            "UPDATE clause_resolutions SET status = 'revoked', updated_at = now() WHERE judge = %s AND status <> 'revoked'", (judge,)))
+        return cur.rowcount
 
     @_safe(None)
     def live_detail_needed(self, keys) -> set:

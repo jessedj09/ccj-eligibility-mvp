@@ -67,6 +67,15 @@ export default function ResultView({ result, source }: { result: Result; source?
             ))}
           </ul>
         )}
+        {(result.resolved?.length ?? 0) > 0 && (
+          <ul className="mt-3 space-y-1 text-xs text-slate-600" data-testid="resolved">
+            {result.resolved!.map((r, i) => (
+              <li key={i}>
+                ☑️ p.{r.page} &quot;{r.sentence.length > 50 ? r.sentence.slice(0, 50) + "…" : r.sentence}&quot; — {r.label}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       <div className="grid grid-cols-1 gap-3 rounded-md bg-slate-50 p-3 text-xs text-slate-700 sm:grid-cols-2" data-testid="scope">
         <div>

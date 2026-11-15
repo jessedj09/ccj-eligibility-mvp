@@ -48,8 +48,16 @@ def display(verdict: str) -> Display:
 COMMON_NOTE = "판정 근거는 조건별로 표시한 공고문 원문입니다. 최종 자격은 공고 기관의 서류 심사로 확정됩니다."
 
 
-def display_checks(n: int) -> Display:
-    """자동 분석 공고에서 그 사용자의 결론이 확실하지 않은 곳에 따라 갈릴 때(v3 사용자 단위 확정, src/grading.py)."""
+ONLY_SENTENCES = frozenset({"unclassified", "restriction"})
+ONLY_SENTENCES_TODO = ("이 문장 말고는 확인한 조건을 모두 충족합니다. 아래 문장이 본인에게 해당하는 제한인지 공고문 해당 쪽에서 확인하세요 — "
+                       "해당하지 않으면 지원 가능입니다.")
+
+
+def display_checks(n: int, kinds=()) -> Display:
+    """자동 분석 공고에서 그 사용자의 결론이 확실하지 않은 곳에 따라 갈릴 때(v3 사용자 단위 확정, src/grading.py).
+    확인할 곳이 규칙에 없는 문장뿐이면(엔진은 '지원 가능') 그 문장 말고는 모두 충족했다고 알린다(R-③ 보완 B, 2026-11-15)."""
+    if kinds and set(kinds) <= ONLY_SENTENCES:
+        return Display(HOLD_GROUP, "🔍", f"원문 확인 {n}건", ONLY_SENTENCES_TODO, kind=SOURCE)
     return Display(HOLD_GROUP, "🔍", f"원문 확인 {n}건",
                    "다른 조건으로는 결론이 정해지지 않았습니다. 아래 표시한 곳만 공고문 원문에서 확인하면 결과가 확정됩니다.",
                    kind=SOURCE)
@@ -87,7 +95,7 @@ def display_result(verdict: str, review_reasons=None, checks: int = 0, check_kin
         from live_notices import RELAXED_NOTE
         return Display(HOLD_GROUP, "🔍", "확인 필요 — 입주자격 완화 공고", RELAXED_NOTE, kind=SOURCE)
     if checks:
-        return display_checks(checks)
+        return display_checks(checks, check_kinds)
     if verdict == "NEEDS_INFO":
         return Display(HOLD_GROUP, "⚠️", "입력하면 판정",
                        "판정에 필요한 정보가 비어 있습니다. 아래 '추가로 입력하면 판정할 수 있는 조건'을 입력하면 판정됩니다.", kind=INPUT)
