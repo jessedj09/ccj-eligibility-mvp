@@ -552,6 +552,13 @@ CONDLIKE·근거 판정 넓히기(④ 늘어남) / 근거 판정을 인용문 �
 - 든든전세 대전·충남 2차: '모집권역 제한 없이 신청 가능(제한 완화)'인데 초안이 형제 공고의 수도권 지역 목록을 지역 조건으로 붙임(보류 표시라 ④).
 - 추출 수정 3건(영구임대 거주 문구·청약통장 문구·든든전세 제한 완화)은 사용자 확인 뒤 진행, 판정 틀(울산·제천 지역 목록)·변형 공고(익산평화)는
   ProjectCCJ_work 판단.
+- **추출 수정 결과(2026-11-15, 사용자 승인)**: ① 영구임대 `RESIDENCE` — '…에 거주하는 성년자인'·'거주하고 주민등록이 등재된'·'주민등록이 등재된'
+  (시·군 앞은 '현재' 또는 한글 아닌 글자) → **수원시 영구임대 막힘 → 판정** ② 공공임대 `ACCOUNT_FREE`에 '청약통장 가입여부 … 관계없이' →
+  **평택·안성 10년 공공임대 막힘 → 판정** ③ 익산시·밀양시 영구임대는 문구는 읽지만 표준 지역 이름(`regions.json` — 서울·인천, 경기 시·군,
+  그 밖 시도)에 시 단위가 없어 계속 막힘(지역 모델 확장 — ProjectCCJ_work·사용자 결정) ④ 든든전세 '제한 완화'는 지역이 판정 틀 생성 스크립트
+  (gen_c4_lh 'jeonse')에 박혀 있고 공고가 '분양전환형'(틀은 비분양전환형)이라 추출만으로 못 고침 — 변형 공고 처리 먼저(ProjectCCJ_work 제안).
+- R-③ 공고 단위 해소용 후보: `sentence_check.candidates(draft, raw_pages, sha256)` → {sha256, sentence_id, page, sentence, context,
+  tier(required/reference — 자격 영역 안 또는 guard 'c'), draft_verdict, reason, template}(ProjectCCJ_work `tools/resolve_clauses.py import` 형식).
 
 ## 14. 결정 필요 사항
 

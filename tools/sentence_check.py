@@ -117,3 +117,37 @@ def decide(slot, d, raw_pages: List[str], mode: str = "c") -> List[Tuple[int, st
         lab = classify(slot, text, context_of(raw_pages, page, text), layers)
         out.append((page, text, lab, clears(lab, text, mode)))
     return out
+
+
+# ------------------------------------------------------------------ R-③ 공고 단위 해소에 넘길 후보(2026-11-15 사용자 승인 — 3단계 해결안)
+REQUIRED, REFERENCE = "required", "reference"
+
+
+def tier_of(d, page: int, text: str) -> str:
+    """필수/참고 — 필수 = 자격 영역(계층마다 조건 근거 쪽 범위, grading.layer_pages) 안에 있거나 결정론 표지(guard 'c': 강한·부드러운
+    제한 표현·기준값)가 있음. ProjectCCJ_work clause_resolution과 같은 정의(guard·sentence_id 이름 유지). 질문·해소 순서에만 쓴다."""
+    import grading
+    inside = any(a <= page <= b for a, b in grading.layer_pages(d.doc).values()) if d.doc else False
+    return REQUIRED if inside or guard(text, "c") else REFERENCE
+
+
+def candidates(d, raw_pages: List[str], sha256: str, slot=None) -> List[dict]:
+    """초안의 미분류 문장 → R-③ 저장소(clause_resolutions)에 'proposed'로 넣을 행. ProjectCCJ_work tools/resolve_clauses.py import와
+    맞춘 모양: {sha256, sentence_id, page, sentence, context, tier(required/reference), draft_verdict('조건 아님'/'새 조건'/None), reason,
+    template}. slot(LLM)이 없으면 draft_verdict는 None(판정 초안 없음).
+    판정에는 쓰지 않는다 — 판정자(운영자·Claude 세션)가 확정해야 반영된다(R-③ 안전 조건)."""
+    rows = []
+    layers = list(d.notice.layers) if getattr(d, "notice", None) else []
+    for page, text in dict.fromkeys(d.unclassified):
+        context = context_of(raw_pages, page, text)
+        verdict, reason = None, ""
+        if slot is not None:
+            out = slot.ask(prompt_for(text, context, layers), SCHEMA)
+            lab = (out or {}).get("label") if isinstance(out, dict) else None
+            verdict = lab if lab in (NOT_CONDITION, NEW_CONDITION) else None
+            reason = str((out or {}).get("reason", ""))[:200] if verdict else ""
+        rows.append({"sha256": sha256, "sentence_id": sentence_id(sha256, page, text), "page": page, "sentence": text,
+                     "context": context, "tier": tier_of(d, page, text), "draft_verdict": verdict, "reason": reason,
+                     "template": getattr(d, "template", None)})
+    rows.sort(key=lambda r: (r["tier"] != REQUIRED, r["page"]))
+    return rows

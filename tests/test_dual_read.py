@@ -85,3 +85,21 @@ def test_claude_reader_requires_approval():
     import pytest
     with pytest.raises(NotImplementedError):
         D.reader("claude:sonnet")
+
+
+def test_r3_candidates_shape_and_tier():
+    """R-③ 후보: 합의한 모양·문장 id, 자격 영역 안 또는 제한 표현이면 '필수'가 먼저, LLM 없으면 판정 초안 없음."""
+    import draft
+    import sentence_check as SC
+    nid = "N30"
+    d = draft.make_draft(sv.pdf_path(nid).read_bytes(), only=None, pages=sv.pdf_pages(nid), exclude=nid)
+    pages = sv.pdf_pages(nid)
+    lo, hi = min(r[0] for r in __import__("grading").layer_pages(d.doc).values()), \
+        max(r[1] for r in __import__("grading").layer_pages(d.doc).values())
+    d.unclassified = [(hi + 5, "※ 단지 내 편의시설 위치는 안내도를 참고하시기 바랍니다."), (lo, "• 신청자는 해당 지역에 2년 이상 거주하여야 합니다."),
+                      (hi + 6, "• 외부 거주자는 신청할 수 없습니다.")]
+    rows = SC.candidates(d, pages, "a" * 64)
+    assert set(rows[0]) == {"sha256", "sentence_id", "page", "sentence", "context", "tier", "draft_verdict", "reason", "template"}
+    assert [r["tier"] for r in rows] == [SC.REQUIRED, SC.REQUIRED, SC.REFERENCE]
+    assert rows[0]["sentence_id"] == SC.sentence_id("a" * 64, lo, "• 신청자는 해당 지역에 2년 이상 거주하여야 합니다.")
+    assert all(r["draft_verdict"] is None for r in rows)
